@@ -1,0 +1,598 @@
+import { z } from "zod";
+import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { customerPortalAccess, tickets, ticketComments } from "~/db/schema";
+import { eq, inArray, and, asc } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
+import type { db } from "~/db";
+
+// Helper function to verify portal access
+async function verifyPortalAccess(
+  ctx: { db: typeof db },
+  input: { companySlug: string; clientSlug: string; accessToken: string },
+) {
+  // Find client by both company slug and client slug in a single query (updated logic)
+  const clients = await ctx.db.query.clients.findMany({
+    where: (clients, { eq }) => eq(clients.slug, input.clientSlug),
+    with: {
+      company: true,
+    },
+  });
+
+  // Find the client that matches both client slug and company slug
+  const client = clients.find((c) => c.company.slug === input.companySlug);
+
+  // Verify the client exists and portal is enabled
+  if (!client || !client.portal_enabled) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Client not found or portal disabled",
+    });
+  }
+
+  // Find access record by access token
+  const access = await ctx.db.query.customerPortalAccess.findFirst({
+    where: (customerPortalAccess, { and, eq }) =>
+      and(
+        eq(customerPortalAccess.client_id, client.id),
+        eq(customerPortalAccess.access_token, input.accessToken),
+        eq(customerPortalAccess.is_active, true),
+      ),
+  });
+
+  if (!access) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Invalid access token",
+    });
+  }
+
+  return {
+    customerEmail: access.email,
+    customerName: access.name,
+    clientId: client.id,
+    clientName: client.name,
+    clientSlug: client.slug,
+    companyId: client.company.id,
+    companyName: client.company.name,
+    companySlug: client.company.slug,
+  };
+}
+
+export const customerPortalRouter = createTRPCRouter({
+  // Verify access token
+  verifyToken: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        accessToken: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Find client by both company slug and client slug in a single query
+      const clients = await ctx.db.query.clients.findMany({
+        where: (clients, { eq }) => eq(clients.slug, input.clientSlug),
+        with: {
+          company: true,
+        },
+      });
+
+      // Find the client that matches both client slug and company slug
+      const client = clients.find((c) => c.company.slug === input.companySlug);
+
+      // Verify the client exists and portal is enabled
+      if (!client || !client.portal_enabled) {
+        console.log("❌ Client validation failed:", {
+          found: !!client,
+          expectedCompanySlug: input.companySlug,
+          actualCompanySlug: client?.company?.slug,
+          portal_enabled: client?.portal_enabled,
+        });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Client not found or portal disabled",
+        });
+      }
+
+      // Get all access records for debugging
+      const allAccessRecords = await ctx.db.query.customerPortalAccess.findMany(
+        {
+          where: (customerPortalAccess, { eq }) =>
+            eq(customerPortalAccess.client_id, client.id),
+        },
+      );
+
+      // Find access record by access token
+      const access = await ctx.db.query.customerPortalAccess.findFirst({
+        where: (customerPortalAccess, { and, eq }) =>
+          and(
+            eq(customerPortalAccess.client_id, client.id),
+            eq(customerPortalAccess.access_token, input.accessToken),
+            eq(customerPortalAccess.is_active, true),
+          ),
+      });
+
+      if (!access) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid access token",
+        });
+      }
+
+      // Update last login
+      await ctx.db
+        .update(customerPortalAccess)
+        .set({
+          last_login_at: new Date(),
+          updated_at: new Date(),
+        })
+        .where(eq(customerPortalAccess.id, access.id));
+
+      return {
+        customerEmail: access.email,
+        customerName: access.name,
+        clientId: client.id,
+        clientName: client.name,
+        clientSlug: client.slug,
+        companyId: client.company.id,
+        companyName: client.company.name,
+        companySlug: client.company.slug,
+      };
+    }),
+
+  // Get customer tickets
+  getCustomerTickets: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        accessToken: z.string(),
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(50).default(10),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+        accessToken: input.accessToken,
+      });
+
+      const offset = (input.page - 1) * input.limit;
+
+      // Get tickets for this customer - simplified query without complex joins
+      const baseTickets = await ctx.db.query.tickets.findMany({
+        where: (tickets, { and, eq }) =>
+          and(
+            eq(tickets.client_id, access.clientId),
+            eq(tickets.customer_email, access.customerEmail),
+          ),
+        limit: input.limit,
+        offset,
+        orderBy: (tickets, { desc }) => [desc(tickets.created_at)],
+      });
+
+      // If no tickets found, return empty array
+      if (baseTickets.length === 0) {
+        return [];
+      }
+
+      // Get assigned memberships for tickets that have them
+      const membershipIds = baseTickets
+        .map((ticket) => ticket.assigned_to_membership_id)
+        .filter((id): id is string => id !== null);
+
+      let memberships: any[] = [];
+      if (membershipIds.length > 0) {
+        // Get base memberships first
+        const baseMemberships = await ctx.db.query.memberships.findMany({
+          where: (memberships) => inArray(memberships.id, membershipIds),
+        });
+
+        // Get users for these memberships
+        const userIds = baseMemberships.map((m) => m.user_id);
+        let users: any[] = [];
+        if (userIds.length > 0) {
+          users = await ctx.db.query.users.findMany({
+            where: (users) => inArray(users.id, userIds),
+          });
+        }
+
+        // Combine memberships with users
+        memberships = baseMemberships.map((membership) => ({
+          ...membership,
+          user: users.find((u) => u.id === membership.user_id) || null,
+        }));
+      }
+
+      // Get non-internal comments for these tickets - simplified query
+      const ticketIds = baseTickets.map((ticket) => ticket.id);
+      let baseComments: any[] = [];
+      if (ticketIds.length > 0) {
+        try {
+          baseComments = await ctx.db
+            .select()
+            .from(ticketComments)
+            .where(
+              and(
+                inArray(ticketComments.ticket_id, ticketIds),
+                eq(ticketComments.is_internal, false),
+              ),
+            )
+            .orderBy(asc(ticketComments.created_at));
+        } catch (error) {
+          console.error("Failed to fetch comments:", error);
+          baseComments = [];
+        }
+      }
+
+      // Get membership data for comments that have membership_id
+      const commentMembershipIds = baseComments
+        .map((comment) => comment.membership_id)
+        .filter((id): id is string => id !== null);
+
+      let commentMemberships: any[] = [];
+      let commentUsers: any[] = [];
+      if (commentMembershipIds.length > 0) {
+        // Get base memberships first
+        const baseMemberships = await ctx.db.query.memberships.findMany({
+          where: (memberships) => inArray(memberships.id, commentMembershipIds),
+        });
+
+        // Get users for these memberships
+        const userIds = baseMemberships.map((m) => m.user_id);
+        if (userIds.length > 0) {
+          commentUsers = await ctx.db.query.users.findMany({
+            where: (users) => inArray(users.id, userIds),
+          });
+        }
+
+        // Combine memberships with users
+        commentMemberships = baseMemberships.map((membership) => ({
+          ...membership,
+          user: commentUsers.find((u) => u.id === membership.user_id) || null,
+        }));
+      }
+
+      // Get customer portal access data for comments that have customer_portal_access_id
+      const commentPortalAccessIds = baseComments
+        .map((comment) => comment.customer_portal_access_id)
+        .filter((id): id is string => id !== null);
+
+      let commentPortalAccess: any[] = [];
+      if (commentPortalAccessIds.length > 0) {
+        commentPortalAccess = await ctx.db.query.customerPortalAccess.findMany({
+          where: (customerPortalAccess) =>
+            inArray(customerPortalAccess.id, commentPortalAccessIds),
+        });
+      }
+
+      // Combine comment data
+      const comments = baseComments.map((comment) => ({
+        ...comment,
+        membership:
+          commentMemberships.find((m) => m.id === comment.membership_id) ||
+          null,
+        customerPortalAccess:
+          commentPortalAccess.find(
+            (p) => p.id === comment.customer_portal_access_id,
+          ) || null,
+      }));
+
+      // Combine the data manually
+      const customerTickets = baseTickets.map((ticket) => ({
+        ...ticket,
+        assignedToMembership:
+          memberships.find((m) => m.id === ticket.assigned_to_membership_id) ||
+          null,
+        comments: comments.filter((comment) => comment.ticket_id === ticket.id),
+      }));
+
+      return customerTickets;
+    }),
+
+  // Create ticket from customer portal
+  createTicket: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        accessToken: z.string(),
+        subject: z.string().min(1),
+        description: z.string().min(1),
+        priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+        accessToken: input.accessToken,
+      });
+
+      // Get default SLA policy for the company
+      const defaultSLA = await ctx.db.query.slaPolicies.findFirst({
+        where: (slaPolicies, { and, eq }) =>
+          and(
+            eq(slaPolicies.company_id, access.companyId),
+            eq(slaPolicies.is_default, true),
+          ),
+      });
+
+      // Find a suitable agent to auto-assign (optional)
+      const availableAgentMembership = await ctx.db.query.memberships.findFirst(
+        {
+          where: (memberships, { and, eq }) =>
+            and(
+              eq(memberships.company_id, access.companyId),
+              eq(memberships.role, "agent"),
+              eq(memberships.is_active, true),
+            ),
+          with: {
+            user: true,
+          },
+          orderBy: (memberships, { asc }) => [asc(memberships.joined_at)], // Simple round-robin
+        },
+      );
+
+      const ticketData = {
+        company_id: access.companyId,
+        client_id: access.clientId,
+        subject: input.subject,
+        description: input.description,
+        priority: input.priority,
+        customer_email: access.customerEmail,
+        customer_name: access.customerName,
+        created_by_membership_id: null, // Customer created, not a member
+        assigned_to_membership_id: availableAgentMembership?.id || null,
+        sla_policy_id: defaultSLA?.id || null,
+      };
+
+      const [ticket] = await ctx.db
+        .insert(tickets)
+        .values(ticketData)
+        .returning();
+
+      return ticket;
+    }),
+
+  // Add comment to ticket from customer portal
+  addComment: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        accessToken: z.string(),
+        ticketId: z.string().uuid(),
+        content: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+        accessToken: input.accessToken,
+      });
+
+      // Verify ticket belongs to this customer
+      const ticket = await ctx.db.query.tickets.findFirst({
+        where: (tickets, { and, eq }) =>
+          and(
+            eq(tickets.id, input.ticketId),
+            eq(tickets.client_id, access.clientId),
+            eq(tickets.customer_email, access.customerEmail),
+          ),
+      });
+
+      if (!ticket) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Ticket not found or access denied",
+        });
+      }
+
+      // Find the customer portal access record to link the comment
+      const portalAccess = await ctx.db.query.customerPortalAccess.findFirst({
+        where: (customerPortalAccess, { and, eq }) =>
+          and(
+            eq(customerPortalAccess.client_id, access.clientId),
+            eq(customerPortalAccess.access_token, input.accessToken),
+            eq(customerPortalAccess.is_active, true),
+          ),
+      });
+
+      if (!portalAccess) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Portal access record not found",
+        });
+      }
+
+      const [comment] = await ctx.db
+        .insert(ticketComments)
+        .values({
+          company_id: access.companyId,
+          ticket_id: input.ticketId,
+          customer_portal_access_id: portalAccess.id,
+          content: input.content,
+          is_internal: false,
+          is_system: false,
+        })
+        .returning();
+
+      // Update ticket to show activity
+      await ctx.db
+        .update(tickets)
+        .set({ updated_at: new Date() })
+        .where(eq(tickets.id, input.ticketId));
+
+      return comment;
+    }),
+
+  // Get customer portal knowledge base
+  getKnowledgeBase: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        search: z.string().optional(),
+        limit: z.number().min(1).max(50).default(20),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // First get the client to find the company
+      const client = await ctx.db.query.clients.findFirst({
+        where: (clients, { eq }) => eq(clients.slug, input.clientSlug),
+        with: {
+          company: true,
+        },
+      });
+
+      if (
+        !client ||
+        client.company.slug !== input.companySlug ||
+        !client.portal_enabled
+      ) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Client not found or portal disabled",
+        });
+      }
+
+      // Get published knowledge base articles for the client's company
+      const articles = await ctx.db.query.knowledgeBase.findMany({
+        where: (knowledgeBase, { and, eq, ilike }) => {
+          const conditions = [
+            eq(knowledgeBase.company_id, client.company.id),
+            eq(knowledgeBase.is_published, true),
+            eq(knowledgeBase.is_public, true),
+          ];
+
+          if (input.search) {
+            conditions.push(ilike(knowledgeBase.title, `%${input.search}%`));
+          }
+
+          return and(...conditions);
+        },
+        limit: input.limit,
+        orderBy: (knowledgeBase, { desc }) => [desc(knowledgeBase.created_at)],
+      });
+
+      return articles;
+    }),
+
+  // Get SLA metrics for customer portal
+  getSLAMetrics: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        accessToken: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+        accessToken: input.accessToken,
+      });
+
+      // Get tickets for this customer with SLA data
+      const customerTickets = await ctx.db.query.tickets.findMany({
+        where: (tickets, { and, eq }) =>
+          and(
+            eq(tickets.client_id, access.clientId),
+            eq(tickets.customer_email, access.customerEmail),
+          ),
+        with: {
+          slaPolicy: true,
+        },
+      });
+
+      // Calculate SLA metrics
+      const totalTickets = customerTickets.length;
+      const resolvedTickets = customerTickets.filter(
+        (t) => t.status === "resolved" || t.status === "closed",
+      );
+
+      // Response time SLA compliance
+      const ticketsWithResponseSLA = customerTickets.filter(
+        (t) =>
+          t.first_response_at && t.slaPolicy && t.sla_response_breach === false,
+      );
+
+      // Resolution time SLA compliance
+      const ticketsWithResolutionSLA = resolvedTickets.filter(
+        (t) =>
+          t.resolved_at && t.slaPolicy && t.sla_resolution_breach === false,
+      );
+
+      // Average response time (in hours)
+      const responseTimesInHours = customerTickets
+        .filter((t) => t.first_response_at)
+        .map((t) => {
+          const created = new Date(t.created_at);
+          const responded = new Date(t.first_response_at!);
+          return (responded.getTime() - created.getTime()) / (1000 * 60 * 60);
+        });
+
+      const avgResponseTime =
+        responseTimesInHours.length > 0
+          ? responseTimesInHours.reduce((a, b) => a + b, 0) /
+            responseTimesInHours.length
+          : 0;
+
+      // Average resolution time (in hours)
+      const resolutionTimesInHours = resolvedTickets
+        .filter((t) => t.resolved_at)
+        .map((t) => {
+          const created = new Date(t.created_at);
+          const resolved = new Date(t.resolved_at!);
+          return (resolved.getTime() - created.getTime()) / (1000 * 60 * 60);
+        });
+
+      const avgResolutionTime =
+        resolutionTimesInHours.length > 0
+          ? resolutionTimesInHours.reduce((a, b) => a + b, 0) /
+            resolutionTimesInHours.length
+          : 0;
+
+      // Status breakdown
+      const statusBreakdown = {
+        open: customerTickets.filter((t) => t.status === "open").length,
+        in_progress: customerTickets.filter((t) => t.status === "in_progress")
+          .length,
+        resolved: customerTickets.filter((t) => t.status === "resolved").length,
+        closed: customerTickets.filter((t) => t.status === "closed").length,
+      };
+
+      // Priority breakdown
+      const priorityBreakdown = {
+        low: customerTickets.filter((t) => t.priority === "low").length,
+        medium: customerTickets.filter((t) => t.priority === "medium").length,
+        high: customerTickets.filter((t) => t.priority === "high").length,
+        urgent: customerTickets.filter((t) => t.priority === "urgent").length,
+      };
+
+      return {
+        totalTickets,
+        resolvedTickets: resolvedTickets.length,
+        responseSLACompliance:
+          totalTickets > 0
+            ? (ticketsWithResponseSLA.length / totalTickets) * 100
+            : 0,
+        resolutionSLACompliance:
+          resolvedTickets.length > 0
+            ? (ticketsWithResolutionSLA.length / resolvedTickets.length) * 100
+            : 0,
+        avgResponseTimeHours: Number(avgResponseTime.toFixed(1)),
+        avgResolutionTimeHours: Number(avgResolutionTime.toFixed(1)),
+        statusBreakdown,
+        priorityBreakdown,
+      };
+    }),
+});
