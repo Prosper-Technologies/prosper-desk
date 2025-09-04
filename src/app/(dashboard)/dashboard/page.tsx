@@ -44,7 +44,7 @@ export default function DashboardPage() {
       clientId: selectedClientId === "all" ? undefined : selectedClientId,
     });
 
-  const { data: clients } = api.client.getAll.useQuery({
+  const { data: clients } = api.clients.getAll.useQuery({
     page: 1,
     limit: 50,
   });

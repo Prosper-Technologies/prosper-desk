@@ -37,7 +37,7 @@ export default function ClientDetailsPage() {
   const clientId = params?.clientId as string;
 
   const { data: client, isLoading: clientLoading } =
-    api.client.getById.useQuery({
+    api.clients.getById.useQuery({
       id: clientId,
     });
 

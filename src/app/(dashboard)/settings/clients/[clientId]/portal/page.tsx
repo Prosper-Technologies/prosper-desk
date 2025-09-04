@@ -75,15 +75,15 @@ export default function ClientPortalAccessPage() {
   const [updateExpiration, setUpdateExpiration] = useState<string>("never");
 
   // Get client details
-  const { data: client } = api.client.getById.useQuery({ id: clientId });
+  const { data: client } = api.clients.getById.useQuery({ id: clientId });
 
   // Get portal access list
-  const { data: portalAccess, refetch } = api.client.getPortalAccess.useQuery({
+  const { data: portalAccess, refetch } = api.clients.getPortalAccess.useQuery({
     clientId,
   });
 
   // Generate portal access mutation
-  const generateAccess = api.client.generatePortalAccess.useMutation({
+  const generateAccess = api.clients.generatePortalAccess.useMutation({
     onSuccess: (data) => {
       setGeneratedAccess(data);
       setError("");
@@ -95,7 +95,7 @@ export default function ClientPortalAccessPage() {
   });
 
   // Revoke access mutation
-  const revokeAccess = api.client.revokePortalAccess.useMutation({
+  const revokeAccess = api.clients.revokePortalAccess.useMutation({
     onSuccess: () => {
       refetch();
     },
@@ -105,7 +105,7 @@ export default function ClientPortalAccessPage() {
   });
 
   // Delete access mutation
-  const deleteAccess = api.client.deletePortalAccess.useMutation({
+  const deleteAccess = api.clients.deletePortalAccess.useMutation({
     onSuccess: () => {
       refetch();
     },
@@ -115,7 +115,7 @@ export default function ClientPortalAccessPage() {
   });
 
   // Regenerate token mutation (reuses generatePortalAccess with existing user data)
-  const regenerateToken = api.client.generatePortalAccess.useMutation({
+  const regenerateToken = api.clients.generatePortalAccess.useMutation({
     onSuccess: (data) => {
       setGeneratedAccess(data);
       setError("");
@@ -128,7 +128,7 @@ export default function ClientPortalAccessPage() {
 
   // Update expiration mutation
   const updateExpirationMutation =
-    api.client.updatePortalAccessExpiration.useMutation({
+    api.clients.updatePortalAccessExpiration.useMutation({
       onSuccess: () => {
         setUpdateExpOpen(null);
         setUpdateExpiration("never");

@@ -1,7 +1,11 @@
 import { z } from "zod";
-import { createTRPCRouter, companyProcedure, publicProcedure } from "~/server/api/trpc";
+import {
+  companyProcedure,
+  createTRPCRouter,
+  publicProcedure,
+} from "~/server/api/trpc";
 import { knowledgeBase } from "~/db/schema";
-import { eq, and, or, ilike, desc, count, ne } from "drizzle-orm";
+import { and, count, desc, eq, ilike, ne, or } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 export const knowledgeBaseRouter = createTRPCRouter({
@@ -18,31 +22,31 @@ export const knowledgeBaseRouter = createTRPCRouter({
       const offset = (input.page - 1) * input.limit;
 
       const whereConditions = [eq(knowledgeBase.company_id, ctx.company.id)];
-      
+
       // For non-admins, only show published articles or their own
-      if (ctx.user.role !== 'admin') {
+      if (ctx.user.role !== "admin") {
         whereConditions.push(
           or(
             eq(knowledgeBase.is_published, true),
-            eq(knowledgeBase.author_id, ctx.user.id)
-          )!
+            eq(knowledgeBase.author_id, ctx.user.id),
+          )!,
         );
       }
-      
-      if (typeof input.isPublished === 'boolean') {
+
+      if (typeof input.isPublished === "boolean") {
         whereConditions.push(eq(knowledgeBase.is_published, input.isPublished));
       }
-      
+
       if (input.authorId) {
         whereConditions.push(eq(knowledgeBase.author_id, input.authorId));
       }
-      
+
       if (input.search) {
         whereConditions.push(
           or(
             ilike(knowledgeBase.title, `%${input.search}%`),
-            ilike(knowledgeBase.content, `%${input.search}%`)
-          )!
+            ilike(knowledgeBase.content, `%${input.search}%`),
+          )!,
         );
       }
 
@@ -57,7 +61,12 @@ export const knowledgeBaseRouter = createTRPCRouter({
         where: and(...whereConditions),
         with: {
           author: {
-            columns: { id: true, first_name: true, last_name: true, avatar_url: true },
+            columns: {
+              id: true,
+              first_name: true,
+              last_name: true,
+              avatar_url: true,
+            },
           },
         },
         limit: input.limit,
@@ -104,13 +113,13 @@ export const knowledgeBaseRouter = createTRPCRouter({
         eq(knowledgeBase.is_published, true),
         eq(knowledgeBase.is_public, true),
       ];
-      
+
       if (input.search) {
         whereConditions.push(
           or(
             ilike(knowledgeBase.title, `%${input.search}%`),
-            ilike(knowledgeBase.content, `%${input.search}%`)
-          )!
+            ilike(knowledgeBase.content, `%${input.search}%`),
+          )!,
         );
       }
 
@@ -146,13 +155,19 @@ export const knowledgeBaseRouter = createTRPCRouter({
     }))
     .query(async ({ ctx, input }) => {
       const article = await ctx.db.query.knowledgeBase.findFirst({
-        where: (knowledgeBase, { and, eq }) => and(
-          eq(knowledgeBase.id, input.id),
-          eq(knowledgeBase.company_id, ctx.company.id)
-        ),
+        where: (knowledgeBase, { and, eq }) =>
+          and(
+            eq(knowledgeBase.id, input.id),
+            eq(knowledgeBase.company_id, ctx.company.id),
+          ),
         with: {
           author: {
-            columns: { id: true, first_name: true, last_name: true, avatar_url: true },
+            columns: {
+              id: true,
+              first_name: true,
+              last_name: true,
+              avatar_url: true,
+            },
           },
         },
       });
@@ -165,7 +180,10 @@ export const knowledgeBaseRouter = createTRPCRouter({
       }
 
       // Check if user can view this article
-      if (!article.is_published && article.author_id !== ctx.user.id && ctx.user.role !== 'admin') {
+      if (
+        !article.is_published && article.author_id !== ctx.user.id &&
+        ctx.user.role !== "admin"
+      ) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Not authorized to view this article",
@@ -195,12 +213,13 @@ export const knowledgeBaseRouter = createTRPCRouter({
       }
 
       const article = await ctx.db.query.knowledgeBase.findFirst({
-        where: (knowledgeBase, { and, eq }) => and(
-          eq(knowledgeBase.company_id, company.id),
-          eq(knowledgeBase.slug, input.articleSlug),
-          eq(knowledgeBase.is_published, true),
-          eq(knowledgeBase.is_public, true)
-        ),
+        where: (knowledgeBase, { and, eq }) =>
+          and(
+            eq(knowledgeBase.company_id, company.id),
+            eq(knowledgeBase.slug, input.articleSlug),
+            eq(knowledgeBase.is_published, true),
+            eq(knowledgeBase.is_public, true),
+          ),
         columns: {
           id: true,
           title: true,
@@ -228,15 +247,15 @@ export const knowledgeBaseRouter = createTRPCRouter({
       // Increment view count
       await ctx.db
         .update(knowledgeBase)
-        .set({ 
+        .set({
           view_count: article.view_count + 1,
           updated_at: new Date(),
         })
         .where(eq(knowledgeBase.id, article.id));
 
-      return { 
-        ...article, 
-        view_count: article.view_count + 1 
+      return {
+        ...article,
+        view_count: article.view_count + 1,
       };
     }),
 
@@ -253,10 +272,11 @@ export const knowledgeBaseRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       // Check if slug is unique within company
       const existingArticle = await ctx.db.query.knowledgeBase.findFirst({
-        where: (knowledgeBase, { and, eq }) => and(
-          eq(knowledgeBase.company_id, ctx.company.id),
-          eq(knowledgeBase.slug, input.slug)
-        ),
+        where: (knowledgeBase, { and, eq }) =>
+          and(
+            eq(knowledgeBase.company_id, ctx.company.id),
+            eq(knowledgeBase.slug, input.slug),
+          ),
       });
 
       if (existingArticle) {
@@ -294,10 +314,11 @@ export const knowledgeBaseRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       // Check if article exists and user can edit it
       const existingArticle = await ctx.db.query.knowledgeBase.findFirst({
-        where: (knowledgeBase, { and, eq }) => and(
-          eq(knowledgeBase.id, input.id),
-          eq(knowledgeBase.company_id, ctx.company.id)
-        ),
+        where: (knowledgeBase, { and, eq }) =>
+          and(
+            eq(knowledgeBase.id, input.id),
+            eq(knowledgeBase.company_id, ctx.company.id),
+          ),
       });
 
       if (!existingArticle) {
@@ -308,8 +329,9 @@ export const knowledgeBaseRouter = createTRPCRouter({
       }
 
       // Check permissions - authors can edit their own articles, admins can edit all
-      const canEdit = existingArticle.author_id === ctx.user.id || ctx.user.role === 'admin';
-      
+      const canEdit = existingArticle.author_id === ctx.user.id ||
+        ctx.user.role === "admin";
+
       if (!canEdit) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -320,11 +342,12 @@ export const knowledgeBaseRouter = createTRPCRouter({
       // Check slug uniqueness if changing
       if (input.slug && input.slug !== existingArticle.slug) {
         const slugExists = await ctx.db.query.knowledgeBase.findFirst({
-          where: (knowledgeBase, { and, eq, ne }) => and(
-            eq(knowledgeBase.company_id, ctx.company.id),
-            eq(knowledgeBase.slug, input.slug),
-            ne(knowledgeBase.id, input.id)
-          ),
+          where: (knowledgeBase, { and, eq, ne }) =>
+            and(
+              eq(knowledgeBase.company_id, ctx.company.id),
+              eq(knowledgeBase.slug, input.slug),
+              ne(knowledgeBase.id, input.id),
+            ),
         });
 
         if (slugExists) {
@@ -336,17 +359,21 @@ export const knowledgeBaseRouter = createTRPCRouter({
       }
 
       const updateData: Record<string, any> = {};
-      
+
       if (input.title) updateData.title = input.title;
       if (input.slug) updateData.slug = input.slug;
       if (input.content) updateData.content = input.content;
-      if (typeof input.isPublished === 'boolean') updateData.is_published = input.isPublished;
-      if (typeof input.isPublic === 'boolean') updateData.is_public = input.isPublic;
+      if (typeof input.isPublished === "boolean") {
+        updateData.is_published = input.isPublished;
+      }
+      if (typeof input.isPublic === "boolean") {
+        updateData.is_public = input.isPublic;
+      }
       if (input.tags) updateData.tags = input.tags;
 
       if (Object.keys(updateData).length > 0) {
         updateData.updated_at = new Date();
-        
+
         const [updatedArticle] = await ctx.db
           .update(knowledgeBase)
           .set(updateData)
@@ -367,10 +394,11 @@ export const knowledgeBaseRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       // Check if article exists and user can delete it
       const article = await ctx.db.query.knowledgeBase.findFirst({
-        where: (knowledgeBase, { and, eq }) => and(
-          eq(knowledgeBase.id, input.id),
-          eq(knowledgeBase.company_id, ctx.company.id)
-        ),
+        where: (knowledgeBase, { and, eq }) =>
+          and(
+            eq(knowledgeBase.id, input.id),
+            eq(knowledgeBase.company_id, ctx.company.id),
+          ),
       });
 
       if (!article) {
@@ -381,8 +409,9 @@ export const knowledgeBaseRouter = createTRPCRouter({
       }
 
       // Check permissions
-      const canDelete = article.author_id === ctx.user.id || ctx.user.role === 'admin';
-      
+      const canDelete = article.author_id === ctx.user.id ||
+        ctx.user.role === "admin";
+
       if (!canDelete) {
         throw new TRPCError({
           code: "FORBIDDEN",

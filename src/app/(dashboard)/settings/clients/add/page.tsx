@@ -40,7 +40,7 @@ export default function AddClientPage() {
 
   const router = useRouter();
 
-  const createClient = api.client.create.useMutation({
+  const createClient = api.clients.create.useMutation({
     onSuccess: (client) => {
       setSuccess(`${client.name} has been created successfully!`);
       setTimeout(() => {

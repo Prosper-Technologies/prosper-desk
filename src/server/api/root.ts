@@ -24,7 +24,7 @@ export const appRouter = createTRPCRouter({
   knowledgeBase: knowledgeBaseRouter,
   dashboard: dashboardRouter,
   customerPortal: customerPortalRouter,
-  client: clientRouter,
+  clients: clientRouter,
   sla: slaRouter,
   gmail: gmailRouter,
   apiKeys: apiKeysRouter,

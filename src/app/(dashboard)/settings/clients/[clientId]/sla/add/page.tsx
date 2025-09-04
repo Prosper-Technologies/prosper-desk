@@ -70,7 +70,7 @@ export default function AddSLAPolicyPage() {
   });
 
   const { data: client, isLoading: clientLoading } =
-    api.client.getById.useQuery({
+    api.clients.getById.useQuery({
       id: clientId,
     });
 

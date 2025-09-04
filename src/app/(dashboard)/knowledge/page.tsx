@@ -125,7 +125,7 @@ export default function KnowledgeBasePage() {
                 </div>
                 <CardTitle className="text-lg leading-tight">
                   <Link
-                    href={`/knowledge/${article.slug}`}
+                    href={`/knowledge/${article.slug}` as any}
                     className="transition-colors hover:text-blue-600"
                   >
                     {article.title}
@@ -155,13 +155,13 @@ export default function KnowledgeBasePage() {
                   </div>
                   <div className="flex gap-1">
                     <Button asChild variant="ghost" size="sm">
-                      <Link href={`/knowledge/${article.slug}`}>
+                      <Link href={`/knowledge/${article.slug}` as any}>
                         <FileText className="mr-1 h-3 w-3" />
                         View
                       </Link>
                     </Button>
                     <Button asChild variant="ghost" size="sm">
-                      <Link href={`/knowledge/${article.slug}/edit`}>Edit</Link>
+                      <Link href={`/knowledge/${article.slug}/edit` as any}>Edit</Link>
                     </Button>
                   </div>
                 </div>

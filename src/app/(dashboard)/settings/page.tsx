@@ -47,7 +47,7 @@ export default function SettingsPage() {
 
   const { data: company, isLoading: companyLoading } =
     api.company.getSettings.useQuery();
-  const { data, isLoading } = api.client.getAll.useQuery({
+  const { data, isLoading } = api.clients.getAll.useQuery({
     page: 1,
     limit: 50,
     search: searchTerm || undefined,

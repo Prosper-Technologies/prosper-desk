@@ -13,7 +13,7 @@ import {
   Menu,
   X,
   Building2,
-  LogOut
+  LogOut,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
@@ -69,16 +69,17 @@ export default function Sidebar({ user, company }: SidebarProps) {
   const NavItems = () => (
     <>
       {navigation.map((item) => {
-        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const isActive =
+          pathname === item.href || pathname?.startsWith(`${item.href}/`);
         return (
           <Link
             key={item.name}
-            href={item.href}
+            href={item.href as any}
             className={cn(
-              "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              "flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               isActive
                 ? "bg-primary text-primary-foreground"
-                : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                : "text-gray-700 hover:bg-gray-100 hover:text-gray-900",
             )}
             onClick={() => setIsMobileMenuOpen(false)}
           >
@@ -93,10 +94,12 @@ export default function Sidebar({ user, company }: SidebarProps) {
   return (
     <>
       {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="fixed left-0 right-0 top-0 z-50 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 lg:hidden">
         <div className="flex items-center space-x-3">
           <Building2 className="h-6 w-6 text-primary" />
-          <span className="font-semibold text-gray-900">{company?.name || "BlueDesk"}</span>
+          <span className="font-semibold text-gray-900">
+            {company?.name || "BlueDesk"}
+          </span>
         </div>
         <Button
           variant="ghost"
@@ -108,10 +111,10 @@ export default function Sidebar({ user, company }: SidebarProps) {
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:border-r lg:border-gray-200 lg:bg-white">
-        <div className="flex flex-col flex-1 pt-5 pb-4 overflow-y-auto">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-gray-200 lg:bg-white">
+        <div className="flex flex-1 flex-col overflow-y-auto pb-4 pt-5">
           {/* Logo and company name */}
-          <div className="flex items-center flex-shrink-0 px-4 mb-6">
+          <div className="mb-6 flex flex-shrink-0 items-center px-4">
             <Building2 className="h-6 w-6 text-primary" />
             <span className="ml-2 text-lg font-semibold text-gray-900">
               BlueDesk
@@ -119,12 +122,12 @@ export default function Sidebar({ user, company }: SidebarProps) {
           </div>
 
           {/* Company Switcher */}
-          <div className="px-4 mb-6">
+          <div className="mb-6 px-4">
             <CompanySwitcher />
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 space-y-1">
+          <nav className="flex-1 space-y-1 px-3">
             <NavItems />
           </nav>
 
@@ -133,19 +136,18 @@ export default function Sidebar({ user, company }: SidebarProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
                     <span className="text-sm font-medium text-primary-foreground">
-                      {user?.first_name?.[0]}{user?.last_name?.[0]}
+                      {user?.first_name?.[0]}
+                      {user?.last_name?.[0]}
                     </span>
                   </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-gray-900">
                     {user?.first_name} {user?.last_name}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {user?.role}
-                  </p>
+                  <p className="truncate text-xs text-gray-500">{user?.role}</p>
                 </div>
               </div>
               <Button
@@ -163,7 +165,7 @@ export default function Sidebar({ user, company }: SidebarProps) {
 
       {/* Mobile sidebar overlay */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
+        <div className="fixed inset-0 z-50 flex lg:hidden">
           {/* Overlay */}
           <div
             className="fixed inset-0 bg-black bg-opacity-50"
@@ -171,13 +173,11 @@ export default function Sidebar({ user, company }: SidebarProps) {
           />
 
           {/* Sidebar */}
-          <div className="relative flex flex-col w-64 bg-white">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <div className="relative flex w-64 flex-col bg-white">
+            <div className="flex items-center justify-between border-b border-gray-200 p-4">
               <div className="flex items-center space-x-3">
                 <Building2 className="h-6 w-6 text-primary" />
-                <span className="font-semibold text-gray-900">
-                  BlueDesk
-                </span>
+                <span className="font-semibold text-gray-900">BlueDesk</span>
               </div>
               <Button
                 variant="ghost"
@@ -189,29 +189,28 @@ export default function Sidebar({ user, company }: SidebarProps) {
             </div>
 
             {/* Mobile Company Switcher */}
-            <div className="px-4 py-4 border-b border-gray-200">
+            <div className="border-b border-gray-200 px-4 py-4">
               <CompanySwitcher />
             </div>
 
-            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
               <NavItems />
             </nav>
 
             {/* Mobile user section */}
             <div className="border-t border-gray-200 p-4">
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+              <div className="mb-3 flex items-center space-x-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
                   <span className="text-sm font-medium text-primary-foreground">
-                    {user?.first_name?.[0]}{user?.last_name?.[0]}
+                    {user?.first_name?.[0]}
+                    {user?.last_name?.[0]}
                   </span>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">
                     {user?.first_name} {user?.last_name}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    {user?.role}
-                  </p>
+                  <p className="text-xs text-gray-500">{user?.role}</p>
                 </div>
               </div>
               <Button

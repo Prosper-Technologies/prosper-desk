@@ -37,11 +37,11 @@ export default function EditClientPage() {
     logo_url: "",
   });
 
-  const { data: client, isLoading } = api.client.getById.useQuery({
+  const { data: client, isLoading } = api.clients.getById.useQuery({
     id: clientId,
   });
 
-  const updateClient = api.client.update.useMutation({
+  const updateClient = api.clients.update.useMutation({
     onSuccess: () => {
       toast.success("Client updated successfully", {
         description: "Client updated successfully",

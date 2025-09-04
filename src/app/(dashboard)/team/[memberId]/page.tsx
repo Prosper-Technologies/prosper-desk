@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -86,7 +86,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   });
 
   // Initialize form values when member data loads
-  useState(() => {
+  useEffect(() => {
     if (member) {
       setFirstName(member.user.first_name);
       setLastName(member.user.last_name);
@@ -241,14 +241,19 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                   <Avatar className="h-20 w-20">
                     <AvatarImage src={member.user.avatar_url || undefined} />
                     <AvatarFallback className="text-lg">
-                      {getInitials(member.user.first_name, member.user.last_name)}
+                      {getInitials(
+                        member.user.first_name,
+                        member.user.last_name,
+                      )}
                     </AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1 space-y-4">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">First Name</label>
+                        <label className="text-sm font-medium">
+                          First Name
+                        </label>
                         {isEditing ? (
                           <Input
                             value={firstName}
@@ -277,17 +282,24 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Email Address</label>
+                      <label className="text-sm font-medium">
+                        Email Address
+                      </label>
                       <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4 text-gray-400" />
-                        <p className="text-sm text-gray-600">{member.user.email}</p>
+                        <p className="text-sm text-gray-600">
+                          {member.user.email}
+                        </p>
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Role</label>
                       {isEditing ? (
-                        <Select value={role} onValueChange={(value: any) => setRole(value)}>
+                        <Select
+                          value={role}
+                          onValueChange={(value: any) => setRole(value)}
+                        >
                           <SelectTrigger className="w-48">
                             <SelectValue />
                           </SelectTrigger>
@@ -359,7 +371,9 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-medium text-red-900">Deactivate User</h4>
+                    <h4 className="font-medium text-red-900">
+                      Deactivate User
+                    </h4>
                     <p className="text-sm text-red-700">
                       This user will no longer be able to access the system.
                     </p>

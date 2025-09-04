@@ -67,7 +67,7 @@ export default function Error({ error, reset }: ErrorProps) {
             <p className="mb-3 text-sm text-gray-500">Still having trouble?</p>
             <div className="flex justify-center gap-2">
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/support">
+                <Link href={"/support" as any}>
                   <HelpCircle className="mr-2 h-4 w-4" />
                   Get Support
                 </Link>

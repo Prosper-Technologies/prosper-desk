@@ -272,7 +272,7 @@ const paths = {
         {
           name: 'status',
           in: 'query',
-          schema: { 
+          schema: {
             type: 'string',
             enum: ['open', 'in_progress', 'resolved', 'closed']
           },
@@ -281,7 +281,7 @@ const paths = {
         {
           name: 'priority',
           in: 'query',
-          schema: { 
+          schema: {
             type: 'string',
             enum: ['low', 'medium', 'high', 'urgent']
           },
