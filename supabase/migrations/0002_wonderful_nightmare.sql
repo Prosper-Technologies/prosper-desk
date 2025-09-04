@@ -1,0 +1,1 @@
+ALTER TABLE "gmail_integration" ENABLE ROW LEVEL SECURITY;

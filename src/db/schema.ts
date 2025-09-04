@@ -1,14 +1,14 @@
 import {
-  pgTable,
-  uuid,
-  varchar,
-  text,
-  timestamp,
   boolean,
   integer,
-  pgEnum,
   jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
   unique,
+  uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
@@ -48,7 +48,7 @@ export const companies = pgTable("companies", {
   settings: jsonb("settings").default("{}"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Users table - now global, not tied to a specific company
 export const users = pgTable("users", {
@@ -62,7 +62,7 @@ export const users = pgTable("users", {
   last_seen_at: timestamp("last_seen_at"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Memberships - junction table between users and companies with roles
 export const memberships = pgTable(
@@ -85,7 +85,7 @@ export const memberships = pgTable(
     // Unique constraint: one membership per user per company
     userCompanyUnique: unique().on(table.user_id, table.company_id),
   }),
-);
+).enableRLS();
 
 // SLA Policies per client (client_id can be null for company defaults)
 export const slaPolicies = pgTable("sla_policies", {
@@ -103,7 +103,7 @@ export const slaPolicies = pgTable("sla_policies", {
   is_default: boolean("is_default").default(false).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Escalation Policies
 export const escalationPolicies = pgTable("escalation_policies", {
@@ -116,7 +116,7 @@ export const escalationPolicies = pgTable("escalation_policies", {
   is_active: boolean("is_active").default(true).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Clients (customer organizations that submit tickets)
 export const clients = pgTable("clients", {
@@ -136,7 +136,7 @@ export const clients = pgTable("clients", {
   portal_enabled: boolean("portal_enabled").default(true).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Tickets table (core entity) - now references membership instead of user directly
 export const tickets = pgTable("tickets", {
@@ -181,7 +181,7 @@ export const tickets = pgTable("tickets", {
 
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Ticket Comments - supports polymorphic ownership (membership OR customer portal access)
 export const ticketComments = pgTable("ticket_comments", {
@@ -203,7 +203,7 @@ export const ticketComments = pgTable("ticket_comments", {
   attachments: jsonb("attachments").default("[]"), // Array of file URLs
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Knowledge Base Articles - now references membership instead of user directly
 export const knowledgeBase = pgTable("knowledge_base", {
@@ -223,7 +223,7 @@ export const knowledgeBase = pgTable("knowledge_base", {
   tags: jsonb("tags").default("[]"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Customer Portal Access (for external customers)
 export const customerPortalAccess = pgTable("customer_portal_access", {
@@ -243,7 +243,7 @@ export const customerPortalAccess = pgTable("customer_portal_access", {
   is_active: boolean("is_active").default(true).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Gmail integration settings
 export const gmailIntegration = pgTable("gmail_integration", {
@@ -268,7 +268,7 @@ export const gmailIntegration = pgTable("gmail_integration", {
   ).default("medium"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Email threads to track conversations
 export const emailThreads = pgTable("email_threads", {
@@ -285,7 +285,7 @@ export const emailThreads = pgTable("email_threads", {
   last_message_id: varchar("last_message_id", { length: 255 }),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // API Keys for external API access
 export const apiKeys = pgTable("api_keys", {
@@ -302,7 +302,7 @@ export const apiKeys = pgTable("api_keys", {
   is_active: boolean("is_active").default(true).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Relations
 export const companiesRelations = relations(companies, ({ many }) => ({

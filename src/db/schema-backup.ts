@@ -43,7 +43,7 @@ export const companies = pgTable("companies", {
   settings: jsonb("settings").default("{}"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Users table (separate from auth for flexibility)
 export const users = pgTable("users", {
@@ -61,7 +61,7 @@ export const users = pgTable("users", {
   last_seen_at: timestamp("last_seen_at"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // SLA Policies per client (client_id can be null for company defaults)
 export const slaPolicies = pgTable("sla_policies", {
@@ -79,7 +79,7 @@ export const slaPolicies = pgTable("sla_policies", {
   is_default: boolean("is_default").default(false).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Escalation Policies
 export const escalationPolicies = pgTable("escalation_policies", {
@@ -92,7 +92,7 @@ export const escalationPolicies = pgTable("escalation_policies", {
   is_active: boolean("is_active").default(true).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Tickets table (core entity)
 export const tickets = pgTable("tickets", {
@@ -133,7 +133,7 @@ export const tickets = pgTable("tickets", {
 
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Ticket Comments
 export const ticketComments = pgTable("ticket_comments", {
@@ -151,7 +151,7 @@ export const ticketComments = pgTable("ticket_comments", {
   attachments: jsonb("attachments").default("[]"), // Array of file URLs
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Knowledge Base Articles
 export const knowledgeBase = pgTable("knowledge_base", {
@@ -171,7 +171,7 @@ export const knowledgeBase = pgTable("knowledge_base", {
   tags: jsonb("tags").default("[]"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Clients (customer organizations that submit tickets)
 export const clients = pgTable("clients", {
@@ -188,7 +188,7 @@ export const clients = pgTable("clients", {
   portal_enabled: boolean("portal_enabled").default(true).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Customer Portal Access (for external customers)
 export const customerPortalAccess = pgTable("customer_portal_access", {
@@ -208,7 +208,7 @@ export const customerPortalAccess = pgTable("customer_portal_access", {
   is_active: boolean("is_active").default(true).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // Relations
 export const companiesRelations = relations(companies, ({ many }) => ({
