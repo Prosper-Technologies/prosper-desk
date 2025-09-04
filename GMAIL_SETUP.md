@@ -53,22 +53,26 @@ pnpm drizzle-kit migrate
 ```
 
 Or manually create the tables using the schema in `src/db/schema.ts`:
+
 - `gmail_integration`
 - `email_threads`
 
 ## 🔧 How It Works
 
 ### 1. **Authentication Flow**
+
 ```
 User clicks "Connect Gmail" → Google OAuth → Callback → Store tokens
 ```
 
 ### 2. **Email Processing**
+
 ```
 Manual Sync → Fetch emails → Parse content → Create tickets → Link threads
 ```
 
 ### 3. **Ticket Creation**
+
 - Each Gmail thread becomes a support ticket
 - Email sender becomes the customer
 - Subject becomes ticket title
@@ -77,6 +81,7 @@ Manual Sync → Fetch emails → Parse content → Create tickets → Link threa
 ## 📧 Features Included
 
 ### ✅ **Current Features**
+
 - ✅ OAuth2 authentication with Google
 - ✅ Manual email sync (last 7 days)
 - ✅ Automatic ticket creation from emails
@@ -85,6 +90,7 @@ Manual Sync → Fetch emails → Parse content → Create tickets → Link threa
 - ✅ Integration status monitoring
 
 ### 🚧 **Coming Soon**
+
 - 🚧 Real-time email webhooks
 - 🚧 Reply-to-email functionality
 - 🚧 Automatic periodic sync
@@ -94,17 +100,20 @@ Manual Sync → Fetch emails → Parse content → Create tickets → Link threa
 ## 🛠️ Usage
 
 ### 1. **Connect Gmail Account**
+
 1. Go to `Settings → Gmail Integration`
 2. Click "Connect Gmail"
 3. Authorize your Google account
 4. Verify connection with "Test Connection"
 
 ### 2. **Sync Emails**
+
 1. Click "Sync Now" to process recent emails
 2. Check the results in the sync status
 3. View new tickets in your dashboard
 
 ### 3. **Monitor Integration**
+
 - Connection status shows account info
 - Last sync time is displayed
 - Sync results show processed emails
@@ -112,18 +121,21 @@ Manual Sync → Fetch emails → Parse content → Create tickets → Link threa
 ## 🔒 Security & Privacy
 
 ### **Data Access**
+
 - Only accesses Gmail with explicit user permission
 - Reads emails to create tickets (read-only for email content)
 - Can send emails for replies (future feature)
 - Tokens are securely stored in your database
 
 ### **Permissions Required**
+
 - `gmail.readonly`: Read email messages
 - `gmail.send`: Send reply emails (future)
 - `gmail.modify`: Mark emails as read
 - `userinfo.email`: Get account email address
 
 ### **Data Storage**
+
 - OAuth tokens encrypted in database
 - Email metadata stored (subject, participants, thread IDs)
 - Full email content not permanently stored
@@ -134,26 +146,31 @@ Manual Sync → Fetch emails → Parse content → Create tickets → Link threa
 ### **Common Issues**
 
 **"Failed to get access tokens"**
+
 - Check Google Client ID and Secret
 - Verify redirect URI matches exactly
 - Ensure Gmail API is enabled
 
 **"Connection test failed"**
+
 - Token may have expired
 - Reconnect Gmail account
 - Check API quotas in Google Cloud Console
 
 **"No emails processed"**
+
 - Only processes unread emails from last 7 days
 - Check email filters or labels
 - Verify account has unread emails
 
 **"Tickets not created"**
+
 - Check database permissions
 - Verify company/user context
 - Check server logs for errors
 
 ### **Debug Steps**
+
 1. Check server console for error messages
 2. Verify environment variables are loaded
 3. Test database connectivity

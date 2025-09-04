@@ -58,7 +58,7 @@ import { formatDateTime } from "~/lib/utils";
 
 export default function ClientPortalAccessPage() {
   const params = useParams();
-  const clientId = params.clientId as string;
+  const clientId = params?.clientId as string;
 
   const [createAccessOpen, setCreateAccessOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -295,10 +295,10 @@ export default function ClientPortalAccessPage() {
                   <span>
                     Portal URL: /portal/{client.company?.slug}/{client.slug}
                   </span>
-                  {client.email_domain && (
+                  {client.email_domains && (
                     <div className="flex items-center gap-1">
                       <Shield className="h-3 w-3" />
-                      Restricted to {client.email_domain}
+                      Restricted to {client.email_domains.join(", ")}
                     </div>
                   )}
                   <Badge
@@ -365,9 +365,10 @@ export default function ClientPortalAccessPage() {
                             required
                             disabled={generateAccess.isPending}
                           />
-                          {client.email_domain && (
+                          {client.email_domains && (
                             <p className="text-xs text-gray-500">
-                              Must be from domain: {client.email_domain}
+                              Must be from domain:{" "}
+                              {client.email_domains.join(", ")}
                             </p>
                           )}
                         </div>
@@ -701,7 +702,9 @@ export default function ClientPortalAccessPage() {
                                 <RefreshCw className="mr-2 h-4 w-4" />
                                 Regenerate Token
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openUpdateExpiration(access.id)}>
+                              <DropdownMenuItem
+                                onClick={() => openUpdateExpiration(access.id)}
+                              >
                                 <Clock className="mr-2 h-4 w-4" />
                                 Update Expiration
                               </DropdownMenuItem>

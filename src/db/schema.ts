@@ -10,7 +10,7 @@ import {
   jsonb,
   unique,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // Enums
 export const membershipRoleEnum = pgEnum("membership_role", [
@@ -125,8 +125,11 @@ export const clients = pgTable("clients", {
     .references(() => companies.id, { onDelete: "cascade" })
     .notNull(),
   name: varchar("name", { length: 255 }).notNull(),
-  slug: varchar("slug", { length: 100 }).notNull(), // unique per company for portal URLs
-  email_domain: varchar("email_domain", { length: 255 }), // optional: restrict by email domain
+  slug: varchar("slug", { length: 100 }).notNull(), // unique per comspany for portal URLs
+  email_domains: text("email_domains")
+    .array()
+    .default(sql`array[]::text[]`)
+    .notNull(),
   logo_url: text("logo_url"),
   description: text("description"),
   is_active: boolean("is_active").default(true).notNull(),
@@ -245,13 +248,24 @@ export const customerPortalAccess = pgTable("customer_portal_access", {
 // Gmail integration settings
 export const gmailIntegration = pgTable("gmail_integration", {
   id: uuid("id").primaryKey().defaultRandom(),
-  company_id: uuid("company_id").references(() => companies.id, { onDelete: "cascade" }).notNull(),
+  company_id: uuid("company_id")
+    .references(() => companies.id, { onDelete: "cascade" })
+    .notNull(),
   email: varchar("email", { length: 255 }).notNull(),
   refresh_token: text("refresh_token").notNull(),
   access_token: text("access_token"),
   token_expires_at: timestamp("token_expires_at"),
   last_sync_at: timestamp("last_sync_at"),
   is_active: boolean("is_active").default(true).notNull(),
+  // Auto processing configuration
+  auto_sync_enabled: boolean("auto_sync_enabled").default(true).notNull(),
+  sync_frequency_minutes: integer("sync_frequency_minutes")
+    .default(15)
+    .notNull(), // How often to check for new emails
+  auto_create_tickets: boolean("auto_create_tickets").default(true).notNull(),
+  default_ticket_priority: ticketPriorityEnum(
+    "default_ticket_priority",
+  ).default("medium"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -259,8 +273,12 @@ export const gmailIntegration = pgTable("gmail_integration", {
 // Email threads to track conversations
 export const emailThreads = pgTable("email_threads", {
   id: uuid("id").primaryKey().defaultRandom(),
-  company_id: uuid("company_id").references(() => companies.id, { onDelete: "cascade" }).notNull(),
-  ticket_id: uuid("ticket_id").references(() => tickets.id, { onDelete: "cascade" }),
+  company_id: uuid("company_id")
+    .references(() => companies.id, { onDelete: "cascade" })
+    .notNull(),
+  ticket_id: uuid("ticket_id").references(() => tickets.id, {
+    onDelete: "cascade",
+  }),
   gmail_thread_id: varchar("gmail_thread_id", { length: 255 }).notNull(),
   subject: text("subject").notNull(),
   participants: jsonb("participants").default("[]").notNull(), // Array of email addresses
@@ -433,12 +451,15 @@ export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
   }),
 }));
 
-export const gmailIntegrationRelations = relations(gmailIntegration, ({ one }) => ({
-  company: one(companies, {
-    fields: [gmailIntegration.company_id],
-    references: [companies.id],
+export const gmailIntegrationRelations = relations(
+  gmailIntegration,
+  ({ one }) => ({
+    company: one(companies, {
+      fields: [gmailIntegration.company_id],
+      references: [companies.id],
+    }),
   }),
-}));
+);
 
 export const emailThreadsRelations = relations(emailThreads, ({ one }) => ({
   company: one(companies, {

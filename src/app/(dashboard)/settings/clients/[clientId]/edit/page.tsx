@@ -25,12 +25,12 @@ import { toast } from "sonner";
 export default function EditClientPage() {
   const router = useRouter();
   const params = useParams();
-  const clientId = params.clientId as string;
+  const clientId = params?.clientId as string;
 
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
-    email_domain: "",
+    email_domains: "",
     description: "",
     is_active: true,
     portal_enabled: true,
@@ -60,7 +60,7 @@ export default function EditClientPage() {
       setFormData({
         name: client.name,
         slug: client.slug,
-        email_domain: client.email_domain || "",
+        email_domains: client.email_domains?.join(", ") || "",
         description: client.description || "",
         is_active: client.is_active,
         portal_enabled: client.portal_enabled,
@@ -74,7 +74,7 @@ export default function EditClientPage() {
     updateClient.mutate({
       id: clientId,
       ...formData,
-      email_domain: formData.email_domain || undefined,
+      email_domains: formData.email_domains?.split(", ") || [],
       description: formData.description || undefined,
       logo_url: formData.logo_url || undefined,
     });
@@ -239,11 +239,11 @@ export default function EditClientPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email_domain">Restrict Email Domain</Label>
+                <Label htmlFor="email_domain">Restrict Email Domains</Label>
                 <Input
-                  id="email_domain"
-                  name="email_domain"
-                  value={formData.email_domain}
+                  id="email_domains"
+                  name="email_domains"
+                  value={formData?.email_domains}
                   onChange={handleInputChange}
                   placeholder="example.com (optional)"
                 />

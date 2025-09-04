@@ -27,7 +27,8 @@ import {
 import { api } from "~/trpc/react";
 
 export default function AddClientPage() {
-  const { data: company, isLoading: companyLoading } = api.company.getSettings.useQuery();
+  const { data: company, isLoading: companyLoading } =
+    api.company.getSettings.useQuery();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [emailDomain, setEmailDomain] = useState("");
@@ -79,7 +80,7 @@ export default function AddClientPage() {
     await createClient.mutateAsync({
       name: name.trim(),
       slug: slug.trim(),
-      email_domain: emailDomain.trim() || undefined,
+      email_domains: emailDomain.split(",").map((domain) => domain.trim()),
       description: description.trim() || undefined,
       logo_url: logoUrl.trim() || undefined,
       portal_enabled: portalEnabled,
@@ -205,7 +206,7 @@ export default function AddClientPage() {
                     </div>
                     <p className="text-xs text-gray-500">
                       Used in the portal URL: /portal/
-                      {companyLoading ? "..." : (company?.slug || "company")}/{slug}
+                      {company?.slug || "company"}/{slug}
                     </p>
                   </div>
                 </div>
@@ -213,7 +214,7 @@ export default function AddClientPage() {
                 {/* Email Domain */}
                 <div className="space-y-2">
                   <label htmlFor="emailDomain" className="text-sm font-medium">
-                    Email Domain (Optional)
+                    Email Domains (Optional)
                   </label>
                   <div className="relative">
                     <Shield className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
@@ -227,7 +228,7 @@ export default function AddClientPage() {
                     />
                   </div>
                   <p className="text-xs text-gray-500">
-                    Restrict portal access to users with this email domain
+                    Use comma to separate multiple email domains. Restrict portal access to users with this email domain
                   </p>
                 </div>
 

@@ -34,7 +34,7 @@ import { formatRelativeTime } from "~/lib/utils";
 
 export default function ClientDetailsPage() {
   const params = useParams();
-  const clientId = params.clientId as string;
+  const clientId = params?.clientId as string;
 
   const { data: client, isLoading: clientLoading } =
     api.client.getById.useQuery({
@@ -133,12 +133,13 @@ export default function ClientDetailsPage() {
                 <div className="flex items-center gap-1">
                   <LinkIcon className="h-3 w-3" />/{client.slug}
                 </div>
-                {client.email_domain && (
-                  <div className="flex items-center gap-1">
-                    <Shield className="h-3 w-3" />
-                    {client.email_domain}
-                  </div>
-                )}
+                {client.email_domains &&
+                  Array.isArray(client.email_domains) && (
+                    <div className="flex items-center gap-1">
+                      <Shield className="h-3 w-3" />
+                      {client.email_domains.join(", ")}
+                    </div>
+                  )}
               </div>
             </div>
           </div>
@@ -257,7 +258,7 @@ export default function ClientDetailsPage() {
                       Email Domain
                     </label>
                     <p className="text-sm">
-                      {client.email_domain || "Not restricted"}
+                      {client.email_domains?.join(", ") || "Not restricted"}
                     </p>
                   </div>
                   <div>

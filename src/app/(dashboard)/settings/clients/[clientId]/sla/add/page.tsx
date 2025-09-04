@@ -57,7 +57,7 @@ const priorityOptions = [
 export default function AddSLAPolicyPage() {
   const router = useRouter();
   const params = useParams();
-  const clientId = params.clientId as string;
+  const clientId = params?.clientId as string;
 
   const [formData, setFormData] = useState({
     name: "",

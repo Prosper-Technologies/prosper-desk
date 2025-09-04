@@ -256,12 +256,13 @@ export default function SettingsPage() {
                               : company?.slug || "company"}
                             /{client.slug}
                           </div>
-                          {client.email_domain && (
-                            <div className="flex items-center gap-1">
-                              <Shield className="h-3 w-3" />
-                              {client.email_domain}
-                            </div>
-                          )}
+                          {client.email_domains &&
+                            client.email_domains.length > 0 && (
+                              <div className="flex items-center gap-1">
+                                <Shield className="h-3 w-3" />
+                                {client.email_domains.join(", ")}
+                              </div>
+                            )}
                         </div>
                       </div>
                     </div>

@@ -17,12 +17,14 @@ interface AuthPageProps {
 
 export default function CustomerPortalAuthPage({ params }: AuthPageProps) {
   const [accessToken, setAccessToken] = useState("");
-  const [step, setStep] = useState<"token" | "verifying" | "success" | "error">("token");
+  const [step, setStep] = useState<"token" | "verifying" | "success" | "error">(
+    "token",
+  );
   const [errorMessage, setErrorMessage] = useState("");
 
   const searchParams = useSearchParams();
   const router = useRouter();
-  const urlToken = searchParams.get("token");
+  const urlToken = searchParams?.get("token");
 
   // Verify token mutation
   const verifyToken = api.customerPortal.verifyToken.useMutation({
@@ -33,7 +35,9 @@ export default function CustomerPortalAuthPage({ params }: AuthPageProps) {
       localStorage.setItem(storageKey, accessToken);
       // Redirect to portal after 1 second
       setTimeout(() => {
-        router.push(`/portal/${params.companySlug}/${params.clientSlug}?token=${encodeURIComponent(accessToken)}`);
+        router.push(
+          `/portal/${params.companySlug}/${params.clientSlug}?token=${encodeURIComponent(accessToken)}`,
+        );
       }, 1000);
     },
     onError: (error) => {
@@ -82,13 +86,13 @@ export default function CustomerPortalAuthPage({ params }: AuthPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <Card className="max-w-md w-full">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+      <Card className="w-full max-w-md">
         <CardContent className="pt-6">
           {/* Header */}
-          <div className="text-center mb-6">
-            <LifeBuoy className="h-12 w-12 text-primary mx-auto mb-4" />
-            <h1 className="text-lg font-bold text-gray-900 mb-2">
+          <div className="mb-6 text-center">
+            <LifeBuoy className="mx-auto mb-4 h-12 w-12 text-primary" />
+            <h1 className="mb-2 text-lg font-bold text-gray-900">
               Portal Access
             </h1>
             <p className="text-gray-600">
@@ -126,10 +130,10 @@ export default function CustomerPortalAuthPage({ params }: AuthPageProps) {
 
           {/* Verifying */}
           {step === "verifying" && (
-            <div className="text-center space-y-4">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
+            <div className="space-y-4 text-center">
+              <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <h3 className="mb-2 text-lg font-medium text-gray-900">
                   Verifying access...
                 </h3>
                 <p className="text-gray-600">
@@ -141,10 +145,10 @@ export default function CustomerPortalAuthPage({ params }: AuthPageProps) {
 
           {/* Success */}
           {step === "success" && (
-            <div className="text-center space-y-4">
-              <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
+            <div className="space-y-4 text-center">
+              <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <h3 className="mb-2 text-lg font-medium text-gray-900">
                   Access granted!
                 </h3>
                 <p className="text-gray-600">
@@ -156,15 +160,13 @@ export default function CustomerPortalAuthPage({ params }: AuthPageProps) {
 
           {/* Error */}
           {step === "error" && (
-            <div className="text-center space-y-4">
-              <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+            <div className="space-y-4 text-center">
+              <AlertCircle className="mx-auto h-12 w-12 text-red-500" />
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <h3 className="mb-2 text-lg font-medium text-gray-900">
                   Access Error
                 </h3>
-                <p className="text-gray-600 mb-4">
-                  {errorMessage}
-                </p>
+                <p className="mb-4 text-gray-600">{errorMessage}</p>
               </div>
               <Button onClick={handleTryAgain} className="w-full">
                 Try Again
@@ -173,8 +175,10 @@ export default function CustomerPortalAuthPage({ params }: AuthPageProps) {
           )}
 
           {/* Footer */}
-          <div className="mt-6 pt-4 border-t flex items-center justify-between">
-            <p className="text-xs text-gray-500">Need help? Contact support for assistance</p>
+          <div className="mt-6 flex items-center justify-between border-t pt-4">
+            <p className="text-xs text-gray-500">
+              Need help? Contact support for assistance
+            </p>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               Log out
             </Button>

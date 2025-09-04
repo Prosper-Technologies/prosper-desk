@@ -136,7 +136,7 @@ export const clientRouter = createTRPCRouter({
             /^[a-z0-9-]+$/,
             "Slug must contain only lowercase letters, numbers, and hyphens",
           ),
-        email_domain: z.string().optional(),
+        email_domains: z.array(z.string()).optional(),
         description: z.string().optional(),
         logo_url: z.string().url().optional(),
         portal_enabled: z.boolean().default(true),
@@ -164,7 +164,7 @@ export const clientRouter = createTRPCRouter({
           company_id: ctx.company.id,
           name: input.name,
           slug: input.slug,
-          email_domain: input.email_domain,
+          email_domains: input.email_domains || [],
           description: input.description,
           logo_url: input.logo_url,
           portal_enabled: input.portal_enabled,
@@ -186,7 +186,7 @@ export const clientRouter = createTRPCRouter({
           .max(100)
           .regex(/^[a-z0-9-]+$/)
           .optional(),
-        email_domain: z.string().optional(),
+        email_domains: z.array(z.string()).optional(),
         description: z.string().optional(),
         logo_url: z.string().url().optional(),
         portal_enabled: z.boolean().optional(),

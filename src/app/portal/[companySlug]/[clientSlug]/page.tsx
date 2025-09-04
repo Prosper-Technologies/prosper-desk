@@ -74,7 +74,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
 
   // Get token from URL or localStorage on mount
   useEffect(() => {
-    const urlToken = searchParams.get("token");
+    const urlToken = searchParams?.get("token");
     const storageKey = `portal_token_${params.companySlug}_${params.clientSlug}`;
     const storedToken = localStorage.getItem(storageKey);
 

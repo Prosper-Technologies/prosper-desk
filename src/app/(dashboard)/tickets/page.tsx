@@ -48,7 +48,7 @@ export default function TicketsPage() {
 
   // Check URL parameters for filters
   useEffect(() => {
-    const filterParam = searchParams.get("filter");
+    const filterParam = searchParams?.get("filter");
     if (filterParam === "my") {
       setMyTickets(true);
     }
