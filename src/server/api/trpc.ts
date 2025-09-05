@@ -64,16 +64,15 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
       const cookieArray = Array.isArray(existingCookies)
         ? existingCookies
         : existingCookies
-        ? [existingCookies as string]
-        : [];
+          ? [existingCookies as string]
+          : [];
 
       res.setHeader("Set-Cookie", [...cookieArray, cookieString]);
     },
     remove(name: string, options: any = {}) {
       if (!res) return;
 
-      let cookieString =
-        `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+      let cookieString = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 
       if (options.httpOnly) {
         cookieString += `; HttpOnly`;
@@ -90,8 +89,8 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
       const cookieArray = Array.isArray(existingCookies)
         ? existingCookies
         : existingCookies
-        ? [existingCookies as string]
-        : [];
+          ? [existingCookies as string]
+          : [];
 
       res.setHeader("Set-Cookie", [...cookieArray, cookieString]);
     },
@@ -99,8 +98,8 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 
   // Create Supabase server client using the proper SSR pattern
   const supabase = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: cookieStore,
     },
@@ -108,7 +107,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 
   // Create admin Supabase client for administrative operations
   const supabaseAdmin = createServerClient(
-    process.env.SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       auth: {
@@ -119,6 +118,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
     },
   );
 
+  // Get session from Supabase
   let session = null;
   try {
     const {
@@ -158,9 +158,8 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
       ...shape,
       data: {
         ...shape.data,
-        zodError: error.cause instanceof ZodError
-          ? error.cause.flatten()
-          : null,
+        zodError:
+          error.cause instanceof ZodError ? error.cause.flatten() : null,
       },
     };
   },
