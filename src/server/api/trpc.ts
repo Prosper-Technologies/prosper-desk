@@ -121,6 +121,10 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   // Get session from Supabase
   let session = null;
   try {
+    console.log("🔍 tRPC Context - Environment check:");
+    console.log("- NEXT_PUBLIC_SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL ? "✅ SET" : "❌ MISSING");
+    console.log("- NEXT_PUBLIC_SUPABASE_ANON_KEY:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "✅ SET" : "❌ MISSING");
+    
     const {
       data: { session: authSession },
       error,
@@ -128,6 +132,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
     if (error) {
       console.error("❌ Session error:", error);
     } else {
+      console.log("✅ Session retrieved:", authSession ? "USER FOUND" : "NO USER");
       session = authSession;
     }
   } catch (error) {
