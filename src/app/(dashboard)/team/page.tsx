@@ -15,13 +15,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "~/components/ui/dialog";
 import { DashboardHeader } from "~/components/layout/dashboard-header";
 import {
   Users,
@@ -34,8 +27,6 @@ import {
   UserX,
   Shield,
   User,
-  TestTube,
-  Send,
 } from "lucide-react";
 import { api } from "~/trpc/react";
 
@@ -77,9 +68,6 @@ export default function TeamPage() {
   const [roleFilter, setRoleFilter] = useState<
     "all" | "admin" | "agent" | "owner"
   >("all");
-  const [testEmailOpen, setTestEmailOpen] = useState(false);
-  const [testEmail, setTestEmail] = useState("");
-  const [testEmailSuccess, setTestEmailSuccess] = useState("");
 
   const { data: members, refetch } = api.user.getAll.useQuery();
 
@@ -114,24 +102,6 @@ export default function TeamPage() {
     updateMember.mutate({ id: memberId, isActive: true });
   };
 
-  const testEmailMutation = api.user.testEmail.useMutation({
-    onSuccess: (data) => {
-      setTestEmailSuccess(data.message);
-      setTimeout(() => {
-        setTestEmailOpen(false);
-        setTestEmailSuccess("");
-        setTestEmail("");
-      }, 2000);
-    },
-  });
-
-  const handleTestEmail = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (testEmail.trim()) {
-      testEmailMutation.mutate({ email: testEmail.trim() });
-    }
-  };
-
   return (
     <div>
       <DashboardHeader
@@ -154,75 +124,6 @@ export default function TeamPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Dialog open={testEmailOpen} onOpenChange={setTestEmailOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <TestTube className="mr-2 h-4 w-4" />
-                  Test Email
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Test Email Sending</DialogTitle>
-                </DialogHeader>
-                {testEmailSuccess ? (
-                  <div className="py-8 text-center">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                      <Send className="h-6 w-6 text-green-600" />
-                    </div>
-                    <p className="text-green-600">{testEmailSuccess}</p>
-                  </div>
-                ) : (
-                  <form onSubmit={handleTestEmail} className="space-y-4">
-                    <div className="space-y-2">
-                      <label htmlFor="testEmail" className="text-sm font-medium">
-                        Email Address
-                      </label>
-                      <Input
-                        id="testEmail"
-                        type="email"
-                        placeholder="test@useblueos.com"
-                        value={testEmail}
-                        onChange={(e) => setTestEmail(e.target.value)}
-                        required
-                        disabled={testEmailMutation.isPending}
-                      />
-                      <p className="text-xs text-gray-500">
-                        This will send a test invitation email from your useblueos.com domain to verify Resend is working properly.
-                      </p>
-                    </div>
-                    {testEmailMutation.error && (
-                      <div className="text-sm text-red-600">
-                        {testEmailMutation.error.message}
-                      </div>
-                    )}
-                    <div className="flex justify-end gap-3">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setTestEmailOpen(false)}
-                        disabled={testEmailMutation.isPending}
-                      >
-                        Cancel
-                      </Button>
-                      <Button type="submit" disabled={testEmailMutation.isPending}>
-                        {testEmailMutation.isPending ? (
-                          <>
-                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white" />
-                            Sending...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="mr-2 h-4 w-4" />
-                            Send Test Email
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                )}
-              </DialogContent>
-            </Dialog>
             <Button asChild size="sm">
               <Link href="/team/add">
                 <Plus className="mr-2 h-4 w-4" />

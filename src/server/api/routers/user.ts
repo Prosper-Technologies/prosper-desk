@@ -6,6 +6,7 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { memberships, users } from "~/db/schema";
+import { and, asc, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { emailService } from "~/lib/email";
 import {
@@ -328,33 +329,6 @@ export const userRouter = createTRPCRouter({
       return deactivatedMembership;
     }),
 
-  // Test email sending
-  testEmail: companyProcedure
-    .input(
-      z.object({
-        email: z.string().email(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      try {
-        await emailService.sendTest({
-          to: input.email,
-          fromDomain: "useblueos.com",
-        });
-
-        return {
-          success: true,
-          message: `Test email sent successfully to ${input.email}`,
-        };
-      } catch (error) {
-        console.error("Test email failed:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "Failed to send test email. Please check your Resend configuration.",
-        });
-      }
-    }),
 
   // Validate invitation code
   validateInvitationCode: publicProcedure
