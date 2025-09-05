@@ -69,11 +69,7 @@ export default function TeamPage() {
     "all" | "admin" | "agent" | "owner"
   >("all");
 
-  const { data: members, refetch } = api.user.getAll.useQuery(undefined, {
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    cacheTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
-  });
+  const { data: members, refetch } = api.user.getAll.useQuery();
 
   const filteredMembers = members?.filter((member) => {
     const matchesSearch =

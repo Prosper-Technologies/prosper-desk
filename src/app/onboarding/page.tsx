@@ -53,18 +53,18 @@ export default function OnboardingPage() {
   const completeOnboarding = api.auth.completeOnboarding.useMutation();
 
   useEffect(() => {
-    // Check if user is authenticated using cached session
-    const checkAuth = async () => {
+    // Check if user is authenticated
+    const getUser = async () => {
       const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
         router.push("/login");
         return;
       }
-      setUser(session.user);
+      setUser(user);
     };
-    checkAuth();
+    getUser();
   }, [router]);
 
   useEffect(() => {

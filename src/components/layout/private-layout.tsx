@@ -21,7 +21,6 @@ interface PrivateLayoutProps {
 export default function PrivateLayout({ children }: PrivateLayoutProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [authUser, setAuthUser] = useState<any>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
   const router = useRouter();
   const { currentCompanyId, setCurrentCompanyId } = useCompany();
 
@@ -29,46 +28,31 @@ export default function PrivateLayout({ children }: PrivateLayoutProps) {
     api.auth.getProfile.useQuery(undefined, {
       enabled: !!authUser,
       retry: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      cacheTime: 10 * 60 * 1000, // 10 minutes
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
     });
 
   useEffect(() => {
-    const initAuth = async () => {
-      if (isInitialized) return; // Prevent multiple initializations
-      
-      try {
-        // Use getSession() instead of getUser() - it's cached and doesn't make a network request
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+    const checkAuth = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-        if (!session?.user) {
-          router.push("/login");
-          return;
-        }
-
-        setAuthUser(session.user);
-      } catch (error) {
-        console.error("Auth initialization error:", error);
+      if (!user) {
         router.push("/login");
-      } finally {
-        setIsInitialized(true);
+        return;
       }
+
+      setAuthUser(user);
     };
 
-    initAuth();
+    checkAuth();
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT" || !session) {
-        setAuthUser(null);
         router.push("/login");
-      } else if (session?.user && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+      } else if (session?.user) {
         setAuthUser(session.user);
       }
     });
@@ -76,7 +60,7 @@ export default function PrivateLayout({ children }: PrivateLayoutProps) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [router, isInitialized]);
+  }, [router]);
 
   useEffect(() => {
     if (authUser && !isProfileLoading) {
@@ -94,9 +78,7 @@ export default function PrivateLayout({ children }: PrivateLayoutProps) {
             setCurrentCompanyId(profile.memberships[0].company.id);
           }
         }
-        if (isLoading) { // Only update loading state if it's currently loading
-          setIsLoading(false);
-        }
+        setIsLoading(false);
       }
     }
   }, [
@@ -106,7 +88,6 @@ export default function PrivateLayout({ children }: PrivateLayoutProps) {
     router,
     currentCompanyId,
     setCurrentCompanyId,
-    isLoading,
   ]);
 
   if (isLoading || isProfileLoading) {
