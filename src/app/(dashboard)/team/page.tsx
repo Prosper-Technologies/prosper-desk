@@ -154,7 +154,7 @@ export default function TeamPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            {/*<Dialog open={testEmailOpen} onOpenChange={setTestEmailOpen}>
+            <Dialog open={testEmailOpen} onOpenChange={setTestEmailOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
                   <TestTube className="mr-2 h-4 w-4" />
@@ -181,14 +181,14 @@ export default function TeamPage() {
                       <Input
                         id="testEmail"
                         type="email"
-                        placeholder="test@example.com"
+                        placeholder="test@useblueos.com"
                         value={testEmail}
                         onChange={(e) => setTestEmail(e.target.value)}
                         required
                         disabled={testEmailMutation.isPending}
                       />
                       <p className="text-xs text-gray-500">
-                        This will send a test invitation email to verify your email service is working.
+                        This will send a test invitation email from your useblueos.com domain to verify Resend is working properly.
                       </p>
                     </div>
                     {testEmailMutation.error && (
@@ -222,7 +222,7 @@ export default function TeamPage() {
                   </form>
                 )}
               </DialogContent>
-            </Dialog>*/}
+            </Dialog>
             <Button asChild size="sm">
               <Link href="/team/add">
                 <Plus className="mr-2 h-4 w-4" />

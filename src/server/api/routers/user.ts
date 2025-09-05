@@ -1,13 +1,18 @@
 import { z } from "zod";
 import {
-  createTRPCRouter,
-  companyProcedure,
   adminCompanyProcedure,
+  companyProcedure,
+  createTRPCRouter,
+  publicProcedure,
 } from "~/server/api/trpc";
-import { users, memberships } from "~/db/schema";
-import { eq, and, asc, or } from "drizzle-orm";
+import { memberships, users } from "~/db/schema";
 import { TRPCError } from "@trpc/server";
 import { emailService } from "~/lib/email";
+import {
+  createInvitationCode,
+  useInvitationCode,
+  validateInvitationCode,
+} from "~/lib/invitation-codes";
 
 export const userRouter = createTRPCRouter({
   // Get all users in company
@@ -142,18 +147,26 @@ export const userRouter = createTRPCRouter({
         })
         .returning();
 
-      // Send invitation email
+      // Generate and send invitation code
       try {
-        const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL}/auth/invite?token=${user.id}&company=${ctx.company.slug}`;
-        
+        const invitationCode = await createInvitationCode({
+          companyId: ctx.company.id,
+          userId: user.id,
+          role: input.role,
+          invitedByMembershipId: ctx.membership.id,
+        });
+
         await emailService.sendInvitation({
           to: input.email,
           companyName: ctx.company.name,
           inviterName: `${ctx.user.first_name} ${ctx.user.last_name}`,
-          inviteLink,
+          invitationCode,
+          companySlug: ctx.company.slug,
         });
-        
-        console.log(`Invitation email sent to ${input.email}`);
+
+        console.log(
+          `Invitation email with code ${invitationCode} sent to ${input.email}`,
+        );
       } catch (emailError) {
         console.error("Failed to send invitation email:", emailError);
         // Don't fail the user creation if email fails
@@ -205,8 +218,8 @@ export const userRouter = createTRPCRouter({
       }
 
       // Check permissions: admin can edit anyone, users can edit themselves
-      const canEdit =
-        ctx.membership.role === "admin" || ctx.membership.id === input.id;
+      const canEdit = ctx.membership.role === "admin" ||
+        ctx.membership.id === input.id;
 
       if (!canEdit) {
         throw new TRPCError({
@@ -235,8 +248,9 @@ export const userRouter = createTRPCRouter({
       // Update membership fields
       const membershipUpdateData: Record<string, any> = {};
       if (input.role) membershipUpdateData.role = input.role;
-      if (typeof input.isActive === "boolean")
+      if (typeof input.isActive === "boolean") {
         membershipUpdateData.is_active = input.isActive;
+      }
 
       // Update user if needed
       if (Object.keys(userUpdateData).length > 0) {
@@ -323,19 +337,127 @@ export const userRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        await emailService.sendInvitation({
+        await emailService.sendTest({
           to: input.email,
-          companyName: ctx.company.name,
-          inviterName: `${ctx.user.first_name} ${ctx.user.last_name}`,
-          inviteLink: `${process.env.NEXT_PUBLIC_APP_URL}/auth/invite?test=true`,
+          fromDomain: "useblueos.com",
         });
 
-        return { success: true, message: `Test email sent to ${input.email}` };
+        return {
+          success: true,
+          message: `Test email sent successfully to ${input.email}`,
+        };
       } catch (error) {
         console.error("Test email failed:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to send test email",
+          message:
+            "Failed to send test email. Please check your Resend configuration.",
+        });
+      }
+    }),
+
+  // Validate invitation code
+  validateInvitationCode: publicProcedure
+    .input(
+      z.object({
+        code: z.string().length(6),
+      }),
+    )
+    .query(async ({ input }) => {
+      const result = await validateInvitationCode(input.code);
+      return result;
+    }),
+
+  // Accept invitation with code
+  acceptInvitation: publicProcedure
+    .input(
+      z.object({
+        code: z.string().length(6),
+        password: z.string().min(8),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Validate the invitation code
+      const validation = await validateInvitationCode(input.code);
+
+      if (!validation.isValid || !validation.invitation) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: validation.error || "Invalid invitation code",
+        });
+      }
+
+      const { invitation } = validation;
+
+      try {
+        // Create Supabase Auth user
+        const { data: authData, error: authError } = await ctx.supabaseAdmin
+          .auth
+          .admin.createUser({
+            email: invitation.userEmail!,
+            password: input.password,
+            email_confirm: true, // Auto-confirm email since they have a valid invitation
+          });
+
+        if (authError || !authData.user) {
+          console.error("Supabase auth error:", authError);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Failed to create user account: ${
+              authError?.message || "Unknown error"
+            }`,
+          });
+        }
+
+        // Update the user record with the auth_user_id
+        await ctx.db
+          .update(users)
+          .set({
+            auth_user_id: authData.user.id,
+            is_active: true,
+            updated_at: new Date(),
+          })
+          .where(eq(users.id, invitation.userId));
+
+        // Activate the membership
+        await ctx.db
+          .update(memberships)
+          .set({
+            is_active: true,
+            updated_at: new Date(),
+          })
+          .where(
+            and(
+              eq(memberships.user_id, invitation.userId),
+              eq(memberships.company_id, invitation.companyId),
+            ),
+          );
+
+        // Mark the invitation code as used
+        await useInvitationCode(invitation.id);
+
+        // Send welcome email
+        try {
+          await emailService.sendWelcome({
+            to: invitation.userEmail!,
+            firstName: invitation.userEmail!.split("@")[0], // Fallback name
+            companyName: invitation.companyName!,
+          });
+        } catch (emailError) {
+          console.error("Failed to send welcome email:", emailError);
+          // Don't fail the process if welcome email fails
+        }
+
+        return {
+          success: true,
+          message: "Account created successfully! You can now log in.",
+          redirectTo: `/auth/login?company=${invitation.companySlug}`,
+        };
+      } catch (error) {
+        console.error("Failed to accept invitation:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create account. Please try again.",
         });
       }
     }),

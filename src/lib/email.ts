@@ -7,14 +7,18 @@ export const emailService = {
     to,
     companyName,
     inviterName,
-    inviteLink,
+    invitationCode,
+    companySlug,
   }: {
     to: string;
     companyName: string;
     inviterName: string;
-    inviteLink: string;
+    invitationCode: string;
+    companySlug: string;
   }) {
     try {
+      const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/invite/${companySlug}`;
+      
       const { data, error } = await resend.emails.send({
         from: process.env.FROM_EMAIL || 'onboarding@resend.dev',
         to,
@@ -24,19 +28,35 @@ export const emailService = {
             <h2>You've been invited to join ${companyName}</h2>
             <p>Hi there!</p>
             <p>${inviterName} has invited you to join their support team at ${companyName}.</p>
-            <p>Click the button below to accept your invitation and set up your account:</p>
+            
+            <div style="background-color: #f8f9fa; border: 2px solid #dee2e6; border-radius: 8px; padding: 20px; margin: 30px 0; text-align: center;">
+              <h3 style="margin: 0 0 10px 0; color: #495057;">Your Invitation Code</h3>
+              <div style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #3b82f6; font-family: 'Courier New', monospace;">
+                ${invitationCode}
+              </div>
+              <p style="margin: 10px 0 0 0; font-size: 14px; color: #6c757d;">
+                Enter this code to complete your registration
+              </p>
+            </div>
+
+            <p><strong>To get started:</strong></p>
+            <ol style="padding-left: 20px;">
+              <li>Visit: <a href="${inviteUrl}" style="color: #3b82f6;">${inviteUrl}</a></li>
+              <li>Enter your invitation code: <strong>${invitationCode}</strong></li>
+              <li>Complete your account setup</li>
+            </ol>
+
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${inviteLink}" 
+              <a href="${inviteUrl}" 
                  style="background-color: #3b82f6; color: white; padding: 12px 24px; 
                         text-decoration: none; border-radius: 6px; display: inline-block;">
                 Accept Invitation
               </a>
             </div>
-            <p>If the button doesn't work, copy and paste this link into your browser:</p>
-            <p style="word-break: break-all; color: #666;">${inviteLink}</p>
+            
             <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
             <p style="color: #666; font-size: 12px;">
-              This invitation will expire in 7 days. If you didn't expect this invitation, 
+              This invitation code will expire in 7 days. If you didn't expect this invitation, 
               you can safely ignore this email.
             </p>
           </div>
@@ -96,6 +116,56 @@ export const emailService = {
       return { success: true, data };
     } catch (error) {
       console.error('Welcome email service error:', error);
+      throw error;
+    }
+  },
+
+  async sendTest({
+    to,
+    fromDomain = 'useblueos.com',
+  }: {
+    to: string;
+    fromDomain?: string;
+  }) {
+    try {
+      const { data, error } = await resend.emails.send({
+        from: process.env.FROM_EMAIL || `noreply@${fromDomain}`,
+        to,
+        subject: `Test Email from ${fromDomain}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>🚀 Email Configuration Test</h2>
+            <p>Hi there!</p>
+            <p>This is a test email to verify that your email service is working correctly with your ${fromDomain} domain.</p>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3>✅ Configuration Details:</h3>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li><strong>Domain:</strong> ${fromDomain}</li>
+                <li><strong>From Address:</strong> ${process.env.FROM_EMAIL || `noreply@${fromDomain}`}</li>
+                <li><strong>Service:</strong> Resend</li>
+                <li><strong>Status:</strong> Working correctly!</li>
+              </ul>
+            </div>
+
+            <p>If you received this email, your Resend integration is properly configured and ready to send emails from your custom domain.</p>
+            
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+            <p style="color: #666; font-size: 12px;">
+              This is a test email sent from BlueDesk to verify email configuration.
+            </p>
+          </div>
+        `,
+      });
+
+      if (error) {
+        console.error('Test email sending failed:', error);
+        throw error;
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Test email service error:', error);
       throw error;
     }
   },

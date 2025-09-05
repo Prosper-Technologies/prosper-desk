@@ -304,6 +304,26 @@ export const apiKeys = pgTable("api_keys", {
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 }).enableRLS();
 
+// Invitation codes for user invitations
+export const invitationCodes = pgTable("invitation_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  company_id: uuid("company_id")
+    .references(() => companies.id, { onDelete: "cascade" })
+    .notNull(),
+  user_id: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  code: varchar("code", { length: 6 }).notNull().unique(), // 6-digit numeric code
+  role: membershipRoleEnum("role").notNull(),
+  invited_by_membership_id: uuid("invited_by_membership_id")
+    .references(() => memberships.id, { onDelete: "cascade" })
+    .notNull(),
+  is_used: boolean("is_used").default(false).notNull(),
+  used_at: timestamp("used_at"),
+  expires_at: timestamp("expires_at").notNull(), // 7 days from creation
+  created_at: timestamp("created_at").defaultNow().notNull(),
+}).enableRLS();
+
 // Relations
 export const companiesRelations = relations(companies, ({ many }) => ({
   memberships: many(memberships),
@@ -315,10 +335,12 @@ export const companiesRelations = relations(companies, ({ many }) => ({
   clients: many(clients),
   customerPortalAccess: many(customerPortalAccess),
   apiKeys: many(apiKeys),
+  invitationCodes: many(invitationCodes),
 }));
 
 export const usersRelations = relations(users, ({ many }) => ({
   memberships: many(memberships),
+  invitationCodes: many(invitationCodes),
 }));
 
 export const membershipsRelations = relations(memberships, ({ one, many }) => ({
@@ -334,6 +356,7 @@ export const membershipsRelations = relations(memberships, ({ one, many }) => ({
   assignedTickets: many(tickets, { relationName: "assignedToMembership" }),
   ticketComments: many(ticketComments),
   knowledgeBaseArticles: many(knowledgeBase),
+  sentInvitations: many(invitationCodes),
 }));
 
 export const slaPoliciesRelations = relations(slaPolicies, ({ one, many }) => ({
@@ -469,5 +492,20 @@ export const emailThreadsRelations = relations(emailThreads, ({ one }) => ({
   ticket: one(tickets, {
     fields: [emailThreads.ticket_id],
     references: [tickets.id],
+  }),
+}));
+
+export const invitationCodesRelations = relations(invitationCodes, ({ one }) => ({
+  company: one(companies, {
+    fields: [invitationCodes.company_id],
+    references: [companies.id],
+  }),
+  user: one(users, {
+    fields: [invitationCodes.user_id],
+    references: [users.id],
+  }),
+  invitedByMembership: one(memberships, {
+    fields: [invitationCodes.invited_by_membership_id],
+    references: [memberships.id],
   }),
 }));

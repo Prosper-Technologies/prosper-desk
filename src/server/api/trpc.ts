@@ -105,6 +105,19 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
     },
   );
 
+  // Create admin Supabase client for administrative operations
+  const supabaseAdmin = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+      cookies: cookieStore,
+    },
+  );
+
   // Get session from Supabase
   let session = null;
   try {
@@ -125,6 +138,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
     db,
     session,
     supabase,
+    supabaseAdmin,
     req,
     res,
   };
