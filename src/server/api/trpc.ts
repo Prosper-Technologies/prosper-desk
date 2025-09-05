@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import superjson from "superjson";
 import { ZodError } from "zod";
 import { db } from "~/db";
+import { env } from "~/env";
 
 /**
  * 1. CONTEXT
@@ -24,8 +25,8 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   const cookieStore = {
     get(name: string) {
       // Try Next.js RequestCookies object first (newer API routes)
-      if (req.cookies && typeof req.cookies.get === "function") {
-        const cookie = req.cookies.get(name);
+      if (req.cookies && typeof (req.cookies as any).get === "function") {
+        const cookie = (req.cookies as any).get(name);
         return cookie?.value;
       }
 
@@ -64,15 +65,16 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
       const cookieArray = Array.isArray(existingCookies)
         ? existingCookies
         : existingCookies
-          ? [existingCookies as string]
-          : [];
+        ? [existingCookies as string]
+        : [];
 
       res.setHeader("Set-Cookie", [...cookieArray, cookieString]);
     },
     remove(name: string, options: any = {}) {
       if (!res) return;
 
-      let cookieString = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+      let cookieString =
+        `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 
       if (options.httpOnly) {
         cookieString += `; HttpOnly`;
@@ -89,26 +91,24 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
       const cookieArray = Array.isArray(existingCookies)
         ? existingCookies
         : existingCookies
-          ? [existingCookies as string]
-          : [];
+        ? [existingCookies as string]
+        : [];
 
       res.setHeader("Set-Cookie", [...cookieArray, cookieString]);
     },
   };
 
-  // Create Supabase server client using the proper SSR pattern
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: cookieStore,
     },
   );
 
-  // Create admin Supabase client for administrative operations
   const supabaseAdmin = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.SUPABASE_SERVICE_ROLE_KEY,
     {
       auth: {
         autoRefreshToken: false,
@@ -122,9 +122,15 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   let session = null;
   try {
     console.log("🔍 tRPC Context - Environment check:");
-    console.log("- NEXT_PUBLIC_SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL ? "✅ SET" : "❌ MISSING");
-    console.log("- NEXT_PUBLIC_SUPABASE_ANON_KEY:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "✅ SET" : "❌ MISSING");
-    
+    console.log(
+      "- NEXT_PUBLIC_SUPABASE_URL:",
+      env.NEXT_PUBLIC_SUPABASE_URL ? "✅ SET" : "❌ MISSING",
+    );
+    console.log(
+      "- NEXT_PUBLIC_SUPABASE_ANON_KEY:",
+      env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "✅ SET" : "❌ MISSING",
+    );
+
     const {
       data: { session: authSession },
       error,
@@ -132,7 +138,10 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
     if (error) {
       console.error("❌ Session error:", error);
     } else {
-      console.log("✅ Session retrieved:", authSession ? "USER FOUND" : "NO USER");
+      console.log(
+        "✅ Session retrieved:",
+        authSession ? "USER FOUND" : "NO USER",
+      );
       session = authSession;
     }
   } catch (error) {
@@ -163,8 +172,9 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
       ...shape,
       data: {
         ...shape.data,
-        zodError:
-          error.cause instanceof ZodError ? error.cause.flatten() : null,
+        zodError: error.cause instanceof ZodError
+          ? error.cause.flatten()
+          : null,
       },
     };
   },
