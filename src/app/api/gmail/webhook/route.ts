@@ -4,16 +4,30 @@ import { gmailIntegration, emailThreads, ticketComments } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { google } from "googleapis";
 
+// Test endpoint
+export async function GET() {
+  return NextResponse.json({ 
+    status: "Gmail webhook endpoint is active",
+    timestamp: new Date().toISOString()
+  });
+}
+
 // Gmail webhook endpoint for push notifications
 export async function POST(request: NextRequest) {
+  console.log("🔔 Gmail webhook received");
+  
   try {
     // Verify the request is from Google
     const body = await request.text();
+    console.log("📨 Webhook body:", body);
+    
     const data = JSON.parse(body);
+    console.log("📊 Parsed data:", data);
     
     // Extract the message data
     const message = data.message;
     if (!message) {
+      console.log("❌ No message data in webhook");
       return NextResponse.json({ error: "No message data" }, { status: 400 });
     }
 
@@ -21,6 +35,7 @@ export async function POST(request: NextRequest) {
     const decodedData = JSON.parse(
       Buffer.from(message.data, 'base64').toString('utf-8')
     );
+    console.log("🔓 Decoded webhook data:", decodedData);
 
     const { emailAddress, historyId } = decodedData;
 
@@ -33,9 +48,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (!integration) {
-      console.log(`No integration found for email: ${emailAddress}`);
+      console.log(`❌ No integration found for email: ${emailAddress}`);
       return NextResponse.json({ status: "ignored" });
     }
+
+    console.log(`✅ Found integration for ${emailAddress} (company: ${integration.company.name})`);
 
     // Set up Gmail client
     const oauth2Client = new google.auth.OAuth2(
@@ -52,21 +69,34 @@ export async function POST(request: NextRequest) {
     const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
     // Get history to find what changed
+    console.log(`📚 Getting history from ${integration.last_history_id || "1"} to ${historyId}`);
+    
     const history = await gmail.users.history.list({
       userId: "me",
       startHistoryId: integration.last_history_id || "1",
     });
 
+    console.log(`📊 History response:`, JSON.stringify(history.data, null, 2));
+
     if (!history.data.history) {
+      console.log("❌ No history data found");
       return NextResponse.json({ status: "no_changes" });
     }
 
+    console.log(`📝 Processing ${history.data.history.length} history records`);
+
     // Process each history record
     for (const record of history.data.history) {
+      console.log(`🔍 History record:`, record);
+      
       if (record.messagesAdded) {
+        console.log(`➕ Found ${record.messagesAdded.length} new messages`);
         for (const addedMessage of record.messagesAdded) {
+          console.log(`📧 Processing added message:`, addedMessage);
           await processNewMessage(gmail, addedMessage.message!, integration);
         }
+      } else {
+        console.log(`ℹ️ No messagesAdded in this history record`);
       }
     }
 
@@ -84,6 +114,8 @@ export async function POST(request: NextRequest) {
 
 async function processNewMessage(gmail: any, message: any, integration: any) {
   try {
+    console.log(`🔍 Processing message ${message.id}`);
+    
     // Get full message details
     const fullMessage = await gmail.users.messages.get({
       userId: "me",
@@ -92,6 +124,7 @@ async function processNewMessage(gmail: any, message: any, integration: any) {
     });
 
     const threadId = fullMessage.data.threadId;
+    console.log(`🧵 Thread ID: ${threadId}`);
     
     // Check if this thread is already tracked
     const existingThread = await db.query.emailThreads.findFirst({
@@ -102,9 +135,12 @@ async function processNewMessage(gmail: any, message: any, integration: any) {
     });
 
     if (!existingThread) {
+      console.log(`❌ Thread ${threadId} not found in database - skipping`);
       // New thread - would be handled by regular sync
       return;
     }
+
+    console.log(`✅ Found existing thread for ticket ${existingThread.ticket_id}`);
 
     // This is a reply to an existing thread - add as comment
     const headers = fullMessage.data.payload?.headers || [];

@@ -143,7 +143,7 @@ async function processGmailIntegration(integration: any) {
   // Get messages since last sync (or last hour)
   const lastSyncDate =
     integration.last_sync_at || new Date(Date.now() - 60 * 60 * 1000);
-  
+
   console.log("Using regular message query");
   const query = `is:unread after:${Math.floor(lastSyncDate.getTime() / 1000)}`;
   const messages = await gmail.users.messages.list({
