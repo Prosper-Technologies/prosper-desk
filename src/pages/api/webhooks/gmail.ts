@@ -4,6 +4,7 @@ import { db } from "~/db";
 import {
   gmailIntegration,
   tickets,
+  ticketComments,
   emailThreads,
   clients,
   memberships,
@@ -208,12 +209,74 @@ async function processGmailIntegration(integration: any) {
           continue;
         }
 
-        // Check if already processed
+        // Check if this thread already exists
         const existingThread = await db.query.emailThreads.findFirst({
           where: eq(emailThreads.gmail_thread_id, threadId!),
+          with: {
+            ticket: true,
+          },
         });
 
-        if (!existingThread) {
+        if (existingThread) {
+          // This is a reply to an existing thread - add as comment
+          console.log(`📧 Found reply to existing ticket ${existingThread.ticket_id}`);
+          
+          // Extract email body
+          let emailBody = "";
+          const extractTextFromParts = (parts: any[]): string => {
+            let text = "";
+            for (const part of parts) {
+              if (part.mimeType === "text/plain" && part.body?.data) {
+                text += Buffer.from(part.body.data, "base64").toString("utf-8") + "\n";
+              } else if (part.mimeType === "text/html" && part.body?.data && !text) {
+                text += Buffer.from(part.body.data, "base64")
+                  .toString("utf-8")
+                  .replace(/<[^>]*>/g, "") + "\n";
+              } else if (part.parts) {
+                text += extractTextFromParts(part.parts);
+              }
+            }
+            return text;
+          };
+
+          if (fullMessage.data.payload?.parts) {
+            emailBody = extractTextFromParts(fullMessage.data.payload.parts);
+          } else if (fullMessage.data.payload?.body?.data) {
+            emailBody = Buffer.from(fullMessage.data.payload.body.data, "base64").toString("utf-8");
+          }
+
+          if (emailBody.trim()) {
+            const date = headers.find((h) => h.name === "Date")?.value || "";
+            
+            // Create ticket comment for this reply
+            await db.insert(ticketComments).values({
+              company_id: integration.company_id,
+              ticket_id: existingThread.ticket_id!,
+              membership_id: undefined,
+              customer_portal_access_id: undefined,
+              content: `Reply from: ${from}\nDate: ${date}\n\n${emailBody.trim()}`,
+              is_internal: false,
+              is_system: true,
+            });
+
+            // Update thread's last message ID
+            await db.update(emailThreads)
+              .set({ 
+                last_message_id: message.id!,
+                updated_at: new Date(),
+              })
+              .where(eq(emailThreads.id, existingThread.id));
+
+            console.log(`✅ Added reply as comment to ticket ${existingThread.ticket_id}`);
+          }
+          
+          continue; // Skip creating a new ticket
+        }
+
+        // This is a new thread - create a new ticket
+        console.log(`🆕 Creating new ticket for thread ${threadId}`);
+        
+        if (true) { // Changed condition to always enter this block for new threads
           // Extract email body
           let emailBody = "";
           const extractTextFromParts = (parts: any[]): string => {
