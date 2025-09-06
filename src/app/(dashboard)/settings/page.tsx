@@ -73,7 +73,7 @@ export default function SettingsPage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Settings</BreadcrumbPage>
+                <BreadcrumbPage>Clients</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -86,7 +86,7 @@ export default function SettingsPage() {
           <div>
             <h1 className="flex items-center gap-2 text-xl font-bold">
               <Settings className="h-4 w-4" />
-              Settings
+              Clients
             </h1>
             <p className="text-gray-600">
               Manage your clients and customer portal access

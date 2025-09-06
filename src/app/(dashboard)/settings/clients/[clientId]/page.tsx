@@ -28,6 +28,8 @@ import {
   Edit,
   Plus,
   AlertTriangle,
+  Loader2,
+  Loader,
 } from "lucide-react";
 import { api } from "~/trpc/react";
 import { formatRelativeTime } from "~/lib/utils";
@@ -55,7 +57,7 @@ export default function ClientDetailsPage() {
   if (clientLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="h-4 w-4 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        <Loader className="h-4 w-4 animate-spin" />
       </div>
     );
   }
