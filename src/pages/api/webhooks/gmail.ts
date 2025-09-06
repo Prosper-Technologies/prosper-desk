@@ -248,6 +248,21 @@ async function processGmailIntegration(integration: any) {
           if (emailBody.trim()) {
             const date = headers.find((h) => h.name === "Date")?.value || "";
             
+            // Check if we already processed this specific Gmail message
+            const existingComment = await db.query.ticketComments.findFirst({
+              where: and(
+                eq(ticketComments.ticket_id, existingThread.ticket_id!),
+                eq(ticketComments.is_system, true),
+                // Use message content as a simple deduplication check
+                eq(ticketComments.content, `Reply from: ${from}\nDate: ${date}\n\n${emailBody.trim()}`)
+              ),
+            });
+
+            if (existingComment) {
+              console.log(`⚠️ Duplicate message ${message.id} already processed, skipping`);
+              continue;
+            }
+            
             // Create ticket comment for this reply
             await db.insert(ticketComments).values({
               company_id: integration.company_id,
