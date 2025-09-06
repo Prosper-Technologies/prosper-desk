@@ -34,6 +34,7 @@ import {
   ExternalLink,
   RotateCcw,
   AlertCircle,
+  Bell,
 } from "lucide-react";
 import { api } from "~/trpc/react";
 
@@ -75,6 +76,15 @@ export default function GmailSetupPage() {
     onSuccess: (data) => {
       setRotateCcwResult(
         `Processed ${data.messagesProcessed} messages, created ${data.ticketsCreated} new tickets`,
+      );
+      refetchIntegration();
+    },
+  });
+
+  const setupPushNotifications = api.gmail.setupPushNotifications.useMutation({
+    onSuccess: (data) => {
+      setRotateCcwResult(
+        `Push notifications enabled! History ID: ${data.historyId}`,
       );
       refetchIntegration();
     },
@@ -345,6 +355,32 @@ export default function GmailSetupPage() {
                     </Button>
                   </div>
 
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Enable Real-time Replies</p>
+                      <p className="text-sm text-gray-600">
+                        Automatically add email replies as ticket comments
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setupPushNotifications.mutate()}
+                      disabled={setupPushNotifications.isPending}
+                      variant="outline"
+                    >
+                      {setupPushNotifications.isPending ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Enabling...
+                        </>
+                      ) : (
+                        <>
+                          <Bell className="mr-2 h-4 w-4" />
+                          Enable Push Notifications
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
                   {syncResult && (
                     <div className="rounded-lg bg-blue-50 p-3">
                       <p className="text-sm text-blue-600">{syncResult}</p>
@@ -355,6 +391,14 @@ export default function GmailSetupPage() {
                     <div className="rounded-lg bg-red-50 p-3">
                       <p className="text-sm text-red-600">
                         RotateCcw failed: {syncEmails.error.message}
+                      </p>
+                    </div>
+                  )}
+
+                  {setupPushNotifications.error && (
+                    <div className="rounded-lg bg-red-50 p-3">
+                      <p className="text-sm text-red-600">
+                        Push notifications setup failed: {setupPushNotifications.error.message}
                       </p>
                     </div>
                   )}

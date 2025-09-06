@@ -8,6 +8,7 @@ import {
 import {
   gmailIntegration,
   tickets,
+  ticketComments,
   emailThreads,
   clients,
   memberships,
@@ -241,6 +242,60 @@ export const gmailRouter = createTRPCRouter({
     }
   }),
 
+  // Setup Gmail push notifications
+  setupPushNotifications: companyProcedure.mutation(async ({ ctx }) => {
+    const integration = await ctx.db.query.gmailIntegration.findFirst({
+      where: eq(gmailIntegration.company_id, ctx.company.id),
+    });
+
+    if (!integration) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Gmail integration not found",
+      });
+    }
+
+    const oauth2Client = createOAuthClientWithRefresh();
+    oauth2Client.setCredentials({
+      access_token: integration.access_token,
+      refresh_token: integration.refresh_token,
+    });
+
+    const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+
+    try {
+      // Set up push notifications
+      const watchResponse = await gmail.users.watch({
+        userId: "me",
+        requestBody: {
+          topicName: process.env.GOOGLE_PUBSUB_TOPIC!,
+          labelIds: ["INBOX"],
+          labelFilterBehavior: "include",
+        },
+      });
+
+      // Update integration with history ID
+      await ctx.db.update(gmailIntegration)
+        .set({ 
+          last_history_id: watchResponse.data.historyId,
+          updated_at: new Date(),
+        })
+        .where(eq(gmailIntegration.id, integration.id));
+
+      return {
+        success: true,
+        historyId: watchResponse.data.historyId,
+        expiration: watchResponse.data.expiration,
+      };
+    } catch (error) {
+      console.error("Failed to setup push notifications:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to setup push notifications",
+      });
+    }
+  }),
+
   // Sync emails and create tickets
   syncEmails: adminCompanyProcedure.mutation(async ({ ctx }) => {
     const integration = await ctx.db.query.gmailIntegration.findFirst({
@@ -302,6 +357,9 @@ export const gmailRouter = createTRPCRouter({
 
       let ticketsCreated = 0;
 
+      // Process unique threads instead of individual messages
+      const processedThreads = new Set<string>();
+      
       if (messages.data.messages) {
         for (const message of messages.data.messages) {
           try {
@@ -311,12 +369,31 @@ export const gmailRouter = createTRPCRouter({
               format: "full",
             });
 
-            // Extract email details
-            const headers = fullMessage.data.payload?.headers || [];
+            const threadId = fullMessage.data.threadId;
+            
+            // Skip if we've already processed this thread
+            if (processedThreads.has(threadId!)) {
+              continue;
+            }
+            processedThreads.add(threadId!);
+
+            // Get the full Gmail thread with all messages
+            const fullThread = await gmail.users.threads.get({
+              userId: "me",
+              id: threadId!,
+              format: "full",
+            });
+
+            if (!fullThread.data.messages || fullThread.data.messages.length === 0) {
+              continue;
+            }
+
+            // Get the first message (original email) details
+            const firstMessage = fullThread.data.messages[0];
+            const headers = firstMessage.payload?.headers || [];
             const subject =
               headers.find((h) => h.name === "Subject")?.value || "No Subject";
             const from = headers.find((h) => h.name === "From")?.value || "";
-            const threadId = fullMessage.data.threadId;
 
             // Extract sender domain
             const emailMatch =
@@ -347,8 +424,7 @@ export const gmailRouter = createTRPCRouter({
             });
 
             if (!existingThread) {
-              // Extract email body content
-              let emailBody = "";
+              // Helper function to extract email body content
               const extractTextFromParts = (parts: any[]): string => {
                 let text = "";
                 for (const part of parts) {
@@ -373,16 +449,21 @@ export const gmailRouter = createTRPCRouter({
                 return text;
               };
 
-              if (fullMessage.data.payload?.parts) {
-                emailBody = extractTextFromParts(
-                  fullMessage.data.payload.parts,
-                );
-              } else if (fullMessage.data.payload?.body?.data) {
-                emailBody = Buffer.from(
-                  fullMessage.data.payload.body.data,
-                  "base64",
-                ).toString("utf-8");
-              }
+              const extractEmailBody = (message: any): string => {
+                let emailBody = "";
+                if (message.payload?.parts) {
+                  emailBody = extractTextFromParts(message.payload.parts);
+                } else if (message.payload?.body?.data) {
+                  emailBody = Buffer.from(
+                    message.payload.body.data,
+                    "base64",
+                  ).toString("utf-8");
+                }
+                return emailBody.trim();
+              };
+
+              // Get the first message body for the ticket description
+              const firstMessageBody = extractEmailBody(firstMessage);
 
               // Create new ticket for this email thread
               const [newTicket] = await ctx.db
@@ -391,7 +472,7 @@ export const gmailRouter = createTRPCRouter({
                   company_id: ctx.company.id,
                   client_id: matchedClient.id,
                   subject,
-                  description: `Email from: ${from}\n\nSubject: ${subject}\n\n${emailBody.trim()}`,
+                  description: `Email from: ${from}\n\nSubject: ${subject}\n\n${firstMessageBody}`,
                   status: "open",
                   priority: "medium",
                   customer_email: senderEmail,
@@ -400,19 +481,50 @@ export const gmailRouter = createTRPCRouter({
                 })
                 .returning();
 
+              // Process remaining messages in the thread as comments
+              for (let i = 1; i < fullThread.data.messages.length; i++) {
+                const threadMessage = fullThread.data.messages[i];
+                const messageHeaders = threadMessage.payload?.headers || [];
+                const messageFrom = messageHeaders.find((h) => h.name === "From")?.value || "";
+                const messageDate = messageHeaders.find((h) => h.name === "Date")?.value || "";
+                const messageBody = extractEmailBody(threadMessage);
+
+                if (messageBody) {
+                  // Create ticket comment for this reply
+                  await ctx.db.insert(ticketComments).values({
+                    company_id: ctx.company.id,
+                    ticket_id: newTicket.id,
+                    membership_id: null, // External email, not from a team member
+                    customer_portal_access_id: null,
+                    content: `Reply from: ${messageFrom}\nDate: ${messageDate}\n\n${messageBody}`,
+                    is_internal: false, // Customer-visible
+                    is_system: true, // System-generated from email
+                  });
+
+                  console.log(`Added email reply as comment to ticket ${newTicket.id}`);
+                }
+              }
+
+              // Get all participants in the thread
+              const participants = fullThread.data.messages.map(msg => {
+                const headers = msg.payload?.headers || [];
+                return headers.find((h) => h.name === "From")?.value || "";
+              }).filter(Boolean);
+              const uniqueParticipants = Array.from(new Set(participants));
+
               // Create email thread record
               await ctx.db.insert(emailThreads).values({
                 company_id: ctx.company.id,
                 ticket_id: newTicket.id,
                 gmail_thread_id: threadId!,
                 subject,
-                participants: [from],
-                last_message_id: message.id!,
+                participants: uniqueParticipants,
+                last_message_id: fullThread.data.messages[fullThread.data.messages.length - 1].id!,
               });
 
               ticketsCreated++;
               console.log(
-                `Created ticket ${newTicket.id} for email from ${senderEmail} (client: ${matchedClient.name})`,
+                `Created ticket ${newTicket.id} with ${fullThread.data.messages.length - 1} replies for thread from ${senderEmail} (client: ${matchedClient.name})`,
               );
             }
           } catch (messageError) {

@@ -256,6 +256,7 @@ export const gmailIntegration = pgTable("gmail_integration", {
   access_token: text("access_token"),
   token_expires_at: timestamp("token_expires_at"),
   last_sync_at: timestamp("last_sync_at"),
+  last_history_id: varchar("last_history_id", { length: 255 }),
   is_active: boolean("is_active").default(true).notNull(),
   // Auto processing configuration
   auto_sync_enabled: boolean("auto_sync_enabled").default(true).notNull(),

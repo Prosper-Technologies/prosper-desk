@@ -29,6 +29,13 @@
       "when": 1757109250707,
       "tag": "0003_ambiguous_havok",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1757117315656,
+      "tag": "0004_big_sasquatch",
+      "breakpoints": true
     }
   ]
 }
