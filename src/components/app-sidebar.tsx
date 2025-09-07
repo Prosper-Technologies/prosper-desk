@@ -10,6 +10,7 @@ import {
   Building2,
   MoreHorizontal,
   Key,
+  BookOpen,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
@@ -84,6 +85,21 @@ const data = {
         {
           title: "Add Member",
           url: "/team/add",
+        },
+      ],
+    },
+    {
+      title: "Knowledge Base",
+      url: "/knowledge",
+      icon: BookOpen,
+      items: [
+        {
+          title: "Articles",
+          url: "/knowledge",
+        },
+        {
+          title: "Create Article",
+          url: "/knowledge/new",
         },
       ],
     },
@@ -271,21 +287,3 @@ export function AppSidebar({
     </Sidebar>
   );
 }
-
-/**
- * {
-      title: "Knowledge Base",
-      url: "/knowledge",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Articles",
-          url: "/knowledge",
-        },
-        {
-          title: "Create Article",
-          url: "/knowledge/new",
-        },
-      ],
-    },
- */

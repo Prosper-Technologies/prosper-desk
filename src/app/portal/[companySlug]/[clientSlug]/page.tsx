@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import Link from "next/link";
 import {
   Select,
   SelectContent,
@@ -33,6 +34,7 @@ import {
   Timer,
   Target,
   Activity,
+  BookOpen,
 } from "lucide-react";
 import { api } from "~/trpc/react";
 import {
@@ -280,6 +282,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
               </div>
               <Button
                 type="submit"
+                size="sm"
                 className="w-full"
                 disabled={verifyToken.isPending || !tokenInput.trim()}
               >
@@ -322,7 +325,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
             <p className="mb-4 text-gray-600">
               Invalid access token. Please check your token and try again.
             </p>
-            <Button onClick={() => setShowTokenPrompt(true)}>Try Again</Button>
+            <Button size="sm" onClick={() => setShowTokenPrompt(true)}>Try Again</Button>
           </CardContent>
         </Card>
       </div>
@@ -334,20 +337,20 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
       {/* Header */}
       <header className="border-b bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-6">
+          <div className="flex items-center justify-between py-4">
             <div className="flex items-center">
-              <LifeBuoy className="mr-3 h-8 w-8 text-primary" />
+              <LifeBuoy className="mr-2 h-5 w-5 text-primary" />
               <div>
-                <h1 className="text-lg font-bold text-gray-900">
+                <h1 className="text-base font-semibold text-gray-900">
                   {customerData?.companyName} Support
                 </h1>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs text-gray-600">
                   Welcome, {customerData?.customerName}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={handleLogout}>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
                 Log out
               </Button>
               <Dialog
@@ -355,8 +358,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                 onOpenChange={setCreateTicketOpen}
               >
                 <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
+                  <Button size="sm">
+                    <Plus className="mr-2 h-3 w-3" />
                     New Ticket
                   </Button>
                 </DialogTrigger>
@@ -428,12 +431,13 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                       <Button
                         type="button"
                         variant="outline"
+                        size="sm"
                         onClick={() => setCreateTicketOpen(false)}
                         disabled={createTicket.isPending}
                       >
                         Cancel
                       </Button>
-                      <Button type="submit" disabled={createTicket.isPending}>
+                      <Button type="submit" size="sm" disabled={createTicket.isPending}>
                         {createTicket.isPending
                           ? "Creating..."
                           : "Create Ticket"}
@@ -452,36 +456,84 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
         <div className="space-y-8">
           {/* Welcome Message */}
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="mb-2 text-lg font-medium text-gray-900">
+                  <h2 className="mb-1 text-base font-medium text-gray-900">
                     Welcome to our support portal!
                   </h2>
-                  <p className="text-gray-600">
-                    Here you can view your support tickets, create new ones, and
-                    track their progress.
+                  <p className="text-sm text-gray-600">
+                    View tickets, create new ones, and browse our knowledge base for quick answers.
                   </p>
                 </div>
-                <LifeBuoy className="h-12 w-12 text-primary" />
+                <LifeBuoy className="h-6 w-6 text-primary" />
               </div>
             </CardContent>
           </Card>
 
+          {/* Quick Actions */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Card className="border-2 border-dashed border-blue-200 bg-blue-50/50">
+              <CardContent className="p-3">
+                <Link
+                  href={`/portal/${params.companySlug}/${params.clientSlug}/knowledge`}
+                  className="block"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-700">
+                        Knowledge Base
+                      </p>
+                      <p className="text-xs text-blue-600">
+                        Find answers to common questions
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <BookOpen className="h-3 w-3 text-blue-500" />
+                    </div>
+                  </div>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-dashed border-green-200 bg-green-50/50">
+              <CardContent className="p-3">
+                <button
+                  onClick={() => setCreateTicketOpen(true)}
+                  className="block w-full text-left"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-green-700">
+                        Create Support Ticket
+                      </p>
+                      <p className="text-xs text-green-600">
+                        Get help with your issues
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Plus className="h-3 w-3 text-green-500" />
+                    </div>
+                  </div>
+                </button>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* SLA Metrics */}
           {slaMetrics && slaMetrics.totalTickets > 0 && (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center">
-                    <div className="rounded-lg bg-blue-100 p-2">
-                      <Activity className="h-6 w-6 text-blue-600" />
+                    <div className="rounded-lg bg-blue-100 p-1.5">
+                      <Activity className="h-3 w-3 text-blue-600" />
                     </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">
+                    <div className="ml-3">
+                      <p className="text-xs font-medium text-gray-600">
                         Total Tickets
                       </p>
-                      <p className="text-lg font-bold text-gray-900">
+                      <p className="text-base font-bold text-gray-900">
                         {slaMetrics.totalTickets}
                       </p>
                     </div>
@@ -490,16 +542,16 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
               </Card>
 
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center">
-                    <div className="rounded-lg bg-green-100 p-2">
-                      <CheckCircle className="h-6 w-6 text-green-600" />
+                    <div className="rounded-lg bg-green-100 p-1.5">
+                      <CheckCircle className="h-3 w-3 text-green-600" />
                     </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">
+                    <div className="ml-3">
+                      <p className="text-xs font-medium text-gray-600">
                         Resolved
                       </p>
-                      <p className="text-lg font-bold text-gray-900">
+                      <p className="text-base font-bold text-gray-900">
                         {slaMetrics.resolvedTickets}
                       </p>
                     </div>
@@ -508,16 +560,16 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
               </Card>
 
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center">
-                    <div className="rounded-lg bg-yellow-100 p-2">
-                      <Timer className="h-6 w-6 text-yellow-600" />
+                    <div className="rounded-lg bg-yellow-100 p-1.5">
+                      <Timer className="h-3 w-3 text-yellow-600" />
                     </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">
+                    <div className="ml-3">
+                      <p className="text-xs font-medium text-gray-600">
                         Avg Response
                       </p>
-                      <p className="text-lg font-bold text-gray-900">
+                      <p className="text-base font-bold text-gray-900">
                         {slaMetrics.avgResponseTimeHours}h
                       </p>
                     </div>
@@ -526,16 +578,16 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
               </Card>
 
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center">
-                    <div className="rounded-lg bg-purple-100 p-2">
-                      <Target className="h-6 w-6 text-purple-600" />
+                    <div className="rounded-lg bg-purple-100 p-1.5">
+                      <Target className="h-3 w-3 text-purple-600" />
                     </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">
+                    <div className="ml-3">
+                      <p className="text-xs font-medium text-gray-600">
                         SLA Compliance
                       </p>
-                      <p className="text-lg font-bold text-gray-900">
+                      <p className="text-base font-bold text-gray-900">
                         {slaMetrics.responseSLACompliance.toFixed(0)}%
                       </p>
                     </div>
@@ -547,21 +599,21 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
 
           {/* Tickets */}
           <Card>
-            <CardHeader>
-              <CardTitle>Your Support Tickets</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Your Support Tickets</CardTitle>
             </CardHeader>
             <CardContent>
               {!tickets || tickets.length === 0 ? (
-                <div className="py-12 text-center">
-                  <MessageCircle className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-                  <h3 className="mb-2 text-lg font-medium text-gray-900">
+                <div className="py-8 text-center">
+                  <MessageCircle className="mx-auto mb-3 h-6 w-6 text-gray-400" />
+                  <h3 className="mb-2 text-base font-medium text-gray-900">
                     No tickets yet
                   </h3>
-                  <p className="mb-4 text-gray-600">
+                  <p className="mb-4 text-sm text-gray-600">
                     You haven&apos;t created any support tickets yet.
                   </p>
-                  <Button onClick={() => setCreateTicketOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
+                  <Button size="sm" onClick={() => setCreateTicketOpen(true)}>
+                    <Plus className="mr-2 h-3 w-3" />
                     Create your first ticket
                   </Button>
                 </div>

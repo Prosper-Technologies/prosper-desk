@@ -24,11 +24,13 @@ export const knowledgeBaseRouter = createTRPCRouter({
       const whereConditions = [eq(knowledgeBase.company_id, ctx.company.id)];
 
       // For non-admins, only show published articles or their own
-      if (ctx.user.role !== "admin") {
+      if (
+        !ctx.user.memberships.some((membership) => membership.role === "admin")
+      ) {
         whereConditions.push(
           or(
             eq(knowledgeBase.is_published, true),
-            eq(knowledgeBase.author_id, ctx.user.id),
+            eq(knowledgeBase.author_membership_id, ctx.membership.id),
           )!,
         );
       }
@@ -38,7 +40,9 @@ export const knowledgeBaseRouter = createTRPCRouter({
       }
 
       if (input.authorId) {
-        whereConditions.push(eq(knowledgeBase.author_id, input.authorId));
+        whereConditions.push(
+          eq(knowledgeBase.author_membership_id, input.authorId),
+        );
       }
 
       if (input.search) {
@@ -59,16 +63,6 @@ export const knowledgeBaseRouter = createTRPCRouter({
       // Get articles
       const articles = await ctx.db.query.knowledgeBase.findMany({
         where: and(...whereConditions),
-        with: {
-          author: {
-            columns: {
-              id: true,
-              first_name: true,
-              last_name: true,
-              avatar_url: true,
-            },
-          },
-        },
         limit: input.limit,
         offset,
         orderBy: (knowledgeBase, { desc }) => [desc(knowledgeBase.updated_at)],
@@ -135,17 +129,48 @@ export const knowledgeBaseRouter = createTRPCRouter({
           created_at: true,
           updated_at: true,
         },
-        with: {
-          author: {
-            columns: { first_name: true, last_name: true },
-          },
-        },
         limit: input.limit,
         offset,
         orderBy: (knowledgeBase, { desc }) => [desc(knowledgeBase.view_count)],
       });
 
       return articles;
+    }),
+
+  // Get single article by slug (internal)
+  getBySlugInternal: companyProcedure
+    .input(z.object({
+      slug: z.string(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const article = await ctx.db.query.knowledgeBase.findFirst({
+        where: (knowledgeBase, { and, eq }) =>
+          and(
+            eq(knowledgeBase.slug, input.slug),
+            eq(knowledgeBase.company_id, ctx.company.id),
+          ),
+      });
+
+      if (!article) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Article not found",
+        });
+      }
+
+      // Check if user can view this article
+      if (
+        !article.is_published &&
+        article.author_membership_id !== ctx.membership.id &&
+        !ctx.user.memberships.some((membership) => membership.role === "admin")
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Not authorized to view this article",
+        });
+      }
+
+      return article;
     }),
 
   // Get single article by ID
@@ -160,16 +185,6 @@ export const knowledgeBaseRouter = createTRPCRouter({
             eq(knowledgeBase.id, input.id),
             eq(knowledgeBase.company_id, ctx.company.id),
           ),
-        with: {
-          author: {
-            columns: {
-              id: true,
-              first_name: true,
-              last_name: true,
-              avatar_url: true,
-            },
-          },
-        },
       });
 
       if (!article) {
@@ -181,8 +196,9 @@ export const knowledgeBaseRouter = createTRPCRouter({
 
       // Check if user can view this article
       if (
-        !article.is_published && article.author_id !== ctx.user.id &&
-        ctx.user.role !== "admin"
+        !article.is_published &&
+        article.author_membership_id !== ctx.membership.id &&
+        !ctx.user.memberships.some((membership) => membership.role === "admin")
       ) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -229,11 +245,6 @@ export const knowledgeBaseRouter = createTRPCRouter({
           tags: true,
           created_at: true,
           updated_at: true,
-        },
-        with: {
-          author: {
-            columns: { first_name: true, last_name: true },
-          },
         },
       });
 
@@ -291,7 +302,7 @@ export const knowledgeBaseRouter = createTRPCRouter({
         title: input.title,
         slug: input.slug,
         content: input.content,
-        author_id: ctx.user.id,
+        author_membership_id: ctx.membership.id,
         is_published: input.isPublished,
         is_public: input.isPublic,
         tags: input.tags,
@@ -329,8 +340,9 @@ export const knowledgeBaseRouter = createTRPCRouter({
       }
 
       // Check permissions - authors can edit their own articles, admins can edit all
-      const canEdit = existingArticle.author_id === ctx.user.id ||
-        ctx.user.role === "admin";
+      const canEdit =
+        existingArticle.author_membership_id === ctx.membership.id ||
+        ctx.user.memberships.some((membership) => membership.role === "admin");
 
       if (!canEdit) {
         throw new TRPCError({
@@ -345,7 +357,7 @@ export const knowledgeBaseRouter = createTRPCRouter({
           where: (knowledgeBase, { and, eq, ne }) =>
             and(
               eq(knowledgeBase.company_id, ctx.company.id),
-              eq(knowledgeBase.slug, input.slug),
+              eq(knowledgeBase.slug, input.slug!),
               ne(knowledgeBase.id, input.id),
             ),
         });
@@ -409,8 +421,8 @@ export const knowledgeBaseRouter = createTRPCRouter({
       }
 
       // Check permissions
-      const canDelete = article.author_id === ctx.user.id ||
-        ctx.user.role === "admin";
+      const canDelete = article.author_membership_id === ctx.membership.id ||
+        ctx.user.memberships.some((membership) => membership.role === "admin");
 
       if (!canDelete) {
         throw new TRPCError({

@@ -25,6 +25,9 @@ import {
 import { TiptapEditor } from "~/components/ui/tiptap-editor";
 import { ArrowLeft, Save, Eye, FileText, Settings } from "lucide-react";
 import Link from "next/link";
+import { SidebarTrigger } from "~/components/ui/sidebar";
+import { api } from "~/trpc/react";
+import { toast } from "sonner";
 
 const categories = [
   "Getting Started",
@@ -41,7 +44,6 @@ export default function NewArticlePage() {
   const [content, setContent] = useState("");
   const [isPublished, setIsPublished] = useState(false);
   const [isPublic, setIsPublic] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const router = useRouter();
 
@@ -59,41 +61,67 @@ export default function NewArticlePage() {
     }
   };
 
+  const createArticle = api.knowledgeBase.create.useMutation({
+    onSuccess: (article) => {
+      toast.success("Article created successfully!");
+      router.push(`/knowledge/${article.slug}` as any);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const handleSave = async (publish = false) => {
-    setIsLoading(true);
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    setIsLoading(false);
-
-    if (publish) {
-      setIsPublished(true);
+    if (!title.trim()) {
+      toast.error("Please enter a title");
+      return;
     }
 
-    // Redirect to article or show success message
-    // router.push(`/knowledge/${slug}`);
+    if (!slug.trim()) {
+      toast.error("Please enter a URL slug");
+      return;
+    }
+
+    if (!content.trim()) {
+      toast.error("Please add some content");
+      return;
+    }
+
+    await createArticle.mutateAsync({
+      title: title.trim(),
+      slug: slug.trim(),
+      content: content.trim(),
+      isPublished: publish || isPublished,
+      isPublic,
+      tags: category ? [category] : [],
+    });
   };
 
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
       <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/knowledge">Knowledge Base</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>New Article</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+        <div className="flex items-center gap-2 px-4">
+          <SidebarTrigger className="-ml-1" />
+          <div className="h-6 w-px bg-gray-200" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/knowledge">
+                  Knowledge Base
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>New Article</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
       </header>
 
       <div className="space-y-6 p-4">
@@ -127,18 +155,18 @@ export default function NewArticlePage() {
               variant="outline"
               size="sm"
               onClick={() => handleSave(false)}
-              disabled={isLoading}
+              disabled={createArticle.isPending}
             >
               <Save className="mr-2 h-4 w-4" />
-              Save Draft
+              {createArticle.isPending ? "Saving..." : "Save Draft"}
             </Button>
             <Button
               size="sm"
               onClick={() => handleSave(true)}
-              disabled={isLoading || !title || !content}
+              disabled={createArticle.isPending || !title || !content}
             >
               <FileText className="mr-2 h-4 w-4" />
-              {isLoading ? "Publishing..." : "Publish"}
+              {createArticle.isPending ? "Publishing..." : "Publish"}
             </Button>
           </div>
         </div>

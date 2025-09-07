@@ -15,10 +15,9 @@ import {
   Calendar,
   User,
   FileText,
+  Loader,
 } from "lucide-react";
-
-// TODO: Replace with actual API calls
-const mockArticles: any[] = [];
+import { api } from "~/trpc/react";
 
 const categories = [
   "All",
@@ -32,13 +31,17 @@ export default function KnowledgeBasePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  const filteredArticles = mockArticles.filter((article) => {
-    const matchesSearch =
-      article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      article.excerpt.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "All" || article.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+  const { data: articlesData, isLoading } = api.knowledgeBase.getAll.useQuery({
+    page: 1,
+    limit: 50,
+    search: searchTerm || undefined,
+  });
+
+  const articles = articlesData?.articles || [];
+
+  const filteredArticles = articles.filter((article) => {
+    const matchesCategory = selectedCategory === "All";
+    return matchesCategory;
   });
 
   return (
@@ -111,16 +114,10 @@ export default function KnowledgeBasePage() {
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between">
                   <Badge
-                    variant={article.isPublished ? "default" : "secondary"}
-                    className="mb-2"
-                  >
-                    {article.category}
-                  </Badge>
-                  <Badge
-                    variant={article.isPublished ? "default" : "secondary"}
+                    variant={article.is_published ? "default" : "secondary"}
                     className="text-xs"
                   >
-                    {article.isPublished ? "Published" : "Draft"}
+                    {article.is_published ? "Published" : "Draft"}
                   </Badge>
                 </div>
                 <CardTitle className="text-lg leading-tight">
@@ -134,24 +131,24 @@ export default function KnowledgeBasePage() {
               </CardHeader>
               <CardContent className="pt-0">
                 <p className="mb-4 line-clamp-2 text-sm text-gray-600">
-                  {article.excerpt}
+                  {article.content.substring(0, 150)}...
                 </p>
 
                 <div className="mb-4 flex items-center justify-between text-xs text-gray-500">
                   <div className="flex items-center gap-1">
                     <User className="h-3 w-3" />
-                    {article.author}
+                    Author
                   </div>
                   <div className="flex items-center gap-1">
                     <Eye className="h-3 w-3" />
-                    {article.views} views
+                    {article.view_count} views
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1 text-xs text-gray-500">
                     <Calendar className="h-3 w-3" />
-                    {article.updatedAt.toLocaleDateString()}
+                    {article.updated_at.toLocaleDateString()}
                   </div>
                   <div className="flex gap-1">
                     <Button asChild variant="ghost" size="sm">
