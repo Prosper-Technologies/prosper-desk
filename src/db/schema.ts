@@ -144,6 +144,7 @@ export const tickets = pgTable("tickets", {
   company_id: uuid("company_id")
     .references(() => companies.id, { onDelete: "cascade" })
     .notNull(),
+  external_id: varchar("external_id", { length: 255 }).unique(), // External system identifier
   subject: varchar("subject", { length: 255 }).notNull(),
   description: text("description").notNull(),
   status: ticketStatusEnum("status").notNull().default("open"),
@@ -183,7 +184,6 @@ export const tickets = pgTable("tickets", {
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 }).enableRLS();
 
-// Ticket Comments - supports polymorphic ownership (membership OR customer portal access)
 export const ticketComments = pgTable("ticket_comments", {
   id: uuid("id").primaryKey().defaultRandom(),
   company_id: uuid("company_id")
@@ -192,6 +192,10 @@ export const ticketComments = pgTable("ticket_comments", {
   ticket_id: uuid("ticket_id")
     .references(() => tickets.id, { onDelete: "cascade" })
     .notNull(),
+  parent_comment_id: uuid("parent_comment_id").references(
+    (): any => ticketComments.id,
+    { onDelete: "cascade" }
+  ), // For nested replies (one level only)
   // Polymorphic ownership: exactly one of these should be set
   membership_id: uuid("membership_id").references(() => memberships.id), // For staff comments
   customer_portal_access_id: uuid("customer_portal_access_id").references(
@@ -205,7 +209,6 @@ export const ticketComments = pgTable("ticket_comments", {
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 }).enableRLS();
 
-// Knowledge Base Articles - now references membership instead of user directly
 export const knowledgeBase = pgTable("knowledge_base", {
   id: uuid("id").primaryKey().defaultRandom(),
   company_id: uuid("company_id")
@@ -413,7 +416,7 @@ export const ticketsRelations = relations(tickets, ({ one, many }) => ({
   comments: many(ticketComments),
 }));
 
-export const ticketCommentsRelations = relations(ticketComments, ({ one }) => ({
+export const ticketCommentsRelations = relations(ticketComments, ({ one, many }) => ({
   company: one(companies, {
     fields: [ticketComments.company_id],
     references: [companies.id],
@@ -429,6 +432,14 @@ export const ticketCommentsRelations = relations(ticketComments, ({ one }) => ({
   customerPortalAccess: one(customerPortalAccess, {
     fields: [ticketComments.customer_portal_access_id],
     references: [customerPortalAccess.id],
+  }),
+  parentComment: one(ticketComments, {
+    fields: [ticketComments.parent_comment_id],
+    references: [ticketComments.id],
+    relationName: "commentReplies",
+  }),
+  replies: many(ticketComments, {
+    relationName: "commentReplies",
   }),
 }));
 
@@ -496,17 +507,20 @@ export const emailThreadsRelations = relations(emailThreads, ({ one }) => ({
   }),
 }));
 
-export const invitationCodesRelations = relations(invitationCodes, ({ one }) => ({
-  company: one(companies, {
-    fields: [invitationCodes.company_id],
-    references: [companies.id],
+export const invitationCodesRelations = relations(
+  invitationCodes,
+  ({ one }) => ({
+    company: one(companies, {
+      fields: [invitationCodes.company_id],
+      references: [companies.id],
+    }),
+    user: one(users, {
+      fields: [invitationCodes.user_id],
+      references: [users.id],
+    }),
+    invitedByMembership: one(memberships, {
+      fields: [invitationCodes.invited_by_membership_id],
+      references: [memberships.id],
+    }),
   }),
-  user: one(users, {
-    fields: [invitationCodes.user_id],
-    references: [users.id],
-  }),
-  invitedByMembership: one(memberships, {
-    fields: [invitationCodes.invited_by_membership_id],
-    references: [memberships.id],
-  }),
-}));
+);

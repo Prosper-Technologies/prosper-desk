@@ -36,6 +36,20 @@
       "when": 1757117315656,
       "tag": "0004_big_sasquatch",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1761074363850,
+      "tag": "0005_green_anita_blake",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1761074793536,
+      "tag": "0006_outstanding_mindworm",
+      "breakpoints": true
     }
   ]
 }
