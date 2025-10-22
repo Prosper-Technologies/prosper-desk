@@ -5,57 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1757014195604,
-      "tag": "0000_brainy_mysterio",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1757014787404,
-      "tag": "0001_stiff_leader",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1757014857667,
-      "tag": "0002_wonderful_nightmare",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1757109250707,
-      "tag": "0003_ambiguous_havok",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1757117315656,
-      "tag": "0004_big_sasquatch",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1761074363850,
-      "tag": "0005_green_anita_blake",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1761074793536,
-      "tag": "0006_outstanding_mindworm",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1761154854406,
-      "tag": "0007_old_leader",
+      "when": 1761169210889,
+      "tag": "20251022214010_puzzling_leopardon",
       "breakpoints": true
     }
   ]

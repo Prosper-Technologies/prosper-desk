@@ -1,6 +1,6 @@
 {
-  "id": "5e5b92d9-32c1-4ee8-8fc3-3bd591bf7d3a",
-  "prevId": "0bcfb8ed-763d-49be-9462-b4d35607efd1",
+  "id": "d4b96da1-f8da-45b8-b9fa-673f97268e23",
+  "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -325,18 +325,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "access_token": {
-          "name": "access_token",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
         "last_login_at": {
           "name": "last_login_at",
           "type": "timestamp",
@@ -395,15 +383,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "customer_portal_access_access_token_unique": {
-          "name": "customer_portal_access_access_token_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "access_token"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": true
@@ -626,6 +606,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "last_history_id": {
+          "name": "last_history_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "is_active": {
           "name": "is_active",
           "type": "boolean",
@@ -697,7 +683,132 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
+    },
+    "public.invitation_codes": {
+      "name": "invitation_codes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(6)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "membership_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invited_by_membership_id": {
+          "name": "invited_by_membership_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_used": {
+          "name": "is_used",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "used_at": {
+          "name": "used_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "invitation_codes_company_id_companies_id_fk": {
+          "name": "invitation_codes_company_id_companies_id_fk",
+          "tableFrom": "invitation_codes",
+          "tableTo": "companies",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "invitation_codes_user_id_users_id_fk": {
+          "name": "invitation_codes_user_id_users_id_fk",
+          "tableFrom": "invitation_codes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "invitation_codes_invited_by_membership_id_memberships_id_fk": {
+          "name": "invitation_codes_invited_by_membership_id_memberships_id_fk",
+          "tableFrom": "invitation_codes",
+          "tableTo": "memberships",
+          "columnsFrom": [
+            "invited_by_membership_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "invitation_codes_code_unique": {
+          "name": "invitation_codes_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
     },
     "public.knowledge_base": {
       "name": "knowledge_base",
@@ -1050,6 +1161,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "parent_comment_id": {
+          "name": "parent_comment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "membership_id": {
           "name": "membership_id",
           "type": "uuid",
@@ -1132,6 +1249,19 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
+        "ticket_comments_parent_comment_id_ticket_comments_id_fk": {
+          "name": "ticket_comments_parent_comment_id_ticket_comments_id_fk",
+          "tableFrom": "ticket_comments",
+          "tableTo": "ticket_comments",
+          "columnsFrom": [
+            "parent_comment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "ticket_comments_membership_id_memberships_id_fk": {
           "name": "ticket_comments_membership_id_memberships_id_fk",
           "tableFrom": "ticket_comments",
@@ -1181,6 +1311,18 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_type": {
+          "name": "external_type",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
         },
         "subject": {
           "name": "subject",

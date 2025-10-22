@@ -144,7 +144,8 @@ export const tickets = pgTable("tickets", {
   company_id: uuid("company_id")
     .references(() => companies.id, { onDelete: "cascade" })
     .notNull(),
-  external_id: varchar("external_id", { length: 255 }).unique(), // External system identifier
+  external_id: varchar("external_id", { length: 255 }), // Not unique - can be anything
+  external_type: varchar("external_type", { length: 100 }), // Free text - can be anything
   subject: varchar("subject", { length: 255 }).notNull(),
   description: text("description").notNull(),
   status: ticketStatusEnum("status").notNull().default("open"),
@@ -239,7 +240,6 @@ export const customerPortalAccess = pgTable("customer_portal_access", {
     .notNull(),
   email: varchar("email", { length: 255 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
-  // Magic link authentication - no token storage needed, Supabase handles it
   last_login_at: timestamp("last_login_at"),
   is_active: boolean("is_active").default(true).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),

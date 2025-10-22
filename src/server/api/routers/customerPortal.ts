@@ -19,7 +19,7 @@ async function verifyPortalAccess(
   if (authError || !user) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
-      message: "Not authenticated",
+      message: "Not authenticated. Please log in to the customer portal.",
     });
   }
 
@@ -53,8 +53,8 @@ async function verifyPortalAccess(
 
   if (!access) {
     throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "You don't have access to this portal",
+      code: "FORBIDDEN",
+      message: "You don't have access to this customer portal. Please use the correct customer portal login.",
     });
   }
 
@@ -655,5 +655,262 @@ export const customerPortalRouter = createTRPCRouter({
         statusBreakdown,
         priorityBreakdown,
       };
+    }),
+
+  // Get a single ticket by ID
+  getTicketById: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        ticketId: z.string().uuid(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      });
+
+      // Get the specific ticket
+      const ticket = await ctx.db.query.tickets.findFirst({
+        where: (tickets, { and, eq }) =>
+          and(
+            eq(tickets.id, input.ticketId),
+            eq(tickets.client_id, access.clientId),
+          ),
+      });
+
+      if (!ticket) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        });
+      }
+
+      // Get assigned membership if exists
+      let assignedTo = null;
+      if (ticket.assigned_to_membership_id) {
+        const membership = await ctx.db.query.memberships.findFirst({
+          where: (memberships, { eq }) =>
+            eq(memberships.id, ticket.assigned_to_membership_id!),
+        });
+
+        if (membership) {
+          const user = await ctx.db.query.users.findFirst({
+            where: (users, { eq }) => eq(users.id, membership.user_id),
+          });
+
+          assignedTo = {
+            ...membership,
+            user: user || null,
+          };
+        }
+      }
+
+      // Get comments for this ticket
+      const baseComments = await ctx.db.query.ticketComments.findMany({
+        where: (ticketComments, { eq }) =>
+          eq(ticketComments.ticket_id, input.ticketId),
+        orderBy: (ticketComments, { asc }) => [asc(ticketComments.created_at)],
+      });
+
+      // Get membership info for comments
+      const commentMembershipIds = baseComments
+        .map((comment) => comment.membership_id)
+        .filter((id): id is string => id !== null);
+
+      let commentMemberships: any[] = [];
+      let commentUsers: any[] = [];
+      if (commentMembershipIds.length > 0) {
+        const baseMemberships = await ctx.db.query.memberships.findMany({
+          where: (memberships) => inArray(memberships.id, commentMembershipIds),
+        });
+
+        const userIds = baseMemberships.map((m) => m.user_id);
+        if (userIds.length > 0) {
+          commentUsers = await ctx.db.query.users.findMany({
+            where: (users) => inArray(users.id, userIds),
+          });
+        }
+
+        commentMemberships = baseMemberships.map((membership) => ({
+          ...membership,
+          user: commentUsers.find((u) => u.id === membership.user_id) || null,
+        }));
+      }
+
+      // Get customer portal access data for comments
+      const commentPortalAccessIds = baseComments
+        .map((comment) => comment.customer_portal_access_id)
+        .filter((id): id is string => id !== null);
+
+      let commentPortalAccess: any[] = [];
+      if (commentPortalAccessIds.length > 0) {
+        commentPortalAccess = await ctx.db.query.customerPortalAccess.findMany({
+          where: (customerPortalAccess) =>
+            inArray(customerPortalAccess.id, commentPortalAccessIds),
+        });
+      }
+
+      // Combine comment data
+      const comments = baseComments.map((comment) => ({
+        ...comment,
+        membership:
+          commentMemberships.find((m) => m.id === comment.membership_id) ||
+          null,
+        customerPortalAccess:
+          commentPortalAccess.find(
+            (p) => p.id === comment.customer_portal_access_id,
+          ) || null,
+      }));
+
+      // Check permissions - can the logged-in user edit this ticket?
+      const {
+        data: { user },
+      } = await ctx.supabase.auth.getUser();
+
+      const canEdit =
+        // Customer who created the ticket
+        ticket.customer_email === user?.email ||
+        // Assigned agent
+        (assignedTo && assignedTo.user?.email === user?.email);
+
+      return {
+        ...ticket,
+        assigned_to: assignedTo,
+        comments,
+        canEdit, // Add permission flag
+      };
+    }),
+
+  // Update ticket (subject, description, priority)
+  updateTicket: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        ticketId: z.string().uuid(),
+        subject: z.string().min(1).max(255).optional(),
+        description: z.string().min(1).optional(),
+        priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      });
+
+      // Get the ticket to check permissions
+      const ticket = await ctx.db.query.tickets.findFirst({
+        where: (tickets, { and, eq }) =>
+          and(
+            eq(tickets.id, input.ticketId),
+            eq(tickets.client_id, access.clientId),
+          ),
+      });
+
+      if (!ticket) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        });
+      }
+
+      // Check if user has permission to edit
+      const {
+        data: { user },
+      } = await ctx.supabase.auth.getUser();
+
+      // Get assigned membership if exists to check email
+      let assignedEmail = null;
+      if (ticket.assigned_to_membership_id) {
+        const membership = await ctx.db.query.memberships.findFirst({
+          where: (memberships, { eq }) =>
+            eq(memberships.id, ticket.assigned_to_membership_id!),
+        });
+        if (membership) {
+          const assignedUser = await ctx.db.query.users.findFirst({
+            where: (users, { eq }) => eq(users.id, membership.user_id),
+          });
+          assignedEmail = assignedUser?.email;
+        }
+      }
+
+      const canEdit =
+        ticket.customer_email === user?.email || assignedEmail === user?.email;
+
+      if (!canEdit) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You don't have permission to edit this ticket",
+        });
+      }
+
+      // Build update object
+      const updateData: any = {
+        updated_at: new Date(),
+      };
+
+      if (input.subject !== undefined) updateData.subject = input.subject;
+      if (input.description !== undefined)
+        updateData.description = input.description;
+      if (input.priority !== undefined) updateData.priority = input.priority;
+
+      // Update the ticket
+      await ctx.db
+        .update(tickets)
+        .set(updateData)
+        .where(eq(tickets.id, input.ticketId));
+
+      return { success: true };
+    }),
+
+  // Resolve ticket (anyone logged in can resolve)
+  resolveTicket: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        ticketId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      });
+
+      // Get the ticket
+      const ticket = await ctx.db.query.tickets.findFirst({
+        where: (tickets, { and, eq }) =>
+          and(
+            eq(tickets.id, input.ticketId),
+            eq(tickets.client_id, access.clientId),
+          ),
+      });
+
+      if (!ticket) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        });
+      }
+
+      // Anyone with portal access can resolve
+      await ctx.db
+        .update(tickets)
+        .set({
+          status: "resolved",
+          resolved_at: new Date(),
+          updated_at: new Date(),
+        })
+        .where(eq(tickets.id, input.ticketId));
+
+      return { success: true };
     }),
 });

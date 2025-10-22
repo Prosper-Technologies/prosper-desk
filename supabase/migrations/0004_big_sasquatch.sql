@@ -1,1 +1,0 @@
-ALTER TABLE "gmail_integration" ADD COLUMN "last_history_id" varchar(255);

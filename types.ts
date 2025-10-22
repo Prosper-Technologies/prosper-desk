@@ -172,12 +172,10 @@ export type Database = {
       }
       customer_portal_access: {
         Row: {
-          access_token: string
           client_id: string
           company_id: string
           created_at: string
           email: string
-          expires_at: string | null
           id: string
           is_active: boolean
           last_login_at: string | null
@@ -185,12 +183,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          access_token: string
           client_id: string
           company_id: string
           created_at?: string
           email: string
-          expires_at?: string | null
           id?: string
           is_active?: boolean
           last_login_at?: string | null
@@ -198,12 +194,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          access_token?: string
           client_id?: string
           company_id?: string
           created_at?: string
           email?: string
-          expires_at?: string | null
           id?: string
           is_active?: boolean
           last_login_at?: string | null
@@ -702,6 +696,7 @@ export type Database = {
           escalation_level: number | null
           escalation_policy_id: string | null
           external_id: string | null
+          external_type: string | null
           first_response_at: string | null
           id: string
           priority: Database["public"]["Enums"]["ticket_priority"]
@@ -727,6 +722,7 @@ export type Database = {
           escalation_level?: number | null
           escalation_policy_id?: string | null
           external_id?: string | null
+          external_type?: string | null
           first_response_at?: string | null
           id?: string
           priority?: Database["public"]["Enums"]["ticket_priority"]
@@ -752,6 +748,7 @@ export type Database = {
           escalation_level?: number | null
           escalation_policy_id?: string | null
           external_id?: string | null
+          external_type?: string | null
           first_response_at?: string | null
           id?: string
           priority?: Database["public"]["Enums"]["ticket_priority"]
@@ -853,18 +850,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      current_user_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      user_company_ids: {
-        Args: Record<PropertyKey, never>
-        Returns: string[]
-      }
-      user_has_role: {
-        Args: { company_uuid: string; required_role: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       company_size: "1-10" | "11-50" | "51-200" | "201-1000" | "1000+"

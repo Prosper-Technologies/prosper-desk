@@ -367,23 +367,29 @@ export default function ClientPortalAccessPage() {
                                 Share Portal Access Link
                               </h3>
                               <p className="text-sm text-blue-700">
-                                Send this link to <strong>{generatedAccess.email}</strong>
+                                Send this link to{" "}
+                                <strong>{generatedAccess.email}</strong>
                               </p>
                             </div>
 
                             {generatedAccess.portalUrl && (
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2 rounded-lg border border-blue-300 bg-white p-3">
-                                  <code className="flex-1 text-xs text-gray-700 break-all">
+                                  <code className="flex-1 break-all text-xs text-gray-700">
                                     {generatedAccess.portalUrl}
                                   </code>
                                   <Button
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => {
-                                      navigator.clipboard.writeText(generatedAccess.portalUrl!);
+                                      navigator.clipboard.writeText(
+                                        generatedAccess.portalUrl!,
+                                      );
                                       setCopiedUrl(true);
-                                      setTimeout(() => setCopiedUrl(false), 2000);
+                                      setTimeout(
+                                        () => setCopiedUrl(false),
+                                        2000,
+                                      );
                                     }}
                                   >
                                     {copiedUrl ? (
@@ -393,7 +399,7 @@ export default function ClientPortalAccessPage() {
                                     )}
                                   </Button>
                                 </div>
-                                <p className="text-xs text-blue-600 text-center">
+                                <p className="text-center text-xs text-blue-600">
                                   Click to copy the portal access link
                                 </p>
                               </div>
@@ -414,7 +420,8 @@ export default function ClientPortalAccessPage() {
                               <li className="flex items-start gap-2">
                                 <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-600" />
                                 <span>
-                                  Customer enters their email and requests a magic link
+                                  Customer enters their email and requests a
+                                  magic link
                                 </span>
                               </li>
                               <li className="flex items-start gap-2">
@@ -426,7 +433,8 @@ export default function ClientPortalAccessPage() {
                               <li className="flex items-start gap-2">
                                 <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-600" />
                                 <span>
-                                  Clicking the link authenticates them automatically
+                                  Clicking the link authenticates them
+                                  automatically
                                 </span>
                               </li>
                               <li className="flex items-start gap-2">
@@ -546,7 +554,7 @@ export default function ClientPortalAccessPage() {
                             <>
                               <DropdownMenuItem
                                 onClick={() => {
-                                  const portalUrl = `${window.location.origin}/portal/${client.company?.slug}/${client.slug}/auth`;
+                                  const portalUrl = `${window.location.origin}/portal/${client.company?.slug}/${client.slug}`;
                                   window.open(portalUrl, "_blank");
                                 }}
                               >

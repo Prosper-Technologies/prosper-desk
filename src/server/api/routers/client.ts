@@ -313,7 +313,7 @@ export const clientRouter = createTRPCRouter({
       }
 
       // Customer will request their own magic link via the portal
-      const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL}/portal/${ctx.company.slug}/${client.slug}/request-access`;
+      const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL}/portal/${ctx.company.slug}/${client.slug}`;
 
       return {
         message: existingAccess

@@ -9,6 +9,9 @@ export default defineConfig({
   out: "./supabase/migrations",
   verbose: true,
   strict: true,
+  migrations: {
+    prefix: "timestamp",
+  },
   dbCredentials: {
     url: process.env.DATABASE_URL!,
   },
