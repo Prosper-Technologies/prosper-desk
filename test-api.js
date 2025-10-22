@@ -1,7 +1,7 @@
 // Simple API testing script
 // Run with: node test-api.js
 
-const API_BASE = 'http://localhost:3000/api/v1';
+const API_BASE = 'http://localhost:4000/api/v1';
 const API_KEY = 'YOUR_API_KEY'; // Replace with actual API key
 
 const headers = {
@@ -19,7 +19,7 @@ async function testEndpoints() {
       method: 'GET',
       headers
     });
-    
+
     if (listResponse.ok) {
       const data = await listResponse.json();
       console.log('✅ GET /tickets - Success');
@@ -143,7 +143,7 @@ async function testEndpoints() {
     console.log('\n🎉 API testing completed!');
     console.log('\n📝 Notes:');
     console.log('- Make sure to replace YOUR_API_KEY with an actual API key');
-    console.log('- Ensure the development server is running on http://localhost:3000');
+    console.log('- Ensure the development server is running on http://localhost:4000');
     console.log('- Some tests may fail if the database is not properly set up');
 
   } catch (error) {

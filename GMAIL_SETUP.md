@@ -24,7 +24,7 @@ This guide will help you set up Gmail integration to automatically convert email
 4. **Create OAuth Client:**
    - Application type: Web application
    - Name: Gmail Integration
-   - Authorized redirect URIs: `http://localhost:3000/settings/gmail`
+   - Authorized redirect URIs: `http://localhost:4000/settings/gmail`
 
 ### 3. Environment Variables
 
@@ -34,7 +34,7 @@ Add these variables to your `.env` file:
 # Gmail Integration
 GOOGLE_CLIENT_ID=your_google_client_id_here
 GOOGLE_CLIENT_SECRET=your_google_client_secret_here
-GOOGLE_REDIRECT_URI=http://localhost:3000/settings/gmail
+GOOGLE_REDIRECT_URI=http://localhost:4000/settings/gmail
 
 # For production, update the redirect URI:
 # GOOGLE_REDIRECT_URI=https://yourdomain.com/settings/gmail

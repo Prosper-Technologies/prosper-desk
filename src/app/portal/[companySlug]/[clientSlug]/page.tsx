@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
@@ -43,6 +42,8 @@ import {
   getPriorityColor,
   getInitials,
 } from "~/lib/utils";
+import { createClient } from "~/utils/supabase/client";
+import { Input } from "~/components/ui/input";
 
 interface PortalPageProps {
   params: {
@@ -52,6 +53,9 @@ interface PortalPageProps {
 }
 
 export default function CustomerPortalPage({ params }: PortalPageProps) {
+  const router = useRouter();
+  const supabase = createClient();
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [customerData, setCustomerData] = useState<any>(null);
   const [createTicketOpen, setCreateTicketOpen] = useState(false);
@@ -60,79 +64,54 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
   const [priority, setPriority] = useState<
     "low" | "medium" | "high" | "urgent"
   >("medium");
-  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [expandedTickets, setExpandedTickets] = useState<Set<string>>(
     new Set(),
   );
   const [newComments, setNewComments] = useState<{
     [ticketId: string]: string;
   }>({});
-  const [showTokenPrompt, setShowTokenPrompt] = useState(false);
-  const [tokenInput, setTokenInput] = useState("");
-  const [tokenError, setTokenError] = useState("");
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
-  const searchParams = useSearchParams();
-
-  // Get token from URL or localStorage on mount
-  useEffect(() => {
-    const urlToken = searchParams?.get("token");
-    const storageKey = `portal_token_${params.companySlug}_${params.clientSlug}`;
-    const storedToken = localStorage.getItem(storageKey);
-
-    if (urlToken) {
-      setAccessToken(urlToken);
-      localStorage.setItem(storageKey, urlToken);
-      // Clean URL by removing token parameter
-      const url = new URL(window.location.href);
-      url.searchParams.delete("token");
-      window.history.replaceState({}, "", url.toString());
-    } else if (storedToken) {
-      setAccessToken(storedToken);
-    } else {
-      setShowTokenPrompt(true);
-    }
-    setIsInitialized(true);
-  }, [params.companySlug, params.clientSlug, searchParams]);
-
-  // Verify access token
-  const verifyToken = api.customerPortal.verifyToken.useMutation({
+  // Verify session on mount
+  const verifySession = api.customerPortal.verifyToken.useMutation({
     onSuccess: (data) => {
       setIsAuthenticated(true);
       setCustomerData(data);
-      setShowTokenPrompt(false);
-      setTokenError("");
+      setIsLoading(false);
     },
-    onError: (error) => {
-      setIsAuthenticated(false);
-      setCustomerData(null);
-      const storageKey = `portal_token_${params.companySlug}_${params.clientSlug}`;
-      localStorage.removeItem(storageKey);
-      setTokenError(error.message);
-      setShowTokenPrompt(true);
+    onError: () => {
+      // Redirect to request access page if not authenticated
+      setIsLoading(false);
+      router.push(`/portal/${params.companySlug}/${params.clientSlug}/request-access`);
     },
   });
 
-  // Use ref to track if we've already attempted verification for this token
-  const verificationAttempted = useRef<string | null>(null);
-
-  // Verify token when we have one
   useEffect(() => {
-    if (
-      accessToken &&
-      !isAuthenticated &&
-      !verifyToken.isPending &&
-      verificationAttempted.current !== accessToken
-    ) {
-      verificationAttempted.current = accessToken;
-      verifyToken.mutate({
+    // Prevent multiple checks
+    if (sessionChecked) return;
+
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        // No session, redirect to request access
+        setIsLoading(false);
+        router.push(`/portal/${params.companySlug}/${params.clientSlug}/request-access`);
+        return;
+      }
+
+      // Verify the session is valid for this portal
+      setSessionChecked(true);
+      verifySession.mutate({
         companySlug: params.companySlug,
         clientSlug: params.clientSlug,
-        accessToken,
       });
-    }
+    };
+
+    checkSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken, isAuthenticated, params.companySlug, params.clientSlug]);
+  }, [params.companySlug, params.clientSlug]);
 
   // Get customer tickets
   const {
@@ -143,12 +122,11 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
     {
       companySlug: params.companySlug,
       clientSlug: params.clientSlug,
-      accessToken: accessToken || "",
       page: 1,
       limit: 20,
     },
     {
-      enabled: isAuthenticated && !!accessToken,
+      enabled: isAuthenticated,
     },
   );
 
@@ -157,10 +135,9 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
     {
       companySlug: params.companySlug,
       clientSlug: params.clientSlug,
-      accessToken: accessToken || "",
     },
     {
-      enabled: isAuthenticated && !!accessToken,
+      enabled: isAuthenticated,
     },
   );
 
@@ -186,25 +163,13 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
     },
   });
 
-  const handleTokenSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tokenInput.trim()) return;
-
-    const token = tokenInput.trim();
-    setAccessToken(token);
-    const storageKey = `portal_token_${params.companySlug}_${params.clientSlug}`;
-    localStorage.setItem(storageKey, token);
-    setTokenInput("");
-  };
-
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!subject.trim() || !description.trim() || !accessToken) return;
+    if (!subject.trim() || !description.trim()) return;
 
     await createTicket.mutateAsync({
       companySlug: params.companySlug,
       clientSlug: params.clientSlug,
-      accessToken: accessToken,
       subject: subject.trim(),
       description: description.trim(),
       priority,
@@ -225,111 +190,36 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
 
   const handleAddComment = async (ticketId: string) => {
     const content = newComments[ticketId]?.trim();
-    if (!content || !accessToken) return;
+    if (!content) return;
 
     await addComment.mutateAsync({
       companySlug: params.companySlug,
       clientSlug: params.clientSlug,
-      accessToken,
       ticketId,
       content,
     });
   };
 
-  const handleLogout = () => {
-    const storageKey = `portal_token_${params.companySlug}_${params.clientSlug}`;
-    localStorage.removeItem(storageKey);
-    setAccessToken(null);
-    setIsAuthenticated(false);
-    setCustomerData(null);
-    setShowTokenPrompt(true);
-    setTokenError("");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push(`/portal/${params.companySlug}/${params.clientSlug}/request-access`);
   };
 
-  // Token prompt screen
-  if (showTokenPrompt) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <LifeBuoy className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle>Access Portal</CardTitle>
-            <p className="text-sm text-gray-600">
-              Enter your access token to continue
-            </p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleTokenSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="token" className="text-sm font-medium">
-                  Access Token
-                </label>
-                <Input
-                  id="token"
-                  type="text"
-                  value={tokenInput}
-                  onChange={(e) => setTokenInput(e.target.value)}
-                  placeholder="Enter your access token"
-                  required
-                  disabled={verifyToken.isPending}
-                  className="font-mono"
-                />
-                {tokenError && (
-                  <p className="text-sm text-red-600">{tokenError}</p>
-                )}
-              </div>
-              <Button
-                type="submit"
-                size="sm"
-                className="w-full"
-                disabled={verifyToken.isPending || !tokenInput.trim()}
-              >
-                {verifyToken.isPending ? "Verifying..." : "Access Portal"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Show loading during initialization, token verification, or initial data loading
-  if (
-    !isInitialized ||
-    verifyToken.isPending ||
-    (accessToken && !isAuthenticated && !tokenError) ||
-    (isAuthenticated && ticketsLoading)
-  ) {
+  // Show loading during session verification
+  if (isLoading || verifySession.isPending || (isAuthenticated && ticketsLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Loading portal...</p>
         </div>
       </div>
     );
   }
 
-  // Not authenticated
+  // Not authenticated (will redirect automatically)
   if (!isAuthenticated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <Card className="max-w-md">
-          <CardContent className="pt-6 text-center">
-            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
-            <h1 className="mb-2 text-xl font-semibold text-gray-900">
-              Access Denied
-            </h1>
-            <p className="mb-4 text-gray-600">
-              Invalid access token. Please check your token and try again.
-            </p>
-            <Button size="sm" onClick={() => setShowTokenPrompt(true)}>Try Again</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return null;
   }
 
   return (

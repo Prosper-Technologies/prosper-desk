@@ -5,12 +5,25 @@ import { eq, inArray, and, asc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import type { db } from "~/db";
 
-// Helper function to verify portal access
+// Helper function to verify portal access via Supabase session
 async function verifyPortalAccess(
-  ctx: { db: typeof db },
-  input: { companySlug: string; clientSlug: string; accessToken: string },
+  ctx: { db: typeof db; supabase: any },
+  input: { companySlug: string; clientSlug: string },
 ) {
-  // Find client by both company slug and client slug in a single query (updated logic)
+  // Get the current user session
+  const {
+    data: { user },
+    error: authError,
+  } = await ctx.supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Not authenticated",
+    });
+  }
+
+  // Find client by both company slug and client slug
   const clients = await ctx.db.query.clients.findMany({
     where: (clients, { eq }) => eq(clients.slug, input.clientSlug),
     with: {
@@ -18,7 +31,6 @@ async function verifyPortalAccess(
     },
   });
 
-  // Find the client that matches both client slug and company slug
   const client = clients.find((c) => c.company.slug === input.companySlug);
 
   // Verify the client exists and portal is enabled
@@ -29,12 +41,12 @@ async function verifyPortalAccess(
     });
   }
 
-  // Find access record by access token
+  // Find access record by user email
   const access = await ctx.db.query.customerPortalAccess.findFirst({
     where: (customerPortalAccess, { and, eq }) =>
       and(
         eq(customerPortalAccess.client_id, client.id),
-        eq(customerPortalAccess.access_token, input.accessToken),
+        eq(customerPortalAccess.email, user.email!),
         eq(customerPortalAccess.is_active, true),
       ),
   });
@@ -42,7 +54,7 @@ async function verifyPortalAccess(
   if (!access) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
-      message: "Invalid access token",
+      message: "You don't have access to this portal",
     });
   }
 
@@ -55,21 +67,22 @@ async function verifyPortalAccess(
     companyId: client.company.id,
     companyName: client.company.name,
     companySlug: client.company.slug,
+    portalAccessId: access.id,
   };
 }
 
 export const customerPortalRouter = createTRPCRouter({
-  // Verify access token
-  verifyToken: publicProcedure
+  // Request OTP for portal access
+  requestOTP: publicProcedure
     .input(
       z.object({
         companySlug: z.string(),
         clientSlug: z.string(),
-        accessToken: z.string(),
+        email: z.string().email(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // Find client by both company slug and client slug in a single query
+      // Find client by both company slug and client slug
       const clients = await ctx.db.query.clients.findMany({
         where: (clients, { eq }) => eq(clients.slug, input.clientSlug),
         with: {
@@ -77,37 +90,21 @@ export const customerPortalRouter = createTRPCRouter({
         },
       });
 
-      // Find the client that matches both client slug and company slug
       const client = clients.find((c) => c.company.slug === input.companySlug);
 
-      // Verify the client exists and portal is enabled
       if (!client || !client.portal_enabled) {
-        console.log("❌ Client validation failed:", {
-          found: !!client,
-          expectedCompanySlug: input.companySlug,
-          actualCompanySlug: client?.company?.slug,
-          portal_enabled: client?.portal_enabled,
-        });
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Client not found or portal disabled",
+          message: "Portal not found or disabled",
         });
       }
 
-      // Get all access records for debugging
-      const allAccessRecords = await ctx.db.query.customerPortalAccess.findMany(
-        {
-          where: (customerPortalAccess, { eq }) =>
-            eq(customerPortalAccess.client_id, client.id),
-        },
-      );
-
-      // Find access record by access token
+      // Check if this email has portal access
       const access = await ctx.db.query.customerPortalAccess.findFirst({
         where: (customerPortalAccess, { and, eq }) =>
           and(
             eq(customerPortalAccess.client_id, client.id),
-            eq(customerPortalAccess.access_token, input.accessToken),
+            eq(customerPortalAccess.email, input.email),
             eq(customerPortalAccess.is_active, true),
           ),
       });
@@ -115,9 +112,103 @@ export const customerPortalRouter = createTRPCRouter({
       if (!access) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "Invalid access token",
+          message:
+            "This email does not have portal access. Please contact support.",
         });
       }
+
+      // Send OTP email using Supabase Auth
+      const { error } = await ctx.supabase.auth.signInWithOtp({
+        email: input.email,
+        options: {
+          shouldCreateUser: false,
+        },
+      });
+
+      if (error) {
+        console.error("Failed to send OTP:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to send verification code. Please try again.",
+        });
+      }
+
+      return {
+        message: "Verification code sent! Please check your email.",
+        email: input.email,
+      };
+    }),
+
+  // Verify OTP and validate portal access
+  verifyOTP: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        email: z.string().email(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify the client exists and portal is enabled
+      const clients = await ctx.db.query.clients.findMany({
+        where: (clients, { eq }) => eq(clients.slug, input.clientSlug),
+        with: {
+          company: true,
+        },
+      });
+
+      const client = clients.find((c) => c.company.slug === input.companySlug);
+
+      if (!client || !client.portal_enabled) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Portal not found or disabled",
+        });
+      }
+
+      // Check if this email has portal access
+      const access = await ctx.db.query.customerPortalAccess.findFirst({
+        where: (customerPortalAccess, { and, eq }) =>
+          and(
+            eq(customerPortalAccess.client_id, client.id),
+            eq(customerPortalAccess.email, input.email),
+            eq(customerPortalAccess.is_active, true),
+          ),
+      });
+
+      if (!access) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "This email does not have portal access.",
+        });
+      }
+
+      // Update last login time
+      await ctx.db
+        .update(customerPortalAccess)
+        .set({ last_login_at: new Date() })
+        .where(eq(customerPortalAccess.id, access.id));
+
+      return {
+        message: "Access validated!",
+        accessId: access.id,
+      };
+    }),
+
+  // Verify session access (replaces token verification)
+  verifyToken: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        accessToken: z.string().optional(), // Kept for backwards compatibility, but not used
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      });
 
       // Update last login
       await ctx.db
@@ -126,17 +217,17 @@ export const customerPortalRouter = createTRPCRouter({
           last_login_at: new Date(),
           updated_at: new Date(),
         })
-        .where(eq(customerPortalAccess.id, access.id));
+        .where(eq(customerPortalAccess.id, access.portalAccessId));
 
       return {
-        customerEmail: access.email,
-        customerName: access.name,
-        clientId: client.id,
-        clientName: client.name,
-        clientSlug: client.slug,
-        companyId: client.company.id,
-        companyName: client.company.name,
-        companySlug: client.company.slug,
+        customerEmail: access.customerEmail,
+        customerName: access.customerName,
+        clientId: access.clientId,
+        clientName: access.clientName,
+        clientSlug: access.clientSlug,
+        companyId: access.companyId,
+        companyName: access.companyName,
+        companySlug: access.companySlug,
       };
     }),
 
@@ -146,7 +237,7 @@ export const customerPortalRouter = createTRPCRouter({
       z.object({
         companySlug: z.string(),
         clientSlug: z.string(),
-        accessToken: z.string(),
+        accessToken: z.string().optional(), // Kept for backwards compatibility, but not used
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(50).default(10),
       }),
@@ -156,18 +247,13 @@ export const customerPortalRouter = createTRPCRouter({
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-        accessToken: input.accessToken,
       });
 
       const offset = (input.page - 1) * input.limit;
 
-      // Get tickets for this customer - simplified query without complex joins
+      // Get ALL tickets for this client (not filtered by customer email)
       const baseTickets = await ctx.db.query.tickets.findMany({
-        where: (tickets, { and, eq }) =>
-          and(
-            eq(tickets.client_id, access.clientId),
-            eq(tickets.customer_email, access.customerEmail),
-          ),
+        where: (tickets, { eq }) => eq(tickets.client_id, access.clientId),
         limit: input.limit,
         offset,
         orderBy: (tickets, { desc }) => [desc(tickets.created_at)],
@@ -298,7 +384,7 @@ export const customerPortalRouter = createTRPCRouter({
       z.object({
         companySlug: z.string(),
         clientSlug: z.string(),
-        accessToken: z.string(),
+        accessToken: z.string().optional(), // Kept for backwards compatibility, but not used
         subject: z.string().min(1),
         description: z.string().min(1),
         priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
@@ -309,7 +395,6 @@ export const customerPortalRouter = createTRPCRouter({
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-        accessToken: input.accessToken,
       });
 
       // Get default SLA policy for the company
@@ -364,7 +449,7 @@ export const customerPortalRouter = createTRPCRouter({
       z.object({
         companySlug: z.string(),
         clientSlug: z.string(),
-        accessToken: z.string(),
+        accessToken: z.string().optional(), // Kept for backwards compatibility, but not used
         ticketId: z.string().uuid(),
         content: z.string().min(1),
       }),
@@ -374,16 +459,14 @@ export const customerPortalRouter = createTRPCRouter({
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-        accessToken: input.accessToken,
       });
 
-      // Verify ticket belongs to this customer
+      // Verify ticket belongs to this client (not checking customer email)
       const ticket = await ctx.db.query.tickets.findFirst({
         where: (tickets, { and, eq }) =>
           and(
             eq(tickets.id, input.ticketId),
             eq(tickets.client_id, access.clientId),
-            eq(tickets.customer_email, access.customerEmail),
           ),
       });
 
@@ -394,29 +477,12 @@ export const customerPortalRouter = createTRPCRouter({
         });
       }
 
-      // Find the customer portal access record to link the comment
-      const portalAccess = await ctx.db.query.customerPortalAccess.findFirst({
-        where: (customerPortalAccess, { and, eq }) =>
-          and(
-            eq(customerPortalAccess.client_id, access.clientId),
-            eq(customerPortalAccess.access_token, input.accessToken),
-            eq(customerPortalAccess.is_active, true),
-          ),
-      });
-
-      if (!portalAccess) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Portal access record not found",
-        });
-      }
-
       const [comment] = await ctx.db
         .insert(ticketComments)
         .values({
           company_id: access.companyId,
           ticket_id: input.ticketId,
-          customer_portal_access_id: portalAccess.id,
+          customer_portal_access_id: access.portalAccessId,
           content: input.content,
           is_internal: false,
           is_system: false,
@@ -490,7 +556,7 @@ export const customerPortalRouter = createTRPCRouter({
       z.object({
         companySlug: z.string(),
         clientSlug: z.string(),
-        accessToken: z.string(),
+        accessToken: z.string().optional(), // Kept for backwards compatibility, but not used
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -498,16 +564,11 @@ export const customerPortalRouter = createTRPCRouter({
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-        accessToken: input.accessToken,
       });
 
-      // Get tickets for this customer with SLA data
+      // Get ALL tickets for this client with SLA data
       const customerTickets = await ctx.db.query.tickets.findMany({
-        where: (tickets, { and, eq }) =>
-          and(
-            eq(tickets.client_id, access.clientId),
-            eq(tickets.customer_email, access.customerEmail),
-          ),
+        where: (tickets, { eq }) => eq(tickets.client_id, access.clientId),
         with: {
           slaPolicy: true,
         },

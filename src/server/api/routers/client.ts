@@ -3,27 +3,6 @@ import { createTRPCRouter, companyProcedure } from "~/server/api/trpc";
 import { clients, customerPortalAccess } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { generateAccessToken } from "~/lib/utils";
-
-function calculateExpirationDate(expiration?: string): Date | null {
-  if (!expiration || expiration === "never") {
-    return null;
-  }
-
-  const now = new Date();
-  switch (expiration) {
-    case "1_day":
-      return new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    case "1_week":
-      return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    case "1_month":
-      return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    case "1_year":
-      return new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
-    default:
-      return null;
-  }
-}
 
 export const clientRouter = createTRPCRouter({
   // Get all clients for a company
@@ -258,14 +237,13 @@ export const clientRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  // Generate portal access for a customer (creates account for magic link)
+  // Generate portal access for a customer (sends magic link email)
   generatePortalAccess: companyProcedure
     .input(
       z.object({
         clientId: z.string().uuid(),
         email: z.string().email(),
         name: z.string().min(1),
-        expiration: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -291,7 +269,22 @@ export const clientRouter = createTRPCRouter({
         });
       }
 
-      // Check if access already exists
+      // Validate email domain if client has restrictions
+      const cleanedEmailDomains = client.email_domains.filter(
+        (domain) => domain && domain.length > 0,
+      );
+
+      if (cleanedEmailDomains.length > 0) {
+        const emailDomain = input.email.split("@")[1];
+        if (!cleanedEmailDomains.includes(emailDomain)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Email must be from one of these domains: ${client.email_domains.join(", ")}`,
+          });
+        }
+      }
+
+      // Check if access already exists for this email and client
       let existingAccess = await ctx.db.query.customerPortalAccess.findFirst({
         where: and(
           eq(customerPortalAccess.client_id, input.clientId),
@@ -300,49 +293,35 @@ export const clientRouter = createTRPCRouter({
       });
 
       if (existingAccess) {
-        // Generate new token for existing access
-        const accessToken = generateAccessToken();
-        const expiresAt = calculateExpirationDate(input.expiration);
-        const [updatedAccess] = await ctx.db
+        // Update existing access
+        await ctx.db
           .update(customerPortalAccess)
           .set({
             name: input.name,
-            access_token: accessToken,
             is_active: true,
-            expires_at: expiresAt,
             updated_at: new Date(),
           })
-          .where(eq(customerPortalAccess.id, existingAccess.id))
-          .returning();
-
-        return {
-          accessToken,
-          portalUrl: `${process.env.NEXT_PUBLIC_APP_URL}/portal/${(ctx as any).company.slug}/${client.slug}/auth?token=${accessToken}`,
-          message: "Portal access updated with new token.",
-        };
+          .where(eq(customerPortalAccess.id, existingAccess.id));
       } else {
-        // Create new access with token
-        const accessToken = generateAccessToken();
-        const expiresAt = calculateExpirationDate(input.expiration);
-
-        const [newAccess] = await ctx.db
-          .insert(customerPortalAccess)
-          .values({
-            company_id: ctx.company.id,
-            client_id: input.clientId,
-            email: input.email,
-            name: input.name,
-            access_token: accessToken,
-            expires_at: expiresAt,
-          })
-          .returning();
-
-        return {
-          accessToken,
-          portalUrl: `${process.env.NEXT_PUBLIC_APP_URL}/portal/${(ctx as any).company.slug}/${client.slug}/auth?token=${accessToken}`,
-          message: "Portal access created with token.",
-        };
+        // Create new access record
+        await ctx.db.insert(customerPortalAccess).values({
+          company_id: ctx.company.id,
+          client_id: input.clientId,
+          email: input.email,
+          name: input.name,
+        });
       }
+
+      // Customer will request their own magic link via the portal
+      const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL}/portal/${ctx.company.slug}/${client.slug}/request-access`;
+
+      return {
+        message: existingAccess
+          ? `Portal access updated for ${input.email}. Share this link: ${portalUrl}`
+          : `Portal access granted to ${input.email}. Share this link: ${portalUrl}`,
+        email: input.email,
+        portalUrl,
+      };
     }),
 
   // Get portal access for a client
@@ -425,39 +404,5 @@ export const clientRouter = createTRPCRouter({
         .where(eq(customerPortalAccess.id, input.accessId));
 
       return { success: true };
-    }),
-
-  // Update expiration for an existing portal access
-  updatePortalAccessExpiration: companyProcedure
-    .input(
-      z.object({
-        accessId: z.string().uuid(),
-        expiration: z.string().optional(), // "1_day" | "1_week" | "1_month" | "1_year" | "never"
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const access = await ctx.db.query.customerPortalAccess.findFirst({
-        where: and(
-          eq(customerPortalAccess.id, input.accessId),
-          eq(customerPortalAccess.company_id, (ctx as any).company.id),
-        ),
-      });
-
-      if (!access) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Portal access not found",
-        });
-      }
-
-      const expiresAt = calculateExpirationDate(input.expiration);
-
-      const [updated] = await ctx.db
-        .update(customerPortalAccess)
-        .set({ expires_at: expiresAt, updated_at: new Date() })
-        .where(eq(customerPortalAccess.id, input.accessId))
-        .returning();
-
-      return updated;
     }),
 });

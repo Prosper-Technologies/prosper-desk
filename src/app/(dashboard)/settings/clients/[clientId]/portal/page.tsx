@@ -64,15 +64,12 @@ export default function ClientPortalAccessPage() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
-  const [expiration, setExpiration] = useState<string>("never");
-  const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [generatedAccess, setGeneratedAccess] = useState<{
-    accessToken: string;
-    portalUrl: string;
     message: string;
+    email: string;
+    portalUrl?: string;
   } | null>(null);
-  const [updateExpOpen, setUpdateExpOpen] = useState<string | null>(null);
-  const [updateExpiration, setUpdateExpiration] = useState<string>("never");
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
   // Get client details
   const { data: client } = api.clients.getById.useQuery({ id: clientId });
@@ -126,19 +123,6 @@ export default function ClientPortalAccessPage() {
     },
   });
 
-  // Update expiration mutation
-  const updateExpirationMutation =
-    api.clients.updatePortalAccessExpiration.useMutation({
-      onSuccess: () => {
-        setUpdateExpOpen(null);
-        setUpdateExpiration("never");
-        refetch();
-      },
-      onError: (err) => {
-        setError(err.message);
-      },
-    });
-
   const handleGenerateAccess = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -152,7 +136,6 @@ export default function ClientPortalAccessPage() {
       clientId,
       email: email.trim(),
       name: name.trim(),
-      expiration,
     });
   };
 
@@ -163,18 +146,11 @@ export default function ClientPortalAccessPage() {
       setEmail("");
       setName("");
       setError("");
-      setExpiration("never");
     }
   };
 
   const handleOpenAccessModal = () => {
     setCreateAccessOpen(true);
-  };
-
-  const copyToClipboard = (text: string, type: "token" | "url") => {
-    navigator.clipboard.writeText(text);
-    setCopiedToken(type);
-    setTimeout(() => setCopiedToken(null), 2000);
   };
 
   const handleRevokeAccess = (accessId: string) => {
@@ -200,40 +176,15 @@ export default function ClientPortalAccessPage() {
   const handleRegenerateToken = (access: any) => {
     if (
       confirm(
-        "Are you sure you want to regenerate the token? The current token will be invalidated and a new one will be created.",
+        "Are you sure you want to send a new magic link? A fresh link will be sent to the customer's email.",
       )
     ) {
-      regenerateToken.mutateAsync({
+      generateAccess.mutateAsync({
         clientId,
         email: access.email,
         name: access.name,
-        expiration: "never", // Default to never expires for regenerated tokens
       });
     }
-  };
-
-  const openUpdateExpiration = (accessId: string) => {
-    setUpdateExpOpen(accessId);
-    setUpdateExpiration("never");
-  };
-
-  const submitUpdateExpiration = () => {
-    if (!updateExpOpen) return;
-    updateExpirationMutation.mutate({
-      accessId: updateExpOpen,
-      expiration: updateExpiration,
-    });
-  };
-
-  const handleCopyTokenUrl = (
-    accessToken: string,
-    clientSlug: string,
-    companySlug: string,
-  ) => {
-    const portalUrl = `${window.location.origin}/portal/${companySlug}/${clientSlug}/auth?token=${accessToken}`;
-    navigator.clipboard.writeText(portalUrl);
-    setCopiedToken(accessToken);
-    setTimeout(() => setCopiedToken(null), 2000);
   };
 
   if (!client) {
@@ -373,36 +324,6 @@ export default function ClientPortalAccessPage() {
                           )}
                         </div>
 
-                        <div className="space-y-2">
-                          <label
-                            htmlFor="expiration"
-                            className="text-sm font-medium"
-                          >
-                            Access Expiration
-                          </label>
-                          <Select
-                            value={expiration}
-                            onValueChange={setExpiration}
-                            disabled={generateAccess.isPending}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select expiration" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1_day">1 Day</SelectItem>
-                              <SelectItem value="1_week">1 Week</SelectItem>
-                              <SelectItem value="1_month">1 Month</SelectItem>
-                              <SelectItem value="1_year">1 Year</SelectItem>
-                              <SelectItem value="never">
-                                Never Expires
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <p className="text-xs text-gray-500">
-                            How long the access token should remain valid
-                          </p>
-                        </div>
-
                         {error && (
                           <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
                             <AlertCircle className="h-4 w-4 text-red-600" />
@@ -424,8 +345,8 @@ export default function ClientPortalAccessPage() {
                             disabled={generateAccess.isPending}
                           >
                             {generateAccess.isPending
-                              ? "Generating..."
-                              : "Generate Access Token"}
+                              ? "Granting Access..."
+                              : "Grant Access"}
                           </Button>
                         </DialogFooter>
                       </form>
@@ -434,99 +355,85 @@ export default function ClientPortalAccessPage() {
                         <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3">
                           <Check className="h-4 w-4 text-green-600" />
                           <p className="text-sm text-green-700">
-                            {generatedAccess.message}
+                            Portal access granted to {generatedAccess.email}
                           </p>
                         </div>
 
                         <div className="space-y-4">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
-                              Access Token
-                            </label>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                value={generatedAccess.accessToken}
-                                readOnly
-                                className="font-mono text-sm"
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  copyToClipboard(
-                                    generatedAccess.accessToken,
-                                    "token",
-                                  )
-                                }
-                              >
-                                {copiedToken === "token" ? (
-                                  <Check className="h-4 w-4" />
-                                ) : (
-                                  <Copy className="h-4 w-4" />
-                                )}
-                              </Button>
+                          <div className="rounded-lg border border-blue-200 bg-blue-50 p-6">
+                            <div className="mb-4 text-center">
+                              <Shield className="mx-auto mb-2 h-12 w-12 text-blue-600" />
+                              <h3 className="mb-1 text-lg font-semibold text-blue-900">
+                                Share Portal Access Link
+                              </h3>
+                              <p className="text-sm text-blue-700">
+                                Send this link to <strong>{generatedAccess.email}</strong>
+                              </p>
                             </div>
-                            <p className="text-xs text-gray-500">
-                              Share this token with the customer. They will use
-                              it to access the portal.
-                            </p>
+
+                            {generatedAccess.portalUrl && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 rounded-lg border border-blue-300 bg-white p-3">
+                                  <code className="flex-1 text-xs text-gray-700 break-all">
+                                    {generatedAccess.portalUrl}
+                                  </code>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(generatedAccess.portalUrl!);
+                                      setCopiedUrl(true);
+                                      setTimeout(() => setCopiedUrl(false), 2000);
+                                    }}
+                                  >
+                                    {copiedUrl ? (
+                                      <Check className="h-4 w-4 text-green-600" />
+                                    ) : (
+                                      <Copy className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                                <p className="text-xs text-blue-600 text-center">
+                                  Click to copy the portal access link
+                                </p>
+                              </div>
+                            )}
                           </div>
 
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
-                              Portal URL
-                            </label>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                value={generatedAccess.portalUrl}
-                                readOnly
-                                className="text-sm"
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  copyToClipboard(
-                                    generatedAccess.portalUrl,
-                                    "url",
-                                  )
-                                }
-                              >
-                                {copiedToken === "url" ? (
-                                  <Check className="h-4 w-4" />
-                                ) : (
-                                  <Copy className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </div>
-                            <p className="text-xs text-gray-500">
-                              Direct link with token included. Customer can
-                              click this to access the portal immediately.
-                            </p>
-                          </div>
-
-                          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                            <h4 className="mb-2 text-sm font-medium text-blue-800">
-                              Next Steps:
+                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                            <h4 className="mb-2 text-sm font-medium text-gray-800">
+                              How it works:
                             </h4>
-                            <ul className="space-y-1 text-xs text-blue-700">
-                              <li>
-                                • Send the access token or direct URL to the
-                                customer
+                            <ul className="space-y-2 text-xs text-gray-700">
+                              <li className="flex items-start gap-2">
+                                <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-600" />
+                                <span>
+                                  Share the link above with your customer
+                                </span>
                               </li>
-                              <li>
-                                • The token provides permanent access to the
-                                portal
+                              <li className="flex items-start gap-2">
+                                <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-600" />
+                                <span>
+                                  Customer enters their email and requests a magic link
+                                </span>
                               </li>
-                              <li>
-                                • Customer can bookmark the URL for future
-                                access
+                              <li className="flex items-start gap-2">
+                                <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-600" />
+                                <span>
+                                  They receive a secure email with a magic link
+                                </span>
                               </li>
-                              <li>
-                                • You can revoke access at any time from this
-                                page
+                              <li className="flex items-start gap-2">
+                                <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-600" />
+                                <span>
+                                  Clicking the link authenticates them automatically
+                                </span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <Clock className="mt-0.5 h-3 w-3 flex-shrink-0 text-amber-600" />
+                                <span>
+                                  Magic links expire after 1 hour for security
+                                </span>
                               </li>
                             </ul>
                           </div>
@@ -606,10 +513,6 @@ export default function ClientPortalAccessPage() {
                           >
                             {access.is_active ? "Active" : "Revoked"}
                           </Badge>
-                          {access.last_login_at &&
-                            new Date(access.last_login_at) < new Date() && (
-                              <Badge variant="secondary">Expired</Badge>
-                            )}
                         </h3>
                         <div className="mt-1 flex items-center gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-1">
@@ -620,17 +523,6 @@ export default function ClientPortalAccessPage() {
                             <Clock className="h-3 w-3" />
                             Created {formatDateTime(access.created_at)}
                           </div>
-                          {access.expires_at ? (
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              Expires {formatDateTime(access.expires_at)}
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              Never expires
-                            </div>
-                          )}
                           {access.last_login_at && (
                             <div className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
@@ -642,29 +534,6 @@ export default function ClientPortalAccessPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {access.is_active && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            handleCopyTokenUrl(
-                              access.access_token,
-                              client.slug,
-                              client.company?.slug || "",
-                            )
-                          }
-                        >
-                          {copiedToken === access.access_token ? (
-                            <Check className="mr-2 h-4 w-4" />
-                          ) : (
-                            <Copy className="mr-2 h-4 w-4" />
-                          )}
-                          {copiedToken === access.access_token
-                            ? "Copied!"
-                            : "Copy Link"}
-                        </Button>
-                      )}
-
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">
@@ -676,20 +545,8 @@ export default function ClientPortalAccessPage() {
                           {access.is_active && (
                             <>
                               <DropdownMenuItem
-                                onClick={() =>
-                                  handleCopyTokenUrl(
-                                    access.access_token,
-                                    client.slug,
-                                    client.company?.slug || "",
-                                  )
-                                }
-                              >
-                                <Copy className="mr-2 h-4 w-4" />
-                                Copy Token Link
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
                                 onClick={() => {
-                                  const portalUrl = `${window.location.origin}/portal/${client.company?.slug}/${client.slug}/auth?token=${access.access_token}`;
+                                  const portalUrl = `${window.location.origin}/portal/${client.company?.slug}/${client.slug}/auth`;
                                   window.open(portalUrl, "_blank");
                                 }}
                               >
@@ -700,13 +557,7 @@ export default function ClientPortalAccessPage() {
                                 onClick={() => handleRegenerateToken(access)}
                               >
                                 <RefreshCw className="mr-2 h-4 w-4" />
-                                Regenerate Token
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => openUpdateExpiration(access.id)}
-                              >
-                                <Clock className="mr-2 h-4 w-4" />
-                                Update Expiration
+                                Send New Magic Link
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -753,51 +604,6 @@ export default function ClientPortalAccessPage() {
           </CardContent>
         </Card>
       </div>
-      {/* Update Expiration Dialog */}
-      <Dialog
-        open={!!updateExpOpen}
-        onOpenChange={(open) => setUpdateExpOpen(open ? updateExpOpen : null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Update access expiration</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Expiration</label>
-            <Select
-              value={updateExpiration}
-              onValueChange={setUpdateExpiration}
-              disabled={updateExpirationMutation.isPending}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select expiration" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1_day">1 Day</SelectItem>
-                <SelectItem value="1_week">1 Week</SelectItem>
-                <SelectItem value="1_month">1 Month</SelectItem>
-                <SelectItem value="1_year">1 Year</SelectItem>
-                <SelectItem value="never">Never Expires</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setUpdateExpOpen(null)}
-              disabled={updateExpirationMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={submitUpdateExpiration}
-              disabled={updateExpirationMutation.isPending}
-            >
-              {updateExpirationMutation.isPending ? "Updating..." : "Update"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

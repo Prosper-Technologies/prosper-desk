@@ -32,7 +32,7 @@ SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
 DATABASE_URL="postgresql://postgres.[project-ref]:[password]@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
 
 # App
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_URL="http://localhost:4000"
 ```
 
 ### 3. Setup Local Supabase
@@ -49,7 +49,7 @@ supabase db push --local
 pnpm dev
 ```
 
-Visit http://localhost:3000
+Visit http://localhost:4000
 
 ## Development Workflow
 
@@ -109,9 +109,9 @@ supabase/
 
 ## Local Development URLs
 
-- **App**: http://localhost:3000
-- **Supabase Studio**: http://127.0.0.1:54323
-- **Supabase API**: http://127.0.0.1:54321
+- **App**: http://localhost:4000
+- **Supabase Studio**: http://127.0.0.1:55323
+- **Supabase API**: http://127.0.0.1:55321
 - **Drizzle Studio**: `pnpm db:studio`
 
 ## Deployment

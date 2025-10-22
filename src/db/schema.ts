@@ -194,7 +194,7 @@ export const ticketComments = pgTable("ticket_comments", {
     .notNull(),
   parent_comment_id: uuid("parent_comment_id").references(
     (): any => ticketComments.id,
-    { onDelete: "cascade" }
+    { onDelete: "cascade" },
   ), // For nested replies (one level only)
   // Polymorphic ownership: exactly one of these should be set
   membership_id: uuid("membership_id").references(() => memberships.id), // For staff comments
@@ -239,9 +239,7 @@ export const customerPortalAccess = pgTable("customer_portal_access", {
     .notNull(),
   email: varchar("email", { length: 255 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
-  // Simplified token-based authentication
-  access_token: varchar("access_token", { length: 255 }).notNull().unique(),
-  expires_at: timestamp("expires_at"), // null = never expires
+  // Magic link authentication - no token storage needed, Supabase handles it
   last_login_at: timestamp("last_login_at"),
   is_active: boolean("is_active").default(true).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
@@ -416,32 +414,35 @@ export const ticketsRelations = relations(tickets, ({ one, many }) => ({
   comments: many(ticketComments),
 }));
 
-export const ticketCommentsRelations = relations(ticketComments, ({ one, many }) => ({
-  company: one(companies, {
-    fields: [ticketComments.company_id],
-    references: [companies.id],
+export const ticketCommentsRelations = relations(
+  ticketComments,
+  ({ one, many }) => ({
+    company: one(companies, {
+      fields: [ticketComments.company_id],
+      references: [companies.id],
+    }),
+    ticket: one(tickets, {
+      fields: [ticketComments.ticket_id],
+      references: [tickets.id],
+    }),
+    membership: one(memberships, {
+      fields: [ticketComments.membership_id],
+      references: [memberships.id],
+    }),
+    customerPortalAccess: one(customerPortalAccess, {
+      fields: [ticketComments.customer_portal_access_id],
+      references: [customerPortalAccess.id],
+    }),
+    parentComment: one(ticketComments, {
+      fields: [ticketComments.parent_comment_id],
+      references: [ticketComments.id],
+      relationName: "commentReplies",
+    }),
+    replies: many(ticketComments, {
+      relationName: "commentReplies",
+    }),
   }),
-  ticket: one(tickets, {
-    fields: [ticketComments.ticket_id],
-    references: [tickets.id],
-  }),
-  membership: one(memberships, {
-    fields: [ticketComments.membership_id],
-    references: [memberships.id],
-  }),
-  customerPortalAccess: one(customerPortalAccess, {
-    fields: [ticketComments.customer_portal_access_id],
-    references: [customerPortalAccess.id],
-  }),
-  parentComment: one(ticketComments, {
-    fields: [ticketComments.parent_comment_id],
-    references: [ticketComments.id],
-    relationName: "commentReplies",
-  }),
-  replies: many(ticketComments, {
-    relationName: "commentReplies",
-  }),
-}));
+);
 
 export const knowledgeBaseRelations = relations(knowledgeBase, ({ one }) => ({
   company: one(companies, {
