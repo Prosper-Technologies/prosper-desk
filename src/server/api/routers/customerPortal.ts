@@ -54,7 +54,8 @@ async function verifyPortalAccess(
   if (!access) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "You don't have access to this customer portal. Please use the correct customer portal login.",
+      message:
+        "You don't have access to this customer portal. Please use the correct customer portal login.",
     });
   }
 
@@ -120,9 +121,6 @@ export const customerPortalRouter = createTRPCRouter({
       // Send OTP email using Supabase Auth
       const { error } = await ctx.supabase.auth.signInWithOtp({
         email: input.email,
-        options: {
-          shouldCreateUser: false,
-        },
       });
 
       if (error) {
@@ -271,12 +269,10 @@ export const customerPortalRouter = createTRPCRouter({
 
       let memberships: any[] = [];
       if (membershipIds.length > 0) {
-        // Get base memberships first
         const baseMemberships = await ctx.db.query.memberships.findMany({
           where: (memberships) => inArray(memberships.id, membershipIds),
         });
 
-        // Get users for these memberships
         const userIds = baseMemberships.map((m) => m.user_id);
         let users: any[] = [];
         if (userIds.length > 0) {
@@ -285,14 +281,12 @@ export const customerPortalRouter = createTRPCRouter({
           });
         }
 
-        // Combine memberships with users
         memberships = baseMemberships.map((membership) => ({
           ...membership,
           user: users.find((u) => u.id === membership.user_id) || null,
         }));
       }
 
-      // Get non-internal comments for these tickets - simplified query
       const ticketIds = baseTickets.map((ticket) => ticket.id);
       let baseComments: any[] = [];
       if (ticketIds.length > 0) {
@@ -313,7 +307,6 @@ export const customerPortalRouter = createTRPCRouter({
         }
       }
 
-      // Get membership data for comments that have membership_id
       const commentMembershipIds = baseComments
         .map((comment) => comment.membership_id)
         .filter((id): id is string => id !== null);
@@ -321,12 +314,10 @@ export const customerPortalRouter = createTRPCRouter({
       let commentMemberships: any[] = [];
       let commentUsers: any[] = [];
       if (commentMembershipIds.length > 0) {
-        // Get base memberships first
         const baseMemberships = await ctx.db.query.memberships.findMany({
           where: (memberships) => inArray(memberships.id, commentMembershipIds),
         });
 
-        // Get users for these memberships
         const userIds = baseMemberships.map((m) => m.user_id);
         if (userIds.length > 0) {
           commentUsers = await ctx.db.query.users.findMany({
@@ -334,7 +325,6 @@ export const customerPortalRouter = createTRPCRouter({
           });
         }
 
-        // Combine memberships with users
         commentMemberships = baseMemberships.map((membership) => ({
           ...membership,
           user: commentUsers.find((u) => u.id === membership.user_id) || null,

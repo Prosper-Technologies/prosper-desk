@@ -139,51 +139,54 @@ export const clients = pgTable("clients", {
 }).enableRLS();
 
 // Tickets table (core entity) - now references membership instead of user directly
-export const tickets = pgTable("tickets", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  company_id: uuid("company_id")
-    .references(() => companies.id, { onDelete: "cascade" })
-    .notNull(),
-  external_id: varchar("external_id", { length: 255 }), // Not unique - can be anything
-  external_type: varchar("external_type", { length: 100 }), // Free text - can be anything
-  subject: varchar("subject", { length: 255 }).notNull(),
-  description: text("description").notNull(),
-  status: ticketStatusEnum("status").notNull().default("open"),
-  priority: ticketPriorityEnum("priority").notNull().default("medium"),
+export const tickets = pgTable(
+  "tickets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    company_id: uuid("company_id")
+      .references(() => companies.id, { onDelete: "cascade" })
+      .notNull(),
+    external_id: varchar("external_id", { length: 255 }),
+    external_type: varchar("external_type", { length: 100 }),
+    subject: varchar("subject", { length: 255 }).notNull(),
+    description: text("description").notNull(),
+    status: ticketStatusEnum("status").notNull().default("open"),
+    priority: ticketPriorityEnum("priority").notNull().default("medium"),
+    created_by_membership_id: uuid("created_by_membership_id").references(
+      () => memberships.id,
+    ),
+    assigned_to_membership_id: uuid("assigned_to_membership_id").references(
+      () => memberships.id,
+    ),
+    sla_policy_id: uuid("sla_policy_id").references(() => slaPolicies.id),
+    first_response_at: timestamp("first_response_at"),
+    resolved_at: timestamp("resolved_at"),
+    sla_response_breach: boolean("sla_response_breach").default(false),
+    sla_resolution_breach: boolean("sla_resolution_breach").default(false),
+    escalation_policy_id: uuid("escalation_policy_id").references(
+      () => escalationPolicies.id,
+    ),
+    escalation_level: integer("escalation_level").default(0),
+    client_id: uuid("client_id").references(() => clients.id),
+    customer_email: varchar("customer_email", { length: 255 }),
+    customer_name: varchar("customer_name", { length: 255 }),
 
-  // User relationships - now through memberships
-  created_by_membership_id: uuid("created_by_membership_id").references(
-    () => memberships.id,
-  ),
-  assigned_to_membership_id: uuid("assigned_to_membership_id").references(
-    () => memberships.id,
-  ),
+    // Metadata
+    tags: jsonb("tags").default("[]"), // Array of strings
+    custom_fields: jsonb("custom_fields").default("{}"),
 
-  // SLA tracking
-  sla_policy_id: uuid("sla_policy_id").references(() => slaPolicies.id),
-  first_response_at: timestamp("first_response_at"),
-  resolved_at: timestamp("resolved_at"),
-  sla_response_breach: boolean("sla_response_breach").default(false),
-  sla_resolution_breach: boolean("sla_resolution_breach").default(false),
-
-  // Escalation
-  escalation_policy_id: uuid("escalation_policy_id").references(
-    () => escalationPolicies.id,
-  ),
-  escalation_level: integer("escalation_level").default(0),
-
-  // Customer info (for portal tickets)
-  client_id: uuid("client_id").references(() => clients.id),
-  customer_email: varchar("customer_email", { length: 255 }),
-  customer_name: varchar("customer_name", { length: 255 }),
-
-  // Metadata
-  tags: jsonb("tags").default("[]"), // Array of strings
-  custom_fields: jsonb("custom_fields").default("{}"),
-
-  created_at: timestamp("created_at").defaultNow().notNull(),
-  updated_at: timestamp("updated_at").defaultNow().notNull(),
-}).enableRLS();
+    created_at: timestamp("created_at").defaultNow().notNull(),
+    updated_at: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    ticketUniqueConstraint: unique().on(
+      table.external_id,
+      table.external_type,
+      table.company_id,
+      table.client_id,
+    ),
+  }),
+).enableRLS();
 
 export const ticketComments = pgTable("ticket_comments", {
   id: uuid("id").primaryKey().defaultRandom(),

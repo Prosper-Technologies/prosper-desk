@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "build": "next build",
-    "db:generate": "drizzle-kit generate",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:reset": "docker compose down && docker volume rm bluedesk_postgres_data && docker compose up -d postgres",
@@ -13,7 +12,8 @@
     "supabase:stop": "supabase stop",
     "dev:services": "docker compose up -d postgres && supabase start",
     "stop:services": "docker compose down && supabase stop",
-    "db:migrate": "drizzle-kit migrate",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "supabase migration up --local",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "prod": "dotenv -e .env.production -- next dev",

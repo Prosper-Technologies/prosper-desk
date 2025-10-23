@@ -50,6 +50,7 @@ import {
   getStatusColor,
   getPriorityColor,
   getInitials,
+  cn,
 } from "~/lib/utils";
 import { createClient } from "~/utils/supabase/client";
 import { Input } from "~/components/ui/input";
@@ -467,9 +468,14 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => (
-          <Badge className={getStatusColor(row.original.status as any)}>
+          <div
+            className={cn(
+              getStatusColor(row.original.status as any),
+              "w-fit rounded-sm px-2 py-1 text-xs font-medium",
+            )}
+          >
             {row.original.status.replace("_", " ")}
-          </Badge>
+          </div>
         ),
         size: 120,
       },

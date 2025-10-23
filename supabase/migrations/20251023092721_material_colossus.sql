@@ -1,0 +1,1 @@
+ALTER TABLE "tickets" ADD CONSTRAINT "tickets_external_id_external_type_company_id_client_id_unique" UNIQUE("external_id","external_type","company_id","client_id");

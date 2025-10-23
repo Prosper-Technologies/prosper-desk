@@ -219,8 +219,8 @@ export const userRouter = createTRPCRouter({
       }
 
       // Check permissions: admin can edit anyone, users can edit themselves
-      const canEdit = ctx.membership.role === "admin" ||
-        ctx.membership.id === input.id;
+      const canEdit =
+        ctx.membership.role === "admin" || ctx.membership.id === input.id;
 
       if (!canEdit) {
         throw new TRPCError({
@@ -329,7 +329,6 @@ export const userRouter = createTRPCRouter({
       return deactivatedMembership;
     }),
 
-
   // Validate invitation code
   validateInvitationCode: publicProcedure
     .input(
@@ -364,10 +363,8 @@ export const userRouter = createTRPCRouter({
       const { invitation } = validation;
 
       try {
-        // Create Supabase Auth user
-        const { data: authData, error: authError } = await ctx.supabaseAdmin
-          .auth
-          .admin.createUser({
+        const { data: authData, error: authError } =
+          await ctx.supabaseAdmin.auth.admin.createUser({
             email: invitation.userEmail!,
             password: input.password,
             email_confirm: true, // Auto-confirm email since they have a valid invitation
