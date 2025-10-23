@@ -95,7 +95,7 @@ export default function SignupPage() {
             Create your account
           </CardTitle>
           <CardDescription className="text-center">
-            Get started with BlueDesk helpdesk
+            Get started with Prosper Desk, the ticketing system for Prosper AI
           </CardDescription>
         </CardHeader>
         <CardContent>

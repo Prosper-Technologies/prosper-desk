@@ -152,8 +152,7 @@ export function AppSidebar({
                 <Building2 className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">BlueDesk</span>
-                <span className="truncate text-xs">Multi-tenant Helpdesk</span>
+                <span className="truncate font-semibold">Prosper Desk</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
