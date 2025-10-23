@@ -6,7 +6,13 @@ import { useRouter } from "next/navigation";
 import { createClient } from "~/utils/supabase/client";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 
 const supabase = createClient();
 
@@ -47,7 +53,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
@@ -103,21 +109,13 @@ export default function LoginPage() {
                 disabled={isLoading}
               />
             </div>
-            {error && (
-              <div className="text-sm text-red-600">
-                {error}
-              </div>
-            )}
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
+            {error && <div className="text-sm text-red-600">{error}</div>}
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
 
-          <div className="mt-6">
+          {/*<div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
@@ -154,11 +152,14 @@ export default function LoginPage() {
               </svg>
               Google
             </Button>
-          </div>
+          </div>*/}
 
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="font-medium text-primary hover:underline">
+            <Link
+              href="/signup"
+              className="font-medium text-primary hover:underline"
+            >
               Sign up
             </Link>
           </div>

@@ -411,7 +411,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push(`/portal/${params.companySlug}/${params.clientSlug}`);
+    router.push(`/portal/${params.companySlug}/${params.clientSlug}/request-access`);
   };
 
   // Table columns definition
@@ -433,7 +433,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
       },
       {
         accessorKey: "customer",
-        header: "Customer",
+        header: "Created By",
         cell: ({ row }) => {
           const customerName = row.original.customer_name;
           const customerEmail = row.original.customer_email;

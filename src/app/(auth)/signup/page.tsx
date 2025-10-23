@@ -6,7 +6,13 @@ import { useRouter } from "next/navigation";
 import { createClient } from "~/utils/supabase/client";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 
 const supabase = createClient();
 
@@ -71,7 +77,7 @@ export default function SignupPage() {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
@@ -101,9 +107,7 @@ export default function SignupPage() {
         <CardContent>
           {message ? (
             <div className="rounded-md bg-green-50 p-4">
-              <div className="text-sm text-green-600">
-                {message}
-              </div>
+              <div className="text-sm text-green-600">{message}</div>
             </div>
           ) : (
             <>
@@ -137,7 +141,10 @@ export default function SignupPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label htmlFor="confirm-password" className="text-sm font-medium">
+                  <label
+                    htmlFor="confirm-password"
+                    className="text-sm font-medium"
+                  >
                     Confirm Password
                   </label>
                   <Input
@@ -150,21 +157,13 @@ export default function SignupPage() {
                     minLength={6}
                   />
                 </div>
-                {error && (
-                  <div className="text-sm text-red-600">
-                    {error}
-                  </div>
-                )}
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isLoading}
-                >
+                {error && <div className="text-sm text-red-600">{error}</div>}
+                <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Creating account..." : "Create account"}
                 </Button>
               </form>
 
-              <div className="mt-6">
+              {/* <div className="mt-6">
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t" />
@@ -201,13 +200,16 @@ export default function SignupPage() {
                   </svg>
                   Google
                 </Button>
-              </div>
+              </div>*/}
             </>
           )}
 
           <div className="mt-4 text-center text-sm">
             Already have an account?{" "}
-            <Link href="/login" className="font-medium text-primary hover:underline">
+            <Link
+              href="/login"
+              className="font-medium text-primary hover:underline"
+            >
               Sign in
             </Link>
           </div>

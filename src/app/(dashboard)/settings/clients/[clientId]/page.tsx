@@ -473,7 +473,7 @@ export default function ClientDetailsPage() {
                     <Button
                       variant="outline"
                       onClick={() => {
-                        const portalUrl = `${window.location.origin}/portal/${client.slug}`;
+                        const portalUrl = `${window.location.origin}/portal/${client.company?.slug}/${client.slug}`;
                         window.open(portalUrl, "_blank");
                       }}
                     >

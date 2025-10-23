@@ -41,7 +41,40 @@ async function verifyPortalAccess(
     });
   }
 
-  // Find access record by user email
+  // First, check if user is a team member with access to this company
+  const teamMember = await ctx.db.query.users.findFirst({
+    where: (users, { eq }) => eq(users.email, user.email!),
+  });
+
+  if (teamMember) {
+    // Check if they have an active membership in the company
+    const membership = await ctx.db.query.memberships.findFirst({
+      where: (memberships, { and, eq }) =>
+        and(
+          eq(memberships.user_id, teamMember.id),
+          eq(memberships.company_id, client.company.id),
+          eq(memberships.is_active, true),
+        ),
+    });
+
+    if (membership) {
+      // Team member has access
+      return {
+        customerEmail: teamMember.email,
+        customerName: `${teamMember.first_name} ${teamMember.last_name}`,
+        clientId: client.id,
+        clientName: client.name,
+        clientSlug: client.slug,
+        companyId: client.company.id,
+        companyName: client.company.name,
+        companySlug: client.company.slug,
+        portalAccessId: null, // Team members don't have portal access records
+        isTeamMember: true,
+      };
+    }
+  }
+
+  // If not a team member, check customer portal access
   const access = await ctx.db.query.customerPortalAccess.findFirst({
     where: (customerPortalAccess, { and, eq }) =>
       and(
@@ -69,6 +102,7 @@ async function verifyPortalAccess(
     companyName: client.company.name,
     companySlug: client.company.slug,
     portalAccessId: access.id,
+    isTeamMember: false,
   };
 }
 
@@ -208,14 +242,16 @@ export const customerPortalRouter = createTRPCRouter({
         clientSlug: input.clientSlug,
       });
 
-      // Update last login
-      await ctx.db
-        .update(customerPortalAccess)
-        .set({
-          last_login_at: new Date(),
-          updated_at: new Date(),
-        })
-        .where(eq(customerPortalAccess.id, access.portalAccessId));
+      // Update last login only for customer portal access (not team members)
+      if (!access.isTeamMember && access.portalAccessId) {
+        await ctx.db
+          .update(customerPortalAccess)
+          .set({
+            last_login_at: new Date(),
+            updated_at: new Date(),
+          })
+          .where(eq(customerPortalAccess.id, access.portalAccessId));
+      }
 
       return {
         customerEmail: access.customerEmail,
@@ -467,12 +503,34 @@ export const customerPortalRouter = createTRPCRouter({
         });
       }
 
+      // Get membership_id if this is a team member
+      let membershipId = null;
+      if (access.isTeamMember) {
+        const user = await ctx.db.query.users.findFirst({
+          where: (users, { eq }) => eq(users.email, access.customerEmail),
+        });
+        if (user) {
+          const membership = await ctx.db.query.memberships.findFirst({
+            where: (memberships, { and, eq }) =>
+              and(
+                eq(memberships.user_id, user.id),
+                eq(memberships.company_id, access.companyId),
+                eq(memberships.is_active, true),
+              ),
+          });
+          membershipId = membership?.id || null;
+        }
+      }
+
       const [comment] = await ctx.db
         .insert(ticketComments)
         .values({
           company_id: access.companyId,
           ticket_id: input.ticketId,
-          customer_portal_access_id: access.portalAccessId,
+          customer_portal_access_id: access.isTeamMember
+            ? null
+            : access.portalAccessId,
+          membership_id: membershipId,
           content: input.content,
           is_internal: false,
           is_system: false,
