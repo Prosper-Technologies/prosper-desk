@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  lint-database:
     runs-on: ubuntu-latest
 
     steps:
