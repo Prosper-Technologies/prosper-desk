@@ -23,5 +23,3 @@ jobs:
 
       - run: supabase link --project-ref $SUPABASE_PROJECT_ID
       - run: supabase db push
-      - name: Push supabase edge functions
-        run: supabase functions deploy --project-ref $SUPABASE_PROJECT_ID
