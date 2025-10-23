@@ -98,7 +98,7 @@ export default function Sidebar({ user, company }: SidebarProps) {
         <div className="flex items-center space-x-3">
           <Building2 className="h-6 w-6 text-primary" />
           <span className="font-semibold text-gray-900">
-            {company?.name || "BlueDesk"}
+            {company?.name || "Prosper Desk"}
           </span>
         </div>
         <Button
@@ -117,7 +117,7 @@ export default function Sidebar({ user, company }: SidebarProps) {
           <div className="mb-6 flex flex-shrink-0 items-center px-4">
             <Building2 className="h-6 w-6 text-primary" />
             <span className="ml-2 text-lg font-semibold text-gray-900">
-              BlueDesk
+              Prosper Desk
             </span>
           </div>
 
@@ -177,7 +177,7 @@ export default function Sidebar({ user, company }: SidebarProps) {
             <div className="flex items-center justify-between border-b border-gray-200 p-4">
               <div className="flex items-center space-x-3">
                 <Building2 className="h-6 w-6 text-primary" />
-                <span className="font-semibold text-gray-900">BlueDesk</span>
+                <span className="font-semibold text-gray-900">Prosper Desk</span>
               </div>
               <Button
                 variant="ghost"

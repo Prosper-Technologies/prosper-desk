@@ -168,7 +168,7 @@ export default function OnboardingPage() {
         {currentStep === STEPS.PROFILE && (
           <Card>
             <CardHeader>
-              <CardTitle>Welcome to BlueDesk!</CardTitle>
+              <CardTitle>Welcome to Prosper Desk!</CardTitle>
               <CardDescription>
                 Let&apos;s start by setting up your profile
               </CardDescription>
@@ -237,7 +237,7 @@ export default function OnboardingPage() {
                     Company URL *
                   </label>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-500">bluedesk.com/</span>
+                    <span className="text-sm text-gray-500">desk.getprosperapp.com/</span>
                     <Input
                       id="companySlug"
                       type="text"
@@ -305,7 +305,7 @@ export default function OnboardingPage() {
         {currentStep === STEPS.COMPLETE && (
           <Card>
             <CardHeader>
-              <CardTitle>🎉 Welcome to BlueDesk!</CardTitle>
+              <CardTitle>🎉 Welcome to Prosper Desk!</CardTitle>
               <CardDescription>
                 Your account has been set up successfully
               </CardDescription>

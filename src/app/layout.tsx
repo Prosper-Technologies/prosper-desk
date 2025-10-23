@@ -9,8 +9,8 @@ import { CompanyProvider } from "~/contexts/company-context";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "BlueDesk - Helpdesk for AI Startups",
-  description: "Modern helpdesk software built for AI companies",
+  title: "Prosper Desk - Prosper AI's Helpdesk",
+  description: "Prosper AI's ticketing system",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 

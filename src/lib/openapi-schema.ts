@@ -4,12 +4,12 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.3',
     info: {
-      title: 'BlueDesk API',
+      title: 'Prosper Desk API',
       version: '1.0.0',
-      description: 'REST API for BlueDesk support ticket management system',
+      description: 'REST API for Prosper Desk support ticket management system',
       contact: {
         name: 'API Support',
-        email: 'support@bluedesk.com'
+        email: 'edgar.gago@useprosper.co'
       }
     },
     servers: [

@@ -152,7 +152,7 @@ export const emailService = {
 
             <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
             <p style="color: #666; font-size: 12px;">
-              This is a test email sent from BlueDesk to verify email configuration.
+              This is a test email sent from Prosper Desk to verify email configuration.
             </p>
           </div>
         `,
