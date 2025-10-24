@@ -133,6 +133,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
   const [editPriority, setEditPriority] = useState<
     "low" | "medium" | "high" | "urgent"
   >("medium");
+  const [editAssignee, setEditAssignee] = useState<string | null>(null);
   const [newCommentContent, setNewCommentContent] = useState("");
 
   // Verify session on mount
@@ -248,6 +249,17 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
       },
     );
 
+  // Get team members for assignment
+  const { data: teamMembers } = api.customerPortal.getTeamMembers.useQuery(
+    {
+      companySlug: params.companySlug,
+      clientSlug: params.clientSlug,
+    },
+    {
+      enabled: isAuthenticated,
+    },
+  );
+
   // Mutations for ticket modal
   const updateTicket = api.customerPortal.updateTicket.useMutation({
     onSuccess: () => {
@@ -294,6 +306,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
       setEditSubject(selectedTicket.subject);
       setEditDescription(selectedTicket.description);
       setEditPriority(selectedTicket.priority);
+      setEditAssignee(selectedTicket.assigned_to_membership_id || null);
       setIsEditing(true);
     }
   };
@@ -316,6 +329,10 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
           : undefined,
       priority:
         editPriority !== selectedTicket.priority ? editPriority : undefined,
+      assigned_to_membership_id:
+        editAssignee !== selectedTicket.assigned_to_membership_id
+          ? editAssignee
+          : undefined,
     });
   };
 
@@ -1048,6 +1065,29 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                       </Select>
                     </div>
                     <div>
+                      <Label htmlFor="edit-assignee">Assignee</Label>
+                      <Select
+                        value={editAssignee || "unassigned"}
+                        onValueChange={(value) =>
+                          setEditAssignee(value === "unassigned" ? null : value)
+                        }
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">Unassigned</SelectItem>
+                          {teamMembers?.map((member) => (
+                            <SelectItem key={member.id} value={member.id}>
+                              {member.user
+                                ? `${member.user.first_name} ${member.user.last_name}`
+                                : "Unknown"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
                       <Label htmlFor="edit-description">Description</Label>
                       <Textarea
                         id="edit-description"
@@ -1061,36 +1101,56 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                 </div>
               )}
 
-              {/* Customer Info */}
-              {(selectedTicket.customer_name ||
-                selectedTicket.customer_email) && (
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="text-xs">
-                      {selectedTicket.customer_name
-                        ? getInitials(selectedTicket.customer_name)
-                        : selectedTicket.customer_email
-                            ?.charAt(0)
-                            .toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm font-medium">
-                      {selectedTicket.customer_name || "Unknown"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {selectedTicket.customer_email}
-                    </p>
-                  </div>
-                </div>
-              )}
-
               {/* Ticket Description */}
               <div className="space-y-2">
                 <h4 className="text-sm font-medium">Description</h4>
                 <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                   {selectedTicket.description}
                 </p>
+              </div>
+
+              {/* Created By */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">Created By</h4>
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-8 w-8">
+                    {selectedTicket.created_by?.user?.avatar_url && (
+                      <AvatarImage
+                        src={selectedTicket.created_by.user.avatar_url}
+                      />
+                    )}
+                    <AvatarFallback className="text-xs">
+                      {selectedTicket.created_by?.user
+                        ? getInitials(
+                            `${selectedTicket.created_by.user.first_name} ${selectedTicket.created_by.user.last_name}`,
+                          )
+                        : selectedTicket.customer_name
+                          ? getInitials(selectedTicket.customer_name)
+                          : selectedTicket.customer_email
+                            ?.charAt(0)
+                            .toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <p className="text-sm font-medium">
+                        {selectedTicket.created_by?.user
+                          ? `${selectedTicket.created_by.user.first_name} ${selectedTicket.created_by.user.last_name}`
+                          : selectedTicket.customer_name || "Unknown"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedTicket.created_by?.user
+                          ? selectedTicket.created_by.user.email
+                          : selectedTicket.customer_email}
+                      </p>
+                    </div>
+                    {selectedTicket.created_by?.user && (
+                      <Badge variant="secondary" className="text-xs">
+                        Team
+                      </Badge>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Assigned To */}

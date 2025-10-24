@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { customerPortalAccess, tickets, ticketComments } from "~/db/schema";
-import { eq, inArray, and, asc } from "drizzle-orm";
+import { eq, inArray, and, or, asc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import type { db } from "~/db";
 
@@ -757,6 +757,26 @@ export const customerPortalRouter = createTRPCRouter({
         }
       }
 
+      // Get created by membership if exists
+      let createdBy = null;
+      if (ticket.created_by_membership_id) {
+        const membership = await ctx.db.query.memberships.findFirst({
+          where: (memberships, { eq }) =>
+            eq(memberships.id, ticket.created_by_membership_id!),
+        });
+
+        if (membership) {
+          const user = await ctx.db.query.users.findFirst({
+            where: (users, { eq }) => eq(users.id, membership.user_id),
+          });
+
+          createdBy = {
+            ...membership,
+            user: user || null,
+          };
+        }
+      }
+
       // Get comments for this ticket
       const baseComments = await ctx.db.query.ticketComments.findMany({
         where: (ticketComments, { eq }) =>
@@ -814,26 +834,19 @@ export const customerPortalRouter = createTRPCRouter({
           ) || null,
       }));
 
-      // Check permissions - can the logged-in user edit this ticket?
-      const {
-        data: { user },
-      } = await ctx.supabase.auth.getUser();
-
-      const canEdit =
-        // Customer who created the ticket
-        ticket.customer_email === user?.email ||
-        // Assigned agent
-        (assignedTo && assignedTo.user?.email === user?.email);
+      // Everyone in the customer portal can edit tickets
+      const canEdit = true;
 
       return {
         ...ticket,
         assigned_to: assignedTo,
+        created_by: createdBy,
         comments,
         canEdit, // Add permission flag
       };
     }),
 
-  // Update ticket (subject, description, priority)
+  // Update ticket (subject, description, priority, assignee)
   updateTicket: publicProcedure
     .input(
       z.object({
@@ -843,6 +856,7 @@ export const customerPortalRouter = createTRPCRouter({
         subject: z.string().min(1).max(255).optional(),
         description: z.string().min(1).optional(),
         priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+        assigned_to_membership_id: z.string().uuid().nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -852,7 +866,7 @@ export const customerPortalRouter = createTRPCRouter({
         clientSlug: input.clientSlug,
       });
 
-      // Get the ticket to check permissions
+      // Get the ticket
       const ticket = await ctx.db.query.tickets.findFirst({
         where: (tickets, { and, eq }) =>
           and(
@@ -868,35 +882,8 @@ export const customerPortalRouter = createTRPCRouter({
         });
       }
 
-      // Check if user has permission to edit
-      const {
-        data: { user },
-      } = await ctx.supabase.auth.getUser();
-
-      // Get assigned membership if exists to check email
-      let assignedEmail = null;
-      if (ticket.assigned_to_membership_id) {
-        const membership = await ctx.db.query.memberships.findFirst({
-          where: (memberships, { eq }) =>
-            eq(memberships.id, ticket.assigned_to_membership_id!),
-        });
-        if (membership) {
-          const assignedUser = await ctx.db.query.users.findFirst({
-            where: (users, { eq }) => eq(users.id, membership.user_id),
-          });
-          assignedEmail = assignedUser?.email;
-        }
-      }
-
-      const canEdit =
-        ticket.customer_email === user?.email || assignedEmail === user?.email;
-
-      if (!canEdit) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You don't have permission to edit this ticket",
-        });
-      }
+      // Everyone in the customer portal can edit tickets
+      // No permission check needed - just verify they have portal access (already done above)
 
       // Build update object
       const updateData: any = {
@@ -907,6 +894,8 @@ export const customerPortalRouter = createTRPCRouter({
       if (input.description !== undefined)
         updateData.description = input.description;
       if (input.priority !== undefined) updateData.priority = input.priority;
+      if (input.assigned_to_membership_id !== undefined)
+        updateData.assigned_to_membership_id = input.assigned_to_membership_id;
 
       // Update the ticket
       await ctx.db
@@ -960,5 +949,50 @@ export const customerPortalRouter = createTRPCRouter({
         .where(eq(tickets.id, input.ticketId));
 
       return { success: true };
+    }),
+
+  // Get available team members for assignment
+  getTeamMembers: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      });
+
+      // Get all active memberships for the company (agents and admins only)
+      const memberships = await ctx.db.query.memberships.findMany({
+        where: (memberships, { and, eq, or }) =>
+          and(
+            eq(memberships.company_id, access.companyId),
+            eq(memberships.is_active, true),
+            or(
+              eq(memberships.role, "agent"),
+              eq(memberships.role, "admin"),
+            ),
+          ),
+      });
+
+      // Get user details for these memberships
+      const userIds = memberships.map((m) => m.user_id);
+      let users: any[] = [];
+      if (userIds.length > 0) {
+        users = await ctx.db.query.users.findMany({
+          where: (users) => inArray(users.id, userIds),
+        });
+      }
+
+      // Combine and return
+      return memberships.map((membership) => ({
+        id: membership.id,
+        role: membership.role,
+        user: users.find((u) => u.id === membership.user_id) || null,
+      }));
     }),
 });

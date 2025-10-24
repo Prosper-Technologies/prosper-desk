@@ -143,7 +143,7 @@ export default function TicketDetailDialog({
       <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col overflow-hidden">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl">Ticket Details</DialogTitle>
+            <DialogTitle className="text-xl">{ticket.subject}</DialogTitle>
             <div className="flex items-center space-x-2">
               {isEditing ? (
                 <>
@@ -188,51 +188,32 @@ export default function TicketDetailDialog({
                   <CardTitle>Ticket Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Subject</label>
-                    {isEditing ? (
+                  {isEditing && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Subject</label>
                       <Input
                         value={editSubject}
                         onChange={(e) => setEditSubject(e.target.value)}
                       />
-                    ) : (
-                      <p className="text-sm">{ticket.subject}</p>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Description</label>
                     {isEditing ? (
-                      <Textarea
-                        value={editDescription}
-                        onChange={(e) => setEditDescription(e.target.value)}
-                        rows={4}
-                      />
+                      <>
+                        <label className="text-sm font-medium">Description</label>
+                        <Textarea
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          rows={4}
+                        />
+                      </>
                     ) : (
                       <p className="whitespace-pre-wrap text-sm">
                         {ticket.description}
                       </p>
                     )}
                   </div>
-
-                  {ticket.customer_email && (
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">
-                          Customer Email
-                        </label>
-                        <p className="text-sm">{ticket.customer_email}</p>
-                      </div>
-                      {ticket.customer_name && (
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Customer Name
-                          </label>
-                          <p className="text-sm">{ticket.customer_name}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 
@@ -325,6 +306,31 @@ export default function TicketDetailDialog({
 
             {/* Sidebar */}
             <div className="space-y-6">
+              {/* Customer Info */}
+              {ticket.customer_email && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm">Customer</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {ticket.customer_name && (
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-gray-500">
+                          Name
+                        </label>
+                        <p className="text-sm">{ticket.customer_name}</p>
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-gray-500">
+                        Email
+                      </label>
+                      <p className="text-sm">{ticket.customer_email}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Status & Priority */}
               <Card>
                 <CardHeader>
@@ -450,27 +456,36 @@ export default function TicketDetailDialog({
                     <label className="text-xs font-medium text-gray-500">
                       Created by
                     </label>
-                    {ticket.createdByMembership?.user && (
-                      <div className="flex items-center space-x-2">
-                        <Avatar className="h-6 w-6">
+                    <div className="flex items-center space-x-2">
+                      <Avatar className="h-6 w-6">
+                        {ticket.createdByMembership?.user?.avatar_url && (
                           <AvatarImage
-                            src={
-                              ticket.createdByMembership?.user?.avatar_url ||
-                              undefined
-                            }
+                            src={ticket.createdByMembership.user.avatar_url}
                           />
-                          <AvatarFallback className="text-xs">
-                            {getInitials(
-                              `${ticket.createdByMembership?.user?.first_name} ${ticket.createdByMembership?.user?.last_name}`,
-                            )}
-                          </AvatarFallback>
-                        </Avatar>
+                        )}
+                        <AvatarFallback className="text-xs">
+                          {ticket.createdByMembership?.user
+                            ? getInitials(
+                                `${ticket.createdByMembership.user.first_name} ${ticket.createdByMembership.user.last_name}`,
+                              )
+                            : ticket.customer_name
+                              ? getInitials(ticket.customer_name)
+                              : ticket.customer_email?.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex items-center gap-2">
                         <span className="text-sm">
-                          {ticket.createdByMembership?.user?.first_name}{" "}
-                          {ticket.createdByMembership?.user?.last_name}
+                          {ticket.createdByMembership?.user
+                            ? `${ticket.createdByMembership.user.first_name} ${ticket.createdByMembership.user.last_name}`
+                            : ticket.customer_name || ticket.customer_email || "Unknown"}
                         </span>
+                        {ticket.createdByMembership?.user && (
+                          <Badge variant="secondary" className="text-xs">
+                            Team
+                          </Badge>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
