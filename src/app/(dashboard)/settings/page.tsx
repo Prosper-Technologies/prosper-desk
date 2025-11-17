@@ -317,7 +317,7 @@ export default function SettingsPage() {
                           {client.portal_enabled && (
                             <DropdownMenuItem
                               onClick={() => {
-                                const portalUrl = `${window.location.origin}/portal/${client.slug}`;
+                                const portalUrl = `${window.location.origin}/portal/${company?.slug}/${client.slug}`;
                                 window.open(portalUrl, "_blank");
                               }}
                             >

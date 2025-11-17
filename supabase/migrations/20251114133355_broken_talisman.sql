@@ -1,0 +1,2 @@
+ALTER TABLE "tickets" ADD COLUMN "assigned_to_customer_portal_access_id" uuid;--> statement-breakpoint
+ALTER TABLE "tickets" ADD CONSTRAINT "tickets_assigned_to_customer_portal_access_id_customer_portal_access_id_fk" FOREIGN KEY ("assigned_to_customer_portal_access_id") REFERENCES "public"."customer_portal_access"("id") ON DELETE no action ON UPDATE no action;

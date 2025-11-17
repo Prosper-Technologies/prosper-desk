@@ -323,6 +323,20 @@ export const customerPortalRouter = createTRPCRouter({
         }));
       }
 
+      // Get assigned customer portal accesses for tickets that have them
+      const customerPortalAccessIds = baseTickets
+        .map((ticket) => ticket.assigned_to_customer_portal_access_id)
+        .filter((id): id is string => id !== null);
+
+      let assignedCustomerPortalAccesses: any[] = [];
+      if (customerPortalAccessIds.length > 0) {
+        assignedCustomerPortalAccesses =
+          await ctx.db.query.customerPortalAccess.findMany({
+            where: (customerPortalAccess) =>
+              inArray(customerPortalAccess.id, customerPortalAccessIds),
+          });
+      }
+
       const ticketIds = baseTickets.map((ticket) => ticket.id);
       let baseComments: any[] = [];
       if (ticketIds.length > 0) {
@@ -398,6 +412,10 @@ export const customerPortalRouter = createTRPCRouter({
         assignedToMembership:
           memberships.find((m) => m.id === ticket.assigned_to_membership_id) ||
           null,
+        assignedToCustomerPortalAccess:
+          assignedCustomerPortalAccesses.find(
+            (cpa) => cpa.id === ticket.assigned_to_customer_portal_access_id,
+          ) || null,
         comments: comments.filter((comment) => comment.ticket_id === ticket.id),
       }));
 
@@ -757,6 +775,19 @@ export const customerPortalRouter = createTRPCRouter({
         }
       }
 
+      // Get assigned customer portal access if exists
+      let assignedToCustomerPortalAccess = null;
+      if (ticket.assigned_to_customer_portal_access_id) {
+        assignedToCustomerPortalAccess =
+          await ctx.db.query.customerPortalAccess.findFirst({
+            where: (customerPortalAccess, { eq }) =>
+              eq(
+                customerPortalAccess.id,
+                ticket.assigned_to_customer_portal_access_id!,
+              ),
+          });
+      }
+
       // Get created by membership if exists
       let createdBy = null;
       if (ticket.created_by_membership_id) {
@@ -840,6 +871,7 @@ export const customerPortalRouter = createTRPCRouter({
       return {
         ...ticket,
         assigned_to: assignedTo,
+        assigned_to_customer_portal_access: assignedToCustomerPortalAccess,
         created_by: createdBy,
         comments,
         canEdit, // Add permission flag
@@ -857,6 +889,11 @@ export const customerPortalRouter = createTRPCRouter({
         description: z.string().min(1).optional(),
         priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
         assigned_to_membership_id: z.string().uuid().nullable().optional(),
+        assigned_to_customer_portal_access_id: z
+          .string()
+          .uuid()
+          .nullable()
+          .optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -894,8 +931,19 @@ export const customerPortalRouter = createTRPCRouter({
       if (input.description !== undefined)
         updateData.description = input.description;
       if (input.priority !== undefined) updateData.priority = input.priority;
-      if (input.assigned_to_membership_id !== undefined)
+
+      // Handle assignment - membership and customer portal access are mutually exclusive
+      if (input.assigned_to_membership_id !== undefined) {
         updateData.assigned_to_membership_id = input.assigned_to_membership_id;
+        // Clear customer portal access assignment
+        updateData.assigned_to_customer_portal_access_id = null;
+      }
+      if (input.assigned_to_customer_portal_access_id !== undefined) {
+        updateData.assigned_to_customer_portal_access_id =
+          input.assigned_to_customer_portal_access_id;
+        // Clear membership assignment
+        updateData.assigned_to_membership_id = null;
+      }
 
       // Update the ticket
       await ctx.db
@@ -966,7 +1014,7 @@ export const customerPortalRouter = createTRPCRouter({
         clientSlug: input.clientSlug,
       });
 
-      // Get all active memberships for the company (agents and admins only)
+      // Get all active memberships for the company (agents, admins, and owners)
       const memberships = await ctx.db.query.memberships.findMany({
         where: (memberships, { and, eq, or }) =>
           and(
@@ -975,6 +1023,7 @@ export const customerPortalRouter = createTRPCRouter({
             or(
               eq(memberships.role, "agent"),
               eq(memberships.role, "admin"),
+              eq(memberships.role, "owner"),
             ),
           ),
       });
@@ -994,5 +1043,38 @@ export const customerPortalRouter = createTRPCRouter({
         role: membership.role,
         user: users.find((u) => u.id === membership.user_id) || null,
       }));
+    }),
+
+  // Get all customer portal accesses for the client
+  getAllPortalAccess: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      });
+
+      // Get all active customer portal accesses for the client
+      const portalAccesses = await ctx.db.query.customerPortalAccess.findMany({
+        where: (customerPortalAccess, { and, eq }) =>
+          and(
+            eq(customerPortalAccess.client_id, access.clientId),
+            eq(customerPortalAccess.is_active, true),
+          ),
+        with: {
+          client: {
+            columns: { id: true, name: true, slug: true },
+          },
+        },
+        orderBy: (portalAccess, { desc }) => [desc(portalAccess.created_at)],
+      });
+
+      return portalAccesses;
     }),
 });

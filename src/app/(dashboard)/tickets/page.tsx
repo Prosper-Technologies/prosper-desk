@@ -70,6 +70,7 @@ export default function TicketsPage() {
   });
 
   const { data: agents } = api.user.getAgents.useQuery();
+  const { data: customerAccesses } = api.clients.getAllPortalAccess.useQuery();
 
   const tickets = data?.tickets || [];
   const pagination = data?.pagination;
@@ -111,6 +112,7 @@ export default function TicketsPage() {
           onOpenChange={setCreateDialogOpen}
           onTicketCreated={handleTicketCreated}
           agents={agents || []}
+          customerAccesses={customerAccesses || []}
         >
           <Button>
             <Plus className="mr-2 h-4 w-4" />
@@ -303,6 +305,20 @@ export default function TicketsPage() {
                               {ticket.assignedToMembership.user.last_name}
                             </span>
                           </div>
+                        ) : ticket.assignedToCustomerPortalAccess ? (
+                          <div className="flex items-center space-x-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarFallback className="text-xs">
+                                {getInitials(ticket.assignedToCustomerPortalAccess.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm">
+                              {ticket.assignedToCustomerPortalAccess.name}
+                            </span>
+                            <Badge variant="secondary" className="text-xs">
+                              Customer
+                            </Badge>
+                          </div>
                         ) : (
                           <span className="text-sm text-gray-500">
                             Unassigned
@@ -376,6 +392,7 @@ export default function TicketsPage() {
           onOpenChange={(open) => !open && setSelectedTicketId(null)}
           onTicketUpdated={handleTicketUpdated}
           agents={agents || []}
+          customerAccesses={customerAccesses || []}
         />
       )}
     </div>

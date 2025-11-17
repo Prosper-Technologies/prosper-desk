@@ -118,24 +118,27 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
     },
   );
 
-  // Get session from Supabase
+  // Get session from Supabase using getUser() for security
   let session = null;
   try {
     const {
-      data: { session: authSession },
+      data: { user },
       error,
-    } = await supabase.auth.getSession();
+    } = await supabase.auth.getUser();
     if (error) {
-      console.error("❌ Session error:", error);
-    } else {
-      console.log(
-        "✅ Session retrieved:",
-        authSession ? "USER FOUND" : "NO USER",
-      );
-      session = authSession;
+      console.error("❌ Auth error:", error);
+    } else if (user) {
+      // Get the session after verifying the user
+      const {
+        data: { session: authSession },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (!sessionError && authSession) {
+        session = authSession;
+      }
     }
   } catch (error) {
-    console.error("❌ Session catch error:", error);
+    console.error("❌ Auth catch error:", error);
   }
 
   return {

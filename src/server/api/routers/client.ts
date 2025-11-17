@@ -324,6 +324,24 @@ export const clientRouter = createTRPCRouter({
       };
     }),
 
+  // Get all portal accesses for a company
+  getAllPortalAccess: companyProcedure.query(async ({ ctx }) => {
+    const portalAccesses = await ctx.db.query.customerPortalAccess.findMany({
+      where: and(
+        eq(customerPortalAccess.company_id, ctx.company.id),
+        eq(customerPortalAccess.is_active, true),
+      ),
+      with: {
+        client: {
+          columns: { id: true, name: true, slug: true },
+        },
+      },
+      orderBy: (portalAccess, { desc }) => [desc(portalAccess.created_at)],
+    });
+
+    return portalAccesses;
+  }),
+
   // Get portal access for a client
   getPortalAccess: companyProcedure
     .input(z.object({ clientId: z.string().uuid() }))

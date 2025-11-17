@@ -158,6 +158,9 @@ export const tickets = pgTable(
     assigned_to_membership_id: uuid("assigned_to_membership_id").references(
       () => memberships.id,
     ),
+    assigned_to_customer_portal_access_id: uuid(
+      "assigned_to_customer_portal_access_id",
+    ).references(() => customerPortalAccess.id),
     sla_policy_id: uuid("sla_policy_id").references(() => slaPolicies.id),
     first_response_at: timestamp("first_response_at"),
     resolved_at: timestamp("resolved_at"),
@@ -406,6 +409,10 @@ export const ticketsRelations = relations(tickets, ({ one, many }) => ({
     references: [memberships.id],
     relationName: "assignedToMembership",
   }),
+  assignedToCustomerPortalAccess: one(customerPortalAccess, {
+    fields: [tickets.assigned_to_customer_portal_access_id],
+    references: [customerPortalAccess.id],
+  }),
   slaPolicy: one(slaPolicies, {
     fields: [tickets.sla_policy_id],
     references: [slaPolicies.id],
@@ -480,6 +487,7 @@ export const customerPortalAccessRelations = relations(
       references: [clients.id],
     }),
     ticketComments: many(ticketComments),
+    assignedTickets: many(tickets),
   }),
 );
 

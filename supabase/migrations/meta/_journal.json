@@ -15,6 +15,13 @@
       "when": 1761211641353,
       "tag": "20251023092721_material_colossus",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1763127235874,
+      "tag": "20251114133355_broken_talisman",
+      "breakpoints": true
     }
   ]
 }

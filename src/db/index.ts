@@ -12,8 +12,8 @@ export const migrationDb = drizzle(migrationClient, { schema });
 // Database connection for queries (uses RLS with user JWT)
 const queryClient = postgres(process.env.DATABASE_URL!, {
   max: 10,
-  transform: postgres.camel, // Convert snake_case to camelCase,
+  // Don't use postgres.camel transform - let Drizzle handle casing
 });
-export const db = drizzle(queryClient, { schema });
+export const db = drizzle(queryClient, { schema, casing: 'camelCase' });
 
 export * from "./schema";

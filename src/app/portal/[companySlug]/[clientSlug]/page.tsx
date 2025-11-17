@@ -56,6 +56,15 @@ import { createClient } from "~/utils/supabase/client";
 import { Input } from "~/components/ui/input";
 import { toast } from "sonner";
 
+type AssigneeType = "team" | "customer";
+
+interface UnifiedAssignee {
+  id: string;
+  name: string;
+  type: AssigneeType;
+  clientName?: string;
+}
+
 interface PortalPageProps {
   params: {
     companySlug: string;
@@ -81,6 +90,11 @@ type Ticket = {
       last_name: string;
       avatar_url: string | null;
     };
+  };
+  assignedToCustomerPortalAccess?: {
+    id: string;
+    name: string;
+    email: string;
   };
   comments?: Array<{
     id: string;
@@ -199,10 +213,17 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
     },
   );
 
+  // Helper function to reset and refetch tickets list
+  const resetAndRefetchTickets = () => {
+    setAllLoadedTickets([]);
+    setPage(1);
+    void refetchTickets();
+  };
+
   // Resolve ticket mutation
   const resolveTicket = api.customerPortal.resolveTicket.useMutation({
     onSuccess: () => {
-      refetchTickets();
+      resetAndRefetchTickets();
       toast.success("Ticket resolved successfully");
     },
     onError: (error) => {
@@ -210,15 +231,20 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
     },
   });
 
-  // Accumulate tickets as pages load
+  // Accumulate tickets as pages load and update existing ones
   useEffect(() => {
     if (ticketsData && ticketsData.length > 0) {
       setAllLoadedTickets((prev) => {
-        // Avoid duplicates
-        const newTickets = ticketsData.filter(
-          (newTicket: any) => !prev.some((t) => t.id === newTicket.id),
-        );
-        return [...prev, ...(newTickets as Ticket[])];
+        // Create a map of existing tickets for efficient lookup
+        const existingTicketsMap = new Map(prev.map((t) => [t.id, t]));
+
+        // Update or add tickets from new data
+        ticketsData.forEach((ticket: any) => {
+          existingTicketsMap.set(ticket.id, ticket as Ticket);
+        });
+
+        // Convert back to array, maintaining order
+        return Array.from(existingTicketsMap.values());
       });
     }
   }, [ticketsData]);
@@ -260,11 +286,45 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
     },
   );
 
+  // Get customer portal accesses for assignment
+  const { data: customerAccesses } =
+    api.customerPortal.getAllPortalAccess.useQuery(
+      {
+        companySlug: params.companySlug,
+        clientSlug: params.clientSlug,
+      },
+      {
+        enabled: isAuthenticated,
+      },
+    );
+
+  // Merge team members and customer accesses into unified assignee list
+  const unifiedAssignees = useMemo<UnifiedAssignee[]>(() => {
+    const team: UnifiedAssignee[] = (teamMembers || []).map((member) => ({
+      id: `membership-${member.id}`,
+      name: member.user
+        ? `${member.user.first_name} ${member.user.last_name}`
+        : "Unknown",
+      type: "team" as const,
+    }));
+
+    const customers: UnifiedAssignee[] = (customerAccesses || []).map(
+      (access) => ({
+        id: `customer-${access.id}`,
+        name: access.name,
+        type: "customer" as const,
+        clientName: access.client.name,
+      }),
+    );
+
+    return [...team, ...customers];
+  }, [teamMembers, customerAccesses]);
+
   // Mutations for ticket modal
   const updateTicket = api.customerPortal.updateTicket.useMutation({
     onSuccess: () => {
       void refetchTicket();
-      void refetchTickets();
+      resetAndRefetchTickets();
       setIsEditing(false);
       toast.success("Ticket updated successfully");
     },
@@ -276,7 +336,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
   const resolveTicketMutation = api.customerPortal.resolveTicket.useMutation({
     onSuccess: () => {
       void refetchTicket();
-      void refetchTickets();
+      resetAndRefetchTickets();
       toast.success("Ticket resolved successfully");
     },
     onError: (error) => {
@@ -287,6 +347,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
   const addComment = api.customerPortal.addComment.useMutation({
     onSuccess: () => {
       void refetchTicket();
+      resetAndRefetchTickets();
       setNewCommentContent("");
       toast.success("Comment added successfully");
     },
@@ -306,7 +367,18 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
       setEditSubject(selectedTicket.subject);
       setEditDescription(selectedTicket.description);
       setEditPriority(selectedTicket.priority);
-      setEditAssignee(selectedTicket.assigned_to_membership_id || null);
+
+      // Set assignment value based on type with proper prefixes
+      if (selectedTicket.assigned_to_membership_id) {
+        setEditAssignee(`membership-${selectedTicket.assigned_to_membership_id}`);
+      } else if (selectedTicket.assigned_to_customer_portal_access_id) {
+        setEditAssignee(
+          `customer-${selectedTicket.assigned_to_customer_portal_access_id}`,
+        );
+      } else {
+        setEditAssignee(null);
+      }
+
       setIsEditing(true);
     }
   };
@@ -317,6 +389,30 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
 
   const handleSaveEdit = () => {
     if (!selectedTicket) return;
+
+    // Determine current assignment value with prefix
+    const currentAssignment = selectedTicket.assigned_to_membership_id
+      ? `membership-${selectedTicket.assigned_to_membership_id}`
+      : selectedTicket.assigned_to_customer_portal_access_id
+        ? `customer-${selectedTicket.assigned_to_customer_portal_access_id}`
+        : null;
+
+    // Parse assignment value from dropdown
+    let assignedToMembershipId: string | null | undefined = undefined;
+    let assignedToCustomerPortalAccessId: string | null | undefined = undefined;
+
+    if (editAssignee !== currentAssignment) {
+      if (editAssignee === null || editAssignee === "unassigned") {
+        assignedToMembershipId = null;
+        assignedToCustomerPortalAccessId = null;
+      } else if (editAssignee?.startsWith("membership-")) {
+        assignedToMembershipId = editAssignee.replace("membership-", "");
+        assignedToCustomerPortalAccessId = null;
+      } else if (editAssignee?.startsWith("customer-")) {
+        assignedToCustomerPortalAccessId = editAssignee.replace("customer-", "");
+        assignedToMembershipId = null;
+      }
+    }
 
     updateTicket.mutate({
       companySlug: params.companySlug,
@@ -329,10 +425,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
           : undefined,
       priority:
         editPriority !== selectedTicket.priority ? editPriority : undefined,
-      assigned_to_membership_id:
-        editAssignee !== selectedTicket.assigned_to_membership_id
-          ? editAssignee
-          : undefined,
+      assigned_to_membership_id: assignedToMembershipId,
+      assigned_to_customer_portal_access_id: assignedToCustomerPortalAccessId,
     });
   };
 
@@ -405,7 +499,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
       setSubject("");
       setDescription("");
       setPriority("medium");
-      refetchTickets();
+      resetAndRefetchTickets();
       toast.success("Ticket created successfully");
     },
     onError: (error) => {
@@ -511,20 +605,42 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
         header: "Assignee",
         cell: ({ row }) => {
           const assignee = row.original.assignedToMembership?.user;
-          if (!assignee) {
+          const customerAccess = row.original.assignedToCustomerPortalAccess;
+
+          if (!assignee && !customerAccess) {
             return <span className="text-sm text-gray-500">Unassigned</span>;
           }
+
+          if (customerAccess) {
+            return (
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className="text-xs">
+                    {getInitials(customerAccess.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm">{customerAccess.name}</span>
+                <Badge variant="secondary" className="text-xs">
+                  Customer
+                </Badge>
+              </div>
+            );
+          }
+
           return (
             <div className="flex items-center gap-2">
               <Avatar className="h-6 w-6">
-                <AvatarImage src={assignee.avatar_url || ""} />
+                <AvatarImage src={assignee!.avatar_url || ""} />
                 <AvatarFallback className="text-xs">
-                  {getInitials(`${assignee.first_name} ${assignee.last_name}`)}
+                  {getInitials(`${assignee!.first_name} ${assignee!.last_name}`)}
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm">
-                {assignee.first_name} {assignee.last_name}
+                {assignee!.first_name} {assignee!.last_name}
               </span>
+              <Badge variant="secondary" className="text-xs">
+                Team
+              </Badge>
             </div>
           );
         },
@@ -1077,11 +1193,24 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="unassigned">Unassigned</SelectItem>
-                          {teamMembers?.map((member) => (
-                            <SelectItem key={member.id} value={member.id}>
-                              {member.user
-                                ? `${member.user.first_name} ${member.user.last_name}`
-                                : "Unknown"}
+                          {unifiedAssignees.map((assignee) => (
+                            <SelectItem key={assignee.id} value={assignee.id}>
+                              <div className="flex items-center gap-2">
+                                <span>
+                                  {assignee.name}
+                                  {assignee.clientName &&
+                                    ` (${assignee.clientName})`}
+                                </span>
+                                <span
+                                  className={`text-xs ${
+                                    assignee.type === "team"
+                                      ? "text-blue-600"
+                                      : "text-purple-600"
+                                  }`}
+                                >
+                                  {assignee.type === "team" ? "Team" : "Customer"}
+                                </span>
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1154,25 +1283,51 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
               </div>
 
               {/* Assigned To */}
-              {selectedTicket.assigned_to && (
+              {(selectedTicket.assigned_to ||
+                selectedTicket.assigned_to_customer_portal_access) && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium">Assigned To</h4>
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage
-                        src={selectedTicket.assigned_to.user?.avatar_url || ""}
-                      />
-                      <AvatarFallback className="text-xs">
-                        {getInitials(
-                          `${selectedTicket.assigned_to.user?.first_name} ${selectedTicket.assigned_to.user?.last_name}`,
-                        )}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm text-muted-foreground">
-                      {selectedTicket.assigned_to.user?.first_name}{" "}
-                      {selectedTicket.assigned_to.user?.last_name}
-                    </span>
-                  </div>
+                  {selectedTicket.assigned_to ? (
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage
+                          src={selectedTicket.assigned_to.user?.avatar_url || ""}
+                        />
+                        <AvatarFallback className="text-xs">
+                          {getInitials(
+                            `${selectedTicket.assigned_to.user?.first_name} ${selectedTicket.assigned_to.user?.last_name}`,
+                          )}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm text-muted-foreground">
+                        {selectedTicket.assigned_to.user?.first_name}{" "}
+                        {selectedTicket.assigned_to.user?.last_name}
+                      </span>
+                      <Badge variant="secondary" className="text-xs">
+                        Team
+                      </Badge>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="text-xs">
+                          {getInitials(
+                            selectedTicket.assigned_to_customer_portal_access!
+                              .name,
+                          )}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm text-muted-foreground">
+                        {
+                          selectedTicket.assigned_to_customer_portal_access!
+                            .name
+                        }
+                      </span>
+                      <Badge variant="secondary" className="text-xs">
+                        Customer
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               )}
 

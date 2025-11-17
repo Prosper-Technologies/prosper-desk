@@ -114,3 +114,15 @@ export function getStatusColor(status: 'open' | 'in_progress' | 'resolved' | 'cl
       return 'text-gray-600 bg-gray-50'
   }
 }
+
+export function parseTextForLinks(text: string): { type: 'text' | 'link'; content: string }[] {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+
+  return parts.map((part) => {
+    if (part.match(urlRegex)) {
+      return { type: 'link' as const, content: part };
+    }
+    return { type: 'text' as const, content: part };
+  });
+}

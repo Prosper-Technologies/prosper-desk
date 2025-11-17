@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
@@ -21,6 +21,15 @@ import {
 } from "~/components/ui/select";
 import { api } from "~/trpc/react";
 
+type AssigneeType = "team" | "customer";
+
+interface UnifiedAssignee {
+  id: string;
+  name: string;
+  type: AssigneeType;
+  clientName?: string;
+}
+
 interface CreateTicketDialogProps {
   children: React.ReactNode;
   open: boolean;
@@ -35,6 +44,16 @@ interface CreateTicketDialogProps {
       email: string;
     };
   }>;
+  customerAccesses: Array<{
+    id: string;
+    name: string;
+    email: string;
+    client: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  }>;
 }
 
 export default function CreateTicketDialog({
@@ -43,6 +62,7 @@ export default function CreateTicketDialog({
   onOpenChange,
   onTicketCreated,
   agents,
+  customerAccesses,
 }: CreateTicketDialogProps) {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
@@ -53,6 +73,24 @@ export default function CreateTicketDialog({
   const [clientId, setClientId] = useState<string>("none");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerName, setCustomerName] = useState("");
+
+  // Merge agents and customer accesses into unified assignee list
+  const unifiedAssignees = useMemo<UnifiedAssignee[]>(() => {
+    const teamMembers: UnifiedAssignee[] = agents.map((agent) => ({
+      id: `membership-${agent.id}`,
+      name: `${agent.user.first_name} ${agent.user.last_name}`,
+      type: "team" as const,
+    }));
+
+    const customers: UnifiedAssignee[] = customerAccesses.map((access) => ({
+      id: `customer-${access.id}`,
+      name: access.name,
+      type: "customer" as const,
+      clientName: access.client.name,
+    }));
+
+    return [...teamMembers, ...customers];
+  }, [agents, customerAccesses]);
 
   const createTicket = api.ticket.create.useMutation({
     onSuccess: () => {
@@ -83,11 +121,27 @@ export default function CreateTicketDialog({
       return;
     }
 
+    // Parse assignment value
+    let parsedAssignedToId: string | undefined = undefined;
+    let parsedAssignedToCustomerPortalAccessId: string | undefined = undefined;
+
+    if (assignedToId !== "unassigned") {
+      if (assignedToId.startsWith("membership-")) {
+        parsedAssignedToId = assignedToId.replace("membership-", "");
+      } else if (assignedToId.startsWith("customer-")) {
+        parsedAssignedToCustomerPortalAccessId = assignedToId.replace(
+          "customer-",
+          "",
+        );
+      }
+    }
+
     await createTicket.mutateAsync({
       subject: subject.trim(),
       description: description.trim(),
       priority,
-      assignedToId: assignedToId === "unassigned" ? undefined : assignedToId,
+      assignedToId: parsedAssignedToId,
+      assignedToCustomerPortalAccessId: parsedAssignedToCustomerPortalAccessId,
       clientId: clientId === "none" ? undefined : clientId,
       customerEmail: customerEmail || undefined,
       customerName: customerName || undefined,
@@ -168,9 +222,23 @@ export default function CreateTicketDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {agents.map((agent) => (
-                    <SelectItem key={agent.id} value={agent.id}>
-                      {agent.user.first_name} {agent.user.last_name}
+                  {unifiedAssignees.map((assignee) => (
+                    <SelectItem key={assignee.id} value={assignee.id}>
+                      <div className="flex items-center gap-2">
+                        <span>
+                          {assignee.name}
+                          {assignee.clientName && ` (${assignee.clientName})`}
+                        </span>
+                        <span
+                          className={`text-xs ${
+                            assignee.type === "team"
+                              ? "text-blue-600"
+                              : "text-purple-600"
+                          }`}
+                        >
+                          {assignee.type === "team" ? "Team" : "Customer"}
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>

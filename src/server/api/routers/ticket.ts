@@ -106,6 +106,13 @@ export const ticketRouter = createTRPCRouter({
               },
             },
           },
+          assignedToCustomerPortalAccess: {
+            columns: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
           client: {
             columns: { id: true, name: true, slug: true, logo_url: true },
           },
@@ -179,6 +186,13 @@ export const ticketRouter = createTRPCRouter({
               user: true,
             },
           },
+          assignedToCustomerPortalAccess: {
+            columns: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
           slaPolicy: true,
           escalationPolicy: true,
           comments: {
@@ -228,6 +242,7 @@ export const ticketRouter = createTRPCRouter({
         description: z.string().min(1),
         priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
         assignedToId: z.string().uuid().optional(),
+        assignedToCustomerPortalAccessId: z.string().uuid().optional(),
         clientId: z.string().uuid().optional(),
         customerEmail: z.string().email().optional(),
         customerName: z.string().optional(),
@@ -253,6 +268,8 @@ export const ticketRouter = createTRPCRouter({
           priority: input.priority,
           created_by_membership_id: ctx.membership.id,
           assigned_to_membership_id: input.assignedToId,
+          assigned_to_customer_portal_access_id:
+            input.assignedToCustomerPortalAccessId,
           client_id: input.clientId,
           customer_email: input.customerEmail,
           customer_name: input.customerName,
@@ -276,6 +293,7 @@ export const ticketRouter = createTRPCRouter({
           .optional(),
         priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
         assignedToId: z.string().uuid().optional(),
+        assignedToCustomerPortalAccessId: z.string().uuid().optional(),
         tags: z.array(z.string()).optional(),
       }),
     )
@@ -309,8 +327,17 @@ export const ticketRouter = createTRPCRouter({
         }
       }
       if (input.priority) updateData.priority = input.priority;
-      if (input.assignedToId !== undefined)
+      if (input.assignedToId !== undefined) {
         updateData.assigned_to_membership_id = input.assignedToId;
+        // Clear customer portal access assignment if membership is assigned
+        updateData.assigned_to_customer_portal_access_id = null;
+      }
+      if (input.assignedToCustomerPortalAccessId !== undefined) {
+        updateData.assigned_to_customer_portal_access_id =
+          input.assignedToCustomerPortalAccessId;
+        // Clear membership assignment if customer portal access is assigned
+        updateData.assigned_to_membership_id = null;
+      }
       if (input.tags) updateData.tags = input.tags;
 
       if (Object.keys(updateData).length > 0) {
