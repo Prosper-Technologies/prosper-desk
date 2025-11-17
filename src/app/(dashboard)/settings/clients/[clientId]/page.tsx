@@ -54,6 +54,12 @@ export default function ClientDetailsPage() {
     limit: 10,
   });
 
+  const { data: formsData } = api.forms.getAll.useQuery({
+    client_id: clientId,
+    page: 1,
+    limit: 50,
+  });
+
   if (clientLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -173,6 +179,7 @@ export default function ClientDetailsPage() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="sla">SLA Policies</TabsTrigger>
             <TabsTrigger value="portal">Portal Access</TabsTrigger>
+            <TabsTrigger value="forms">Forms</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -482,6 +489,85 @@ export default function ClientDetailsPage() {
                     </Button>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Forms Tab */}
+          <TabsContent value="forms" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">Forms</h2>
+                <p className="text-gray-600">
+                  Manage custom forms for this client
+                </p>
+              </div>
+              <Button asChild>
+                <Link href={`/form-builder/new?clientId=${client.id}`}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Form
+                </Link>
+              </Button>
+            </div>
+
+            <Card>
+              <CardContent className="p-6">
+                {!formsData?.forms || formsData.forms.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Activity className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+                    <h3 className="mb-2 text-lg font-medium">No forms yet</h3>
+                    <p className="mb-4 text-gray-600">
+                      Create custom forms to collect data from this client
+                    </p>
+                    <Button asChild>
+                      <Link href={`/form-builder/new?clientId=${client.id}`}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create First Form
+                      </Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {formsData.forms.map((form: any) => (
+                      <div
+                        key={form.id}
+                        className="flex items-center justify-between border-b pb-4 last:border-0"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium">{form.name}</h4>
+                            {form.is_published ? (
+                              <Badge variant="default">Published</Badge>
+                            ) : (
+                              <Badge variant="secondary">Draft</Badge>
+                            )}
+                          </div>
+                          {form.description && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              {form.description}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">
+                            Created {formatRelativeTime(new Date(form.created_at))}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/form-builder/${form.id}`}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </Link>
+                          </Button>
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/form-builder/${form.id}/submissions`}>
+                              View Submissions
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

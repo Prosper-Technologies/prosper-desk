@@ -35,6 +35,8 @@ import {
   Edit2,
   X,
   Save,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 import { Label } from "~/components/ui/label";
 import { useSearchParams } from "next/navigation";
@@ -253,6 +255,17 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
 
   // Get SLA metrics
   const { data: slaMetrics } = api.customerPortal.getSLAMetrics.useQuery(
+    {
+      companySlug: params.companySlug,
+      clientSlug: params.clientSlug,
+    },
+    {
+      enabled: isAuthenticated,
+    },
+  );
+
+  // Get forms
+  const { data: forms } = api.customerPortal.getForms.useQuery(
     {
       companySlug: params.companySlug,
       clientSlug: params.clientSlug,
@@ -868,46 +881,72 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-8">
-          {/* Ticket Stats */}
-          {slaMetrics && slaMetrics.totalTickets > 0 && (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center">
-                    <div className="rounded-lg bg-blue-100 p-1.5">
-                      <Activity className="h-3 w-3 text-blue-600" />
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-xs font-medium text-gray-600">
-                        Total Tickets
-                      </p>
-                      <p className="text-base font-bold text-gray-900">
-                        {slaMetrics.totalTickets}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          {/* Stats Cards */}
+          {(slaMetrics && slaMetrics.totalTickets > 0) || (forms && forms.length > 0) ? (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              {slaMetrics && slaMetrics.totalTickets > 0 && (
+                <>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center">
+                        <div className="rounded-lg bg-blue-100 p-1.5">
+                          <Activity className="h-3 w-3 text-blue-600" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-xs font-medium text-gray-600">
+                            Total Tickets
+                          </p>
+                          <p className="text-base font-bold text-gray-900">
+                            {slaMetrics.totalTickets}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center">
-                    <div className="rounded-lg bg-green-100 p-1.5">
-                      <CheckCircle className="h-3 w-3 text-green-600" />
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-xs font-medium text-gray-600">
-                        Resolved
-                      </p>
-                      <p className="text-base font-bold text-gray-900">
-                        {slaMetrics.resolvedTickets}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center">
+                        <div className="rounded-lg bg-green-100 p-1.5">
+                          <CheckCircle className="h-3 w-3 text-green-600" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-xs font-medium text-gray-600">
+                            Resolved
+                          </p>
+                          <p className="text-base font-bold text-gray-900">
+                            {slaMetrics.resolvedTickets}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+
+              {forms && forms.length > 0 && (
+                <Link href={`/portal/${params.companySlug}/${params.clientSlug}/forms`}>
+                  <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center">
+                        <div className="rounded-lg bg-purple-100 p-1.5">
+                          <Activity className="h-3 w-3 text-purple-600" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-xs font-medium text-gray-600">
+                            Forms
+                          </p>
+                          <p className="text-base font-bold text-gray-900">
+                            {forms.length}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              )}
             </div>
-          )}
+          ) : null}
 
           {/* Tickets Table */}
           <Card>
@@ -1237,6 +1276,29 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                   {selectedTicket.description}
                 </p>
               </div>
+
+              {/* Form Submission Link */}
+              {selectedTicket.external_type === "form_submission" &&
+                selectedTicket.external_id && (
+                  <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <h4 className="text-sm font-medium">Form Submission</h4>
+                    </div>
+                    <Button
+                      variant="link"
+                      className="h-auto p-0 text-sm text-primary"
+                      onClick={() => {
+                        router.push(
+                          `/portal/${params.companySlug}/${params.clientSlug}/forms?submissionId=${selectedTicket.external_id}`,
+                        );
+                      }}
+                    >
+                      <ExternalLink className="mr-2 h-3.5 w-3.5" />
+                      View submission details
+                    </Button>
+                  </div>
+                )}
 
               {/* Created By */}
               <div className="space-y-2">

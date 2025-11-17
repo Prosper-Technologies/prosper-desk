@@ -22,6 +22,13 @@
       "when": 1763127235874,
       "tag": "20251114133355_broken_talisman",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1763386967865,
+      "tag": "20251117134247_curious_bishop",
+      "breakpoints": true
     }
   ]
 }

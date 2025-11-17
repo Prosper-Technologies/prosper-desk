@@ -10,6 +10,7 @@ import { clientRouter } from "./routers/client";
 import { slaRouter } from "./routers/sla";
 import { gmailRouter } from "./routers/gmail";
 import { apiKeysRouter } from "./routers/apiKeys";
+import { formsRouter } from "./routers/forms";
 
 /**
  * This is the primary router for your server.
@@ -28,6 +29,7 @@ export const appRouter = createTRPCRouter({
   sla: slaRouter,
   gmail: gmailRouter,
   apiKeys: apiKeysRouter,
+  forms: formsRouter,
 });
 
 // export type definition of API

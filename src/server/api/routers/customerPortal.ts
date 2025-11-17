@@ -1077,4 +1077,218 @@ export const customerPortalRouter = createTRPCRouter({
 
       return portalAccesses;
     }),
+
+  // Get forms available for this client
+  getForms: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      });
+
+      // Get forms for this specific client only
+      const { forms } = await import("~/db/schema");
+      const clientForms = await ctx.db.query.forms.findMany({
+        where: (forms, { and, eq }) =>
+          and(
+            eq(forms.company_id, access.companyId),
+            eq(forms.is_published, true),
+            eq(forms.client_id, access.clientId),
+          ),
+        orderBy: (forms, { desc }) => [desc(forms.created_at)],
+      });
+
+      return clientForms;
+    }),
+
+  // Get form submissions for this client
+  getFormSubmissions: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(50).default(10),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      });
+
+      const { formSubmissions, forms } = await import("~/db/schema");
+      const { count, desc } = await import("drizzle-orm");
+
+      const offset = (input.page - 1) * input.limit;
+
+      // Get forms for this specific client only
+      const clientForms = await ctx.db.query.forms.findMany({
+        where: (forms, { and, eq }) =>
+          and(
+            eq(forms.company_id, access.companyId),
+            eq(forms.client_id, access.clientId),
+          ),
+      });
+
+      const formIds = clientForms.map((f) => f.id);
+
+      if (formIds.length === 0) {
+        return {
+          submissions: [],
+          total: 0,
+          page: input.page,
+          limit: input.limit,
+        };
+      }
+
+      // Get submissions for these forms from this user
+      const submissions = await ctx.db.query.formSubmissions.findMany({
+        where: (formSubmissions, { and, eq, or }) =>
+          and(
+            inArray(formSubmissions.form_id, formIds),
+            // Only show submissions from this user (either portal access or email)
+            or(
+              eq(
+                formSubmissions.submitted_by_customer_portal_access_id,
+                access.portalAccessId!,
+              ),
+              eq(formSubmissions.submitted_by_email, access.customerEmail),
+            ),
+          ),
+        with: {
+          form: {
+            columns: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          ticket: {
+            columns: {
+              id: true,
+              subject: true,
+              status: true,
+              priority: true,
+            },
+          },
+        },
+        limit: input.limit,
+        offset,
+        orderBy: (formSubmissions, { desc }) => [
+          desc(formSubmissions.submitted_at),
+        ],
+      });
+
+      // Get total count
+      const [{ total }] = await ctx.db
+        .select({ total: count() })
+        .from(formSubmissions)
+        .where(
+          and(
+            inArray(formSubmissions.form_id, formIds),
+            or(
+              eq(
+                formSubmissions.submitted_by_customer_portal_access_id,
+                access.portalAccessId!,
+              ),
+              eq(formSubmissions.submitted_by_email, access.customerEmail),
+            ),
+          ),
+        );
+
+      return {
+        submissions,
+        total,
+        page: input.page,
+        limit: input.limit,
+        totalPages: Math.ceil(total / input.limit),
+      };
+    }),
+
+  // Create a ticket from a form submission
+  createTicketFromSubmission: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        submissionId: z.string().uuid(),
+        subject: z.string().optional(),
+        priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      });
+
+      // Import schemas
+      const { formSubmissions } = await import("~/db/schema");
+
+      // Get the submission
+      const submission = await ctx.db.query.formSubmissions.findFirst({
+        where: (formSubmissions, { and, eq }) =>
+          and(
+            eq(formSubmissions.id, input.submissionId),
+            eq(formSubmissions.company_id, access.companyId),
+          ),
+        with: {
+          form: true,
+        },
+      });
+
+      if (!submission) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Submission not found",
+        });
+      }
+
+      if (submission.ticket_id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "A ticket has already been created for this submission",
+        });
+      }
+
+      const [ticket] = await ctx.db
+        .insert(tickets)
+        .values({
+          company_id: submission.company_id,
+          client_id: submission.form.client_id,
+          subject: input.subject || `Form submission: ${submission.form.name}`,
+          description: `Created from form submission: ${submission.form.name}`,
+          priority: input.priority || "medium",
+          status: "open",
+          customer_email: submission.submitted_by_email,
+          customer_name: submission.submitted_by_name,
+          assigned_to_customer_portal_access_id:
+            submission.submitted_by_customer_portal_access_id,
+          external_id: submission.id,
+          external_type: "form_submission",
+        })
+        .returning();
+
+      // Update submission with ticket reference
+      await ctx.db
+        .update(formSubmissions)
+        .set({
+          ticket_id: ticket.id,
+          ticket_created: true,
+          updated_at: new Date(),
+        })
+        .where(eq(formSubmissions.id, input.submissionId));
+
+      return ticket;
+    }),
 });
