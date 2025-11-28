@@ -105,12 +105,14 @@ async function createTicketFromRule(
   ctx: any,
   rule: z.infer<typeof ticketRuleSchema>,
   submission: {
+    id: string;
     form_id: string;
     company_id: string;
     submitted_by_email: string;
     submitted_by_name: string;
     submitted_by_customer_portal_access_id?: string | null;
     data: Record<string, any>;
+    description?: string | null;
   },
   form: { name: string; client_id: string | null },
 ) {
@@ -119,15 +121,20 @@ async function createTicketFromRule(
   // Build ticket subject from template
   let subject = rule.ticket_subject || `Form submission: ${form.name}`;
 
-  // Replace {{field_name}} placeholders in subject
+  // Replace {{field_name}} placeholders in subject (including customer_name if it's a field)
   Object.entries(submission.data).forEach(([key, value]) => {
     subject = subject.replace(new RegExp(`{{${key}}}`, "g"), String(value));
   });
 
-  // Build description from form data
-  const description = Object.entries(submission.data)
-    .map(([key, value]) => `**${key}**: ${value}`)
-    .join("\n\n");
+  // Replace {{customer_name}} placeholder if not already replaced by a field
+  // This uses the contact info name as fallback
+  if (subject.includes('{{customer_name}}')) {
+    subject = subject.replace(/\{\{customer_name\}\}/g, submission.submitted_by_name);
+  }
+
+  // Use submission description as ticket description, or default message
+  const ticketDescription = submission.description ||
+    `Form submission from ${submission.submitted_by_name}. View the form submission details for more information.`;
 
   const [ticket] = await ctx.db
     .insert(tickets)
@@ -135,7 +142,7 @@ async function createTicketFromRule(
       company_id: submission.company_id,
       client_id: form.client_id,
       subject,
-      description: `**Auto-created from form submission**\n\n${description}`,
+      description: ticketDescription,
       priority: rule.ticket_priority || "medium",
       status: "open",
       customer_email: submission.submitted_by_email,
@@ -143,6 +150,8 @@ async function createTicketFromRule(
       assigned_to_membership_id: rule.assign_to_membership_id,
       assigned_to_customer_portal_access_id:
         submission.submitted_by_customer_portal_access_id,
+      external_id: submission.id,
+      external_type: "form_submission",
     })
     .returning();
 
@@ -264,18 +273,19 @@ export const formsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // Check if slug already exists for this company
+      // Check if slug already exists for this client
       const existingForm = await ctx.db.query.forms.findFirst({
         where: and(
           eq(forms.slug, input.slug),
           eq(forms.company_id, ctx.company.id),
+          eq(forms.client_id, input.client_id),
         ),
       });
 
       if (existingForm) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "A form with this slug already exists",
+          message: "A form with this slug already exists for this client",
         });
       }
 
@@ -304,7 +314,7 @@ export const formsRouter = createTRPCRouter({
         name: z.string().min(1).max(255).optional(),
         slug: z.string().min(1).max(100).optional(),
         description: z.string().optional(),
-        client_id: z.string().uuid().optional().nullable(),
+        client_id: z.string().uuid().optional(),
         fields: z.array(formFieldSchema).optional(),
         settings: formSettingsSchema.optional(),
         ticket_rules: z.array(ticketRuleSchema).optional(),
@@ -323,19 +333,27 @@ export const formsRouter = createTRPCRouter({
         });
       }
 
-      // Check slug uniqueness if updating slug
-      if (input.slug && input.slug !== existingForm.slug) {
+      // Determine the client_id to use for uniqueness check
+      const targetClientId = input.client_id || existingForm.client_id;
+
+      // Check slug uniqueness if updating slug or client_id
+      if (
+        (input.slug && input.slug !== existingForm.slug) ||
+        (input.client_id && input.client_id !== existingForm.client_id)
+      ) {
+        const checkSlug = input.slug || existingForm.slug;
         const slugExists = await ctx.db.query.forms.findFirst({
           where: and(
-            eq(forms.slug, input.slug),
+            eq(forms.slug, checkSlug),
             eq(forms.company_id, ctx.company.id),
+            eq(forms.client_id, targetClientId),
           ),
         });
 
-        if (slugExists) {
+        if (slugExists && slugExists.id !== input.id) {
           throw new TRPCError({
             code: "CONFLICT",
-            message: "A form with this slug already exists",
+            message: "A form with this slug already exists for this client",
           });
         }
       }
@@ -576,10 +594,9 @@ export const formsRouter = createTRPCRouter({
         });
       }
 
-      // Build description from form data
-      const description = Object.entries(submission.data as Record<string, any>)
-        .map(([key, value]) => `**${key}**: ${value}`)
-        .join("\n\n");
+      // Use submission description as ticket description, or default message
+      const ticketDescription = submission.description ||
+        `Form submission from ${submission.submitted_by_name}. View the form submission details for more information.`;
 
       const [ticket] = await ctx.db
         .insert(tickets)
@@ -587,7 +604,7 @@ export const formsRouter = createTRPCRouter({
           company_id: submission.company_id,
           client_id: submission.form.client_id,
           subject: input.subject || `Form submission: ${submission.form.name}`,
-          description: `**Created from form submission**\n\n${description}`,
+          description: ticketDescription,
           priority: input.priority || "medium",
           status: "open",
           customer_email: submission.submitted_by_email,
@@ -595,6 +612,8 @@ export const formsRouter = createTRPCRouter({
           assigned_to_customer_portal_access_id:
             submission.submitted_by_customer_portal_access_id,
           created_by_membership_id: ctx.membership.id,
+          external_id: submission.id,
+          external_type: "form_submission",
         })
         .returning();
 
@@ -683,6 +702,7 @@ export const formsRouter = createTRPCRouter({
     .input(
       z.object({
         company_slug: z.string(),
+        client_slug: z.string(),
         form_slug: z.string(),
       }),
     )
@@ -699,11 +719,28 @@ export const formsRouter = createTRPCRouter({
         });
       }
 
+      // Find client by slug
+      const client = await ctx.db.query.clients.findFirst({
+        where: (clients, { eq, and }) =>
+          and(
+            eq(clients.slug, input.client_slug),
+            eq(clients.company_id, company.id),
+          ),
+      });
+
+      if (!client) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Client not found",
+        });
+      }
+
       // Find form by slug
       const form = await ctx.db.query.forms.findFirst({
         where: and(
           eq(forms.slug, input.form_slug),
           eq(forms.company_id, company.id),
+          eq(forms.client_id, client.id),
           eq(forms.is_published, true),
         ),
         with: {
@@ -737,6 +774,7 @@ export const formsRouter = createTRPCRouter({
     .input(
       z.object({
         company_slug: z.string(),
+        client_slug: z.string(),
         form_slug: z.string(),
         data: z.record(z.any()),
         contact: z
@@ -747,6 +785,7 @@ export const formsRouter = createTRPCRouter({
           .optional(),
         external_id: z.string().optional(),
         external_type: z.string().optional(),
+        description: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -762,10 +801,27 @@ export const formsRouter = createTRPCRouter({
         });
       }
 
+      // Find client by slug
+      const client = await ctx.db.query.clients.findFirst({
+        where: (clients, { eq, and }) =>
+          and(
+            eq(clients.slug, input.client_slug),
+            eq(clients.company_id, company.id),
+          ),
+      });
+
+      if (!client) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Client not found",
+        });
+      }
+
       const form = await ctx.db.query.forms.findFirst({
         where: and(
           eq(forms.slug, input.form_slug),
           eq(forms.company_id, company.id),
+          eq(forms.client_id, client.id),
           eq(forms.is_published, true),
         ),
       });
@@ -858,6 +914,7 @@ export const formsRouter = createTRPCRouter({
           submitted_by_customer_portal_access_id: portal_access_id,
           submitted_by_membership_id: membership_id,
           data: input.data,
+          description: input.description,
           external_id: input.external_id,
           external_type: input.external_type,
         })
@@ -874,12 +931,14 @@ export const formsRouter = createTRPCRouter({
             ctx,
             rule,
             {
+              id: submission.id,
               form_id: form.id,
               company_id: company.id,
               submitted_by_email: submitter_email,
               submitted_by_name: submitter_name,
               submitted_by_customer_portal_access_id: portal_access_id,
               data: input.data,
+              description: input.description,
             },
             { name: form.name, client_id: form.client_id },
           );

@@ -38,8 +38,35 @@ import {
 } from "~/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { api } from "~/trpc/react";
-import { formatRelativeTime } from "~/lib/utils";
+import { formatRelativeTime, parseTextForLinks } from "~/lib/utils";
 import { toast } from "sonner";
+import { Download } from "lucide-react";
+
+// Component to render text with clickable links
+const TextWithLinks = ({ text }: { text: string }) => {
+  const parts = parseTextForLinks(text);
+
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part.type === 'link') {
+          return (
+            <a
+              key={index}
+              href={part.content}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline hover:text-primary/80"
+            >
+              {part.content}
+            </a>
+          );
+        }
+        return <span key={index}>{part.content}</span>;
+      })}
+    </>
+  );
+};
 
 export default function PortalFormsPage() {
   const params = useParams();
@@ -50,6 +77,7 @@ export default function PortalFormsPage() {
   const submissionIdFromUrl = searchParams?.get("submissionId");
 
   const [submissionsPage, setSubmissionsPage] = useState(1);
+  const [formFilter, setFormFilter] = useState<string>("all");
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
@@ -71,11 +99,17 @@ export default function PortalFormsPage() {
       clientSlug,
       page: submissionsPage,
       limit: 10,
+      formId: formFilter !== "all" ? formFilter : undefined,
     });
 
   const { data: company } = api.company.getSettings.useQuery();
 
   const submissions = submissionsData?.submissions || [];
+
+  // Reset page when form filter changes
+  useEffect(() => {
+    setSubmissionsPage(1);
+  }, [formFilter]);
 
   // Auto-open submission detail when navigating from ticket
   useEffect(() => {
@@ -106,7 +140,7 @@ export default function PortalFormsPage() {
 
   const openForm = (formSlug: string) => {
     if (!company?.slug) return;
-    router.push(`/forms/${company.slug}/${formSlug}`);
+    router.push(`/forms/${company?.slug}/${clientSlug}/${formSlug}`);
   };
 
   const handleCreateTicket = () => {
@@ -119,6 +153,43 @@ export default function PortalFormsPage() {
       subject: ticketSubject || undefined,
       priority: ticketPriority,
     });
+  };
+
+  const utils = api.useUtils();
+
+  const handleDownloadCSV = async () => {
+    if (formFilter === "all") return;
+
+    try {
+      const selectedForm = forms?.find((f: any) => f.id === formFilter);
+      if (!selectedForm) return;
+
+      toast.loading("Generating CSV...");
+
+      // Fetch CSV data using tRPC
+      const csvContent = await utils.customerPortal.downloadSubmissionsCSV.fetch({
+        companySlug,
+        clientSlug,
+        formId: formFilter,
+      });
+
+      // Create blob and download (BOM is already included in csvContent)
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${selectedForm.name.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_submissions.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.dismiss();
+      toast.success("CSV downloaded successfully");
+    } catch (error) {
+      toast.dismiss();
+      toast.error("Failed to download CSV");
+    }
   };
 
   return (
@@ -200,6 +271,38 @@ export default function PortalFormsPage() {
               <CardDescription>View your past form submissions</CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Filter */}
+              <div className="mb-4 flex items-center gap-2 justify-between">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="form-filter" className="text-sm font-medium">
+                    Filter by form:
+                  </Label>
+                  <Select value={formFilter} onValueChange={setFormFilter}>
+                    <SelectTrigger id="form-filter" className="w-[250px]">
+                      <SelectValue placeholder="All forms" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All forms</SelectItem>
+                      {forms?.map((form: any) => (
+                        <SelectItem key={form.id} value={form.id}>
+                          {form.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {formFilter !== "all" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownloadCSV()}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download CSV
+                  </Button>
+                )}
+              </div>
+
               {submissionsLoading ? (
                 <div className="py-8 text-center text-muted-foreground">
                   Loading submissions...
@@ -340,19 +443,36 @@ export default function PortalFormsPage() {
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Submission Details</DialogTitle>
+            <div className="flex items-start justify-between">
+              <DialogTitle>Submission Details</DialogTitle>
+              <span className="text-sm text-muted-foreground">
+                {formatRelativeTime(new Date(selectedSubmission?.submitted_at || new Date()))}
+              </span>
+            </div>
           </DialogHeader>
           {selectedSubmission && (
             <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Form</h3>
+              <div className="flex items-start justify-between gap-4">
                 <p className="text-lg font-semibold">{selectedSubmission.form.name}</p>
+                {selectedSubmission.external_id && (
+                  <div className="text-right text-xs text-muted-foreground space-y-0.5 flex-shrink-0">
+                    <p>
+                      <span className="font-medium">Ref:</span> {selectedSubmission.external_id}
+                    </p>
+                    {selectedSubmission.external_type && (
+                      <p>
+                        <span className="font-medium">Type:</span> {selectedSubmission.external_type}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Submitted At</h3>
-                <p>{formatRelativeTime(new Date(selectedSubmission.submitted_at))}</p>
-              </div>
+              {selectedSubmission.description && (
+                <div className="text-sm text-gray-700 whitespace-pre-wrap border-l-2 border-muted pl-3">
+                  <TextWithLinks text={selectedSubmission.description} />
+                </div>
+              )}
 
               {selectedSubmission.ticket && (
                 <div>
@@ -375,16 +495,22 @@ export default function PortalFormsPage() {
 
               <div className="space-y-3 border-t pt-4">
                 <h3 className="text-sm font-medium text-gray-500">Form Data</h3>
-                {Object.entries(selectedSubmission.data || {}).map(([key, value]) => (
-                  <div key={key} className="space-y-1">
-                    <p className="text-sm font-medium text-gray-700">{key}</p>
-                    <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                      {typeof value === 'object'
-                        ? JSON.stringify(value, null, 2)
-                        : String(value)}
-                    </p>
-                  </div>
-                ))}
+                {selectedSubmission.form?.fields && (selectedSubmission.form.fields as any[]).map((field: any) => {
+                  const value = (selectedSubmission.data as any)?.[field.id];
+                  if (!value) return null;
+                  return (
+                    <div key={field.id} className="space-y-1">
+                      <p className="text-sm font-medium text-gray-700">{field.label}</p>
+                      <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                        {Array.isArray(value)
+                          ? value.join(', ')
+                          : typeof value === 'object'
+                          ? JSON.stringify(value, null, 2)
+                          : String(value)}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

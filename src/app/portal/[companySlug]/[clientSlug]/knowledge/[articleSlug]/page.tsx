@@ -1,6 +1,5 @@
 "use client";
 
-import { useParams } from "next/navigation";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -35,7 +34,19 @@ export default function ArticlePortalPage({ params }: ArticlePortalPageProps) {
   } = api.knowledgeBase.getBySlug.useQuery({
     companySlug: params.companySlug,
     articleSlug: params.articleSlug,
-  });
+  }) as {
+    data:
+      | {
+          title: string;
+          content: string;
+          updated_at: Date;
+          view_count: number;
+          tags: string[] | null;
+        }
+      | undefined;
+    isLoading: boolean;
+    error: unknown;
+  };
 
   if (isLoading) {
     return (

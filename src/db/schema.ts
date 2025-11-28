@@ -340,9 +340,11 @@ export const forms = pgTable(
     company_id: uuid("company_id")
       .references(() => companies.id, { onDelete: "cascade" })
       .notNull(),
-    client_id: uuid("client_id").references(() => clients.id, {
-      onDelete: "cascade",
-    }), // Optional: restrict form to specific client
+    client_id: uuid("client_id")
+      .references(() => clients.id, {
+        onDelete: "cascade",
+      })
+      .notNull(), // Required: forms are scoped per client
 
     // Basic info
     name: varchar("name", { length: 255 }).notNull(),
@@ -368,8 +370,8 @@ export const forms = pgTable(
     updated_at: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    // Unique constraint: one slug per company
-    formSlugUnique: unique().on(table.company_id, table.slug),
+    // Unique constraint: one slug per client
+    formSlugUnique: unique().on(table.company_id, table.client_id, table.slug),
   }),
 ).enableRLS();
 
@@ -395,6 +397,7 @@ export const formSubmissions = pgTable("form_submissions", {
 
   // Response data
   data: jsonb("data").notNull(), // Key-value pairs of field responses
+  description: text("description"), // Additional context/description for the submission
 
   // External integration
   external_id: varchar("external_id", { length: 255 }),

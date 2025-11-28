@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -28,9 +28,10 @@ import { toast } from "sonner";
 
 export default function PublicFormPage() {
   const params = useParams();
-  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const companySlug = params?.companySlug as string;
+  const clientSlug = params?.clientSlug as string;
   const formSlug = params?.formSlug as string;
 
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -39,12 +40,33 @@ export default function PublicFormPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState("");
 
+  // Get URL parameters for external integration
+  const [externalId, setExternalId] = useState<string | null>(null);
+  const [externalType, setExternalType] = useState<string | null>(null);
+  const [description, setDescription] = useState<string | null>(null);
+
+  console.log({ description });
+
+  useEffect(() => {
+    // Read URL parameters on component mount
+    if (searchParams) {
+      const extId = searchParams.get("external_id");
+      const extType = searchParams.get("external_type");
+      const desc = searchParams.get("description");
+
+      if (extId) setExternalId(extId);
+      if (extType) setExternalType(extType);
+      if (desc) setDescription(desc);
+    }
+  }, [searchParams]);
+
   const {
     data: form,
     isLoading,
     error,
   } = api.forms.getPublicBySlug.useQuery({
     company_slug: companySlug,
+    client_slug: clientSlug,
     form_slug: formSlug,
   });
 
@@ -86,12 +108,16 @@ export default function PublicFormPage() {
 
     submitMutation.mutate({
       company_slug: companySlug,
+      client_slug: clientSlug,
       form_slug: formSlug,
       data: formData,
       contact: {
         name: contactName,
         email: contactEmail,
       },
+      external_id: externalId || undefined,
+      external_type: externalType || undefined,
+      description: description || undefined,
     });
   };
 
@@ -164,12 +190,13 @@ export default function PublicFormPage() {
             onValueChange={(val) => handleFieldChange(field.id, val)}
           >
             {field.options?.map((option: any) => (
-              <div key={option.value} className="flex items-center space-x-2">
+              <div key={option.value} className="flex items-start space-x-2">
                 <RadioGroupItem
                   value={option.value}
                   id={`${field.id}-${option.value}`}
+                  className="mt-0.5 flex-shrink-0"
                 />
-                <Label htmlFor={`${field.id}-${option.value}`}>
+                <Label htmlFor={`${field.id}-${option.value}`} className="break-words">
                   {option.label}
                 </Label>
               </div>
@@ -181,7 +208,7 @@ export default function PublicFormPage() {
         return (
           <div className="space-y-2">
             {field.options?.map((option: any) => (
-              <div key={option.value} className="flex items-center space-x-2">
+              <div key={option.value} className="flex items-start space-x-2">
                 <Checkbox
                   checked={(value || []).includes(option.value)}
                   onCheckedChange={(checked) => {
@@ -192,8 +219,9 @@ export default function PublicFormPage() {
                     handleFieldChange(field.id, newValues);
                   }}
                   id={`${field.id}-${option.value}`}
+                  className="mt-0.5 flex-shrink-0"
                 />
-                <Label htmlFor={`${field.id}-${option.value}`}>
+                <Label htmlFor={`${field.id}-${option.value}`} className="break-words">
                   {option.label}
                 </Label>
               </div>
@@ -205,7 +233,7 @@ export default function PublicFormPage() {
         const max = field.max || 5;
         const min = field.min || 1;
         return (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {Array.from({ length: max - min + 1 }, (_, i) => min + i).map(
               (num) => (
                 <Button
@@ -214,6 +242,7 @@ export default function PublicFormPage() {
                   variant={value === num ? "default" : "outline"}
                   size="sm"
                   onClick={() => handleFieldChange(field.id, num)}
+                  className="min-w-[2.5rem]"
                 >
                   {num}
                 </Button>
@@ -271,17 +300,17 @@ export default function PublicFormPage() {
   const fields = (form.fields as any[]) || [];
 
   return (
-    <div className="min-h-screen bg-muted/30 px-6 py-12">
+    <div className="min-h-screen bg-muted/30 px-4 py-6 sm:px-6 sm:py-12">
       <div className="mx-auto max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle className="text-3xl">{form.name}</CardTitle>
+            <CardTitle className="text-2xl sm:text-3xl">{form.name}</CardTitle>
             {form.description && (
-              <CardDescription className="text-base">
+              <CardDescription className="text-sm sm:text-base">
                 {form.description}
               </CardDescription>
             )}
-            <div className="pt-2 text-sm text-muted-foreground">
+            <div className="pt-2 text-xs sm:text-sm text-muted-foreground">
               Powered by {form.company_name}
             </div>
           </CardHeader>
@@ -289,9 +318,9 @@ export default function PublicFormPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Contact Information (for anonymous users) */}
               {settings?.collect_contact_info && (
-                <div className="space-y-4 rounded-lg bg-muted/50 p-4">
-                  <h3 className="font-semibold">Contact Information</h3>
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4 rounded-lg bg-muted/50 p-3 sm:p-4">
+                  <h3 className="font-semibold text-sm sm:text-base">Contact Information</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="contact-name">Name *</Label>
                       <Input
@@ -322,14 +351,14 @@ export default function PublicFormPage() {
                 .sort((a, b) => a.order - b.order)
                 .map((field) => (
                   <div key={field.id} className="space-y-2">
-                    <Label>
+                    <Label className="text-sm sm:text-base break-words">
                       {field.label}
                       {field.required && (
                         <span className="ml-1 text-destructive">*</span>
                       )}
                     </Label>
                     {field.description && (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs sm:text-sm text-muted-foreground break-words">
                         {field.description}
                       </p>
                     )}

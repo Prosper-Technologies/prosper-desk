@@ -865,6 +865,35 @@ export const customerPortalRouter = createTRPCRouter({
           ) || null,
       }));
 
+      // Get form submission if ticket was created from a form
+      let formSubmission = null;
+      if (ticket.external_type === "form_submission" && ticket.external_id) {
+        formSubmission = await ctx.db.query.formSubmissions.findFirst({
+          where: (formSubmissions, { eq }) =>
+            eq(formSubmissions.id, ticket.external_id!),
+          columns: {
+            id: true,
+            data: true,
+            description: true,
+            external_id: true,
+            external_type: true,
+            submitted_at: true,
+            submitted_by_name: true,
+            submitted_by_email: true,
+          },
+          with: {
+            form: {
+              columns: {
+                id: true,
+                name: true,
+                slug: true,
+                fields: true,
+              },
+            },
+          },
+        });
+      }
+
       // Everyone in the customer portal can edit tickets
       const canEdit = true;
 
@@ -874,6 +903,7 @@ export const customerPortalRouter = createTRPCRouter({
         assigned_to_customer_portal_access: assignedToCustomerPortalAccess,
         created_by: createdBy,
         comments,
+        formSubmission,
         canEdit, // Add permission flag
       };
     }),
@@ -1116,6 +1146,7 @@ export const customerPortalRouter = createTRPCRouter({
         clientSlug: z.string(),
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(50).default(10),
+        formId: z.string().uuid().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -1152,8 +1183,8 @@ export const customerPortalRouter = createTRPCRouter({
 
       // Get submissions for these forms from this user
       const submissions = await ctx.db.query.formSubmissions.findMany({
-        where: (formSubmissions, { and, eq, or }) =>
-          and(
+        where: (formSubmissions, { and, eq, or }) => {
+          const conditions = [
             inArray(formSubmissions.form_id, formIds),
             // Only show submissions from this user (either portal access or email)
             or(
@@ -1163,13 +1194,22 @@ export const customerPortalRouter = createTRPCRouter({
               ),
               eq(formSubmissions.submitted_by_email, access.customerEmail),
             ),
-          ),
+          ];
+
+          // Add form filter if specified
+          if (input.formId) {
+            conditions.push(eq(formSubmissions.form_id, input.formId));
+          }
+
+          return and(...conditions);
+        },
         with: {
           form: {
             columns: {
               id: true,
               name: true,
               slug: true,
+              fields: true,
             },
           },
           ticket: {
@@ -1189,21 +1229,26 @@ export const customerPortalRouter = createTRPCRouter({
       });
 
       // Get total count
+      const countConditions = [
+        inArray(formSubmissions.form_id, formIds),
+        or(
+          eq(
+            formSubmissions.submitted_by_customer_portal_access_id,
+            access.portalAccessId!,
+          ),
+          eq(formSubmissions.submitted_by_email, access.customerEmail),
+        ),
+      ];
+
+      // Add form filter if specified
+      if (input.formId) {
+        countConditions.push(eq(formSubmissions.form_id, input.formId));
+      }
+
       const [{ total }] = await ctx.db
         .select({ total: count() })
         .from(formSubmissions)
-        .where(
-          and(
-            inArray(formSubmissions.form_id, formIds),
-            or(
-              eq(
-                formSubmissions.submitted_by_customer_portal_access_id,
-                access.portalAccessId!,
-              ),
-              eq(formSubmissions.submitted_by_email, access.customerEmail),
-            ),
-          ),
-        );
+        .where(and(...countConditions));
 
       return {
         submissions,
@@ -1290,5 +1335,114 @@ export const customerPortalRouter = createTRPCRouter({
         .where(eq(formSubmissions.id, input.submissionId));
 
       return ticket;
+    }),
+
+  // Download form submissions as CSV
+  downloadSubmissionsCSV: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        formId: z.string().uuid(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      });
+
+      const { formSubmissions } = await import("~/db/schema");
+
+      // Get the form
+      const form = await ctx.db.query.forms.findFirst({
+        where: (forms, { and, eq }) =>
+          and(
+            eq(forms.id, input.formId),
+            eq(forms.company_id, access.companyId),
+            eq(forms.client_id, access.clientId),
+          ),
+      });
+
+      if (!form) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Form not found",
+        });
+      }
+
+      // Get all submissions for this form from this user
+      const submissions = await ctx.db.query.formSubmissions.findMany({
+        where: (formSubmissions, { and, eq, or }) =>
+          and(
+            eq(formSubmissions.form_id, input.formId),
+            or(
+              eq(
+                formSubmissions.submitted_by_customer_portal_access_id,
+                access.portalAccessId!,
+              ),
+              eq(formSubmissions.submitted_by_email, access.customerEmail),
+            ),
+          ),
+        columns: {
+          id: true,
+          data: true,
+          description: true,
+          external_id: true,
+          external_type: true,
+          submitted_at: true,
+          submitted_by_name: true,
+          submitted_by_email: true,
+        },
+        orderBy: (formSubmissions, { desc }) => [
+          desc(formSubmissions.submitted_at),
+        ],
+      });
+
+      // Build CSV
+      const fields = (form.fields as any[]) || [];
+      const headers = [
+        "Submitted At",
+        "Submitted By",
+        ...fields.map((f) => f.label),
+        "Description",
+        "External ID",
+        "External Type",
+      ];
+
+      const rows = submissions.map((submission) => {
+        const row = [
+          new Date(submission.submitted_at).toLocaleString(),
+          submission.submitted_by_name || submission.submitted_by_email,
+          ...fields.map((field) => {
+            const value = (submission.data as any)?.[field.id];
+            if (Array.isArray(value)) return value.join(", ");
+            return value || "";
+          }),
+          submission.description || "",
+          submission.external_id || "",
+          submission.external_type || "",
+        ];
+        return row;
+      });
+
+      // Convert to CSV string with proper formatting
+      const csvRows = [headers, ...rows];
+      const csvContent = csvRows
+        .map((row) =>
+          row
+            .map((cell) => {
+              // Convert to string and escape quotes
+              const cellValue = String(cell ?? "").replace(/"/g, '""');
+              // Always quote cells to handle special characters
+              return `"${cellValue}"`;
+            })
+            .join(","),
+        )
+        .join("\r\n"); // Use Windows-style line endings for better compatibility
+
+      // Add BOM for Excel UTF-8 compatibility
+      return "\uFEFF" + csvContent;
     }),
 });

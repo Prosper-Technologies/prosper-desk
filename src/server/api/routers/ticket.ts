@@ -231,7 +231,39 @@ export const ticketRouter = createTRPCRouter({
         });
       }
 
-      return ticket;
+      // Get form submission if ticket was created from a form
+      let formSubmission = null;
+      if (ticket.external_type === "form_submission" && ticket.external_id) {
+        formSubmission = await ctx.db.query.formSubmissions.findFirst({
+          where: (formSubmissions, { eq }) =>
+            eq(formSubmissions.id, ticket.external_id!),
+          columns: {
+            id: true,
+            data: true,
+            description: true,
+            external_id: true,
+            external_type: true,
+            submitted_at: true,
+            submitted_by_name: true,
+            submitted_by_email: true,
+          },
+          with: {
+            form: {
+              columns: {
+                id: true,
+                name: true,
+                slug: true,
+                fields: true,
+              },
+            },
+          },
+        });
+      }
+
+      return {
+        ...ticket,
+        formSubmission,
+      };
     }),
 
   // Create new ticket

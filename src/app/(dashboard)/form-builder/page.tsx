@@ -49,18 +49,18 @@ export default function FormsPage() {
   const forms = data?.forms || [];
   const totalPages = data?.totalPages || 1;
 
-  const copyFormUrl = (formSlug: string) => {
+  const copyFormUrl = (formSlug: string, clientSlug: string) => {
     if (!company?.slug) return;
-    const url = `${window.location.origin}/forms/${company.slug}/${formSlug}`;
+    const url = `${window.location.origin}/forms/${company?.slug}/${clientSlug}/${formSlug}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copied!", {
       description: "Form link has been copied to clipboard",
     });
   };
 
-  const openFormInNewTab = (formSlug: string) => {
+  const openFormInNewTab = (formSlug: string, clientSlug: string) => {
     if (!company?.slug) return;
-    const url = `${window.location.origin}/forms/${company.slug}/${formSlug}`;
+    const url = `${window.location.origin}/forms/${company?.slug}/${clientSlug}/${formSlug}`;
     window.open(url, "_blank");
   };
 
@@ -214,7 +214,9 @@ export default function FormsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => router.push(`/form-builder/${form.id}`)}
+                            onClick={() =>
+                              router.push(`/form-builder/${form.id}`)
+                            }
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -223,7 +225,9 @@ export default function FormsPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => copyFormUrl(form.slug)}
+                                onClick={() =>
+                                  copyFormUrl(form.slug, form.client?.slug)
+                                }
                                 title="Copy form link"
                               >
                                 <Copy className="h-4 w-4" />
@@ -231,7 +235,9 @@ export default function FormsPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => openFormInNewTab(form.slug)}
+                                onClick={() =>
+                                  openFormInNewTab(form.slug, form.client?.slug)
+                                }
                                 title="Open form in new tab"
                               >
                                 <ExternalLink className="h-4 w-4" />
