@@ -865,6 +865,35 @@ export const customerPortalRouter = createTRPCRouter({
           ) || null,
       }));
 
+      // Get form submission if ticket was created from a form
+      let formSubmission = null;
+      if (ticket.external_type === "form_submission" && ticket.external_id) {
+        formSubmission = await ctx.db.query.formSubmissions.findFirst({
+          where: (formSubmissions, { eq }) =>
+            eq(formSubmissions.id, ticket.external_id!),
+          columns: {
+            id: true,
+            data: true,
+            description: true,
+            external_id: true,
+            external_type: true,
+            submitted_at: true,
+            submitted_by_name: true,
+            submitted_by_email: true,
+          },
+          with: {
+            form: {
+              columns: {
+                id: true,
+                name: true,
+                slug: true,
+                fields: true,
+              },
+            },
+          },
+        });
+      }
+
       // Everyone in the customer portal can edit tickets
       const canEdit = true;
 
@@ -874,6 +903,7 @@ export const customerPortalRouter = createTRPCRouter({
         assigned_to_customer_portal_access: assignedToCustomerPortalAccess,
         created_by: createdBy,
         comments,
+        formSubmission,
         canEdit, // Add permission flag
       };
     }),
@@ -1076,5 +1106,343 @@ export const customerPortalRouter = createTRPCRouter({
       });
 
       return portalAccesses;
+    }),
+
+  // Get forms available for this client
+  getForms: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      });
+
+      // Get forms for this specific client only
+      const { forms } = await import("~/db/schema");
+      const clientForms = await ctx.db.query.forms.findMany({
+        where: (forms, { and, eq }) =>
+          and(
+            eq(forms.company_id, access.companyId),
+            eq(forms.is_published, true),
+            eq(forms.client_id, access.clientId),
+          ),
+        orderBy: (forms, { desc }) => [desc(forms.created_at)],
+      });
+
+      return clientForms;
+    }),
+
+  // Get form submissions for this client
+  getFormSubmissions: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(50).default(10),
+        formId: z.string().uuid().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      });
+
+      const { formSubmissions, forms } = await import("~/db/schema");
+      const { count, desc } = await import("drizzle-orm");
+
+      const offset = (input.page - 1) * input.limit;
+
+      // Get forms for this specific client only
+      const clientForms = await ctx.db.query.forms.findMany({
+        where: (forms, { and, eq }) =>
+          and(
+            eq(forms.company_id, access.companyId),
+            eq(forms.client_id, access.clientId),
+          ),
+      });
+
+      const formIds = clientForms.map((f) => f.id);
+
+      if (formIds.length === 0) {
+        return {
+          submissions: [],
+          total: 0,
+          page: input.page,
+          limit: input.limit,
+        };
+      }
+
+      // Get submissions for these forms from this user
+      const submissions = await ctx.db.query.formSubmissions.findMany({
+        where: (formSubmissions, { and, eq, or }) => {
+          const conditions = [
+            inArray(formSubmissions.form_id, formIds),
+            // Only show submissions from this user (either portal access or email)
+            or(
+              eq(
+                formSubmissions.submitted_by_customer_portal_access_id,
+                access.portalAccessId!,
+              ),
+              eq(formSubmissions.submitted_by_email, access.customerEmail),
+            ),
+          ];
+
+          // Add form filter if specified
+          if (input.formId) {
+            conditions.push(eq(formSubmissions.form_id, input.formId));
+          }
+
+          return and(...conditions);
+        },
+        with: {
+          form: {
+            columns: {
+              id: true,
+              name: true,
+              slug: true,
+              fields: true,
+            },
+          },
+          ticket: {
+            columns: {
+              id: true,
+              subject: true,
+              status: true,
+              priority: true,
+            },
+          },
+        },
+        limit: input.limit,
+        offset,
+        orderBy: (formSubmissions, { desc }) => [
+          desc(formSubmissions.submitted_at),
+        ],
+      });
+
+      // Get total count
+      const countConditions = [
+        inArray(formSubmissions.form_id, formIds),
+        or(
+          eq(
+            formSubmissions.submitted_by_customer_portal_access_id,
+            access.portalAccessId!,
+          ),
+          eq(formSubmissions.submitted_by_email, access.customerEmail),
+        ),
+      ];
+
+      // Add form filter if specified
+      if (input.formId) {
+        countConditions.push(eq(formSubmissions.form_id, input.formId));
+      }
+
+      const [{ total }] = await ctx.db
+        .select({ total: count() })
+        .from(formSubmissions)
+        .where(and(...countConditions));
+
+      return {
+        submissions,
+        total,
+        page: input.page,
+        limit: input.limit,
+        totalPages: Math.ceil(total / input.limit),
+      };
+    }),
+
+  // Create a ticket from a form submission
+  createTicketFromSubmission: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        submissionId: z.string().uuid(),
+        subject: z.string().optional(),
+        priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      });
+
+      // Import schemas
+      const { formSubmissions } = await import("~/db/schema");
+
+      // Get the submission
+      const submission = await ctx.db.query.formSubmissions.findFirst({
+        where: (formSubmissions, { and, eq }) =>
+          and(
+            eq(formSubmissions.id, input.submissionId),
+            eq(formSubmissions.company_id, access.companyId),
+          ),
+        with: {
+          form: true,
+        },
+      });
+
+      if (!submission) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Submission not found",
+        });
+      }
+
+      if (submission.ticket_id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "A ticket has already been created for this submission",
+        });
+      }
+
+      const [ticket] = await ctx.db
+        .insert(tickets)
+        .values({
+          company_id: submission.company_id,
+          client_id: submission.form.client_id,
+          subject: input.subject || `Form submission: ${submission.form.name}`,
+          description: `Created from form submission: ${submission.form.name}`,
+          priority: input.priority || "medium",
+          status: "open",
+          customer_email: submission.submitted_by_email,
+          customer_name: submission.submitted_by_name,
+          assigned_to_customer_portal_access_id:
+            submission.submitted_by_customer_portal_access_id,
+          external_id: submission.id,
+          external_type: "form_submission",
+        })
+        .returning();
+
+      // Update submission with ticket reference
+      await ctx.db
+        .update(formSubmissions)
+        .set({
+          ticket_id: ticket.id,
+          ticket_created: true,
+          updated_at: new Date(),
+        })
+        .where(eq(formSubmissions.id, input.submissionId));
+
+      return ticket;
+    }),
+
+  // Download form submissions as CSV
+  downloadSubmissionsCSV: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        formId: z.string().uuid(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      });
+
+      const { formSubmissions } = await import("~/db/schema");
+
+      // Get the form
+      const form = await ctx.db.query.forms.findFirst({
+        where: (forms, { and, eq }) =>
+          and(
+            eq(forms.id, input.formId),
+            eq(forms.company_id, access.companyId),
+            eq(forms.client_id, access.clientId),
+          ),
+      });
+
+      if (!form) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Form not found",
+        });
+      }
+
+      // Get all submissions for this form from this user
+      const submissions = await ctx.db.query.formSubmissions.findMany({
+        where: (formSubmissions, { and, eq, or }) =>
+          and(
+            eq(formSubmissions.form_id, input.formId),
+            or(
+              eq(
+                formSubmissions.submitted_by_customer_portal_access_id,
+                access.portalAccessId!,
+              ),
+              eq(formSubmissions.submitted_by_email, access.customerEmail),
+            ),
+          ),
+        columns: {
+          id: true,
+          data: true,
+          description: true,
+          external_id: true,
+          external_type: true,
+          submitted_at: true,
+          submitted_by_name: true,
+          submitted_by_email: true,
+        },
+        orderBy: (formSubmissions, { desc }) => [
+          desc(formSubmissions.submitted_at),
+        ],
+      });
+
+      // Build CSV
+      const fields = (form.fields as any[]) || [];
+      const headers = [
+        "Submitted At",
+        "Submitted By",
+        ...fields.map((f) => f.label),
+        "Description",
+        "External ID",
+        "External Type",
+      ];
+
+      const rows = submissions.map((submission) => {
+        const row = [
+          new Date(submission.submitted_at).toLocaleString(),
+          submission.submitted_by_name || submission.submitted_by_email,
+          ...fields.map((field) => {
+            const value = (submission.data as any)?.[field.id];
+            if (Array.isArray(value)) return value.join(", ");
+            return value || "";
+          }),
+          submission.description || "",
+          submission.external_id || "",
+          submission.external_type || "",
+        ];
+        return row;
+      });
+
+      // Convert to CSV string with proper formatting
+      const csvRows = [headers, ...rows];
+      const csvContent = csvRows
+        .map((row) =>
+          row
+            .map((cell) => {
+              // Convert to string and escape quotes
+              const cellValue = String(cell ?? "").replace(/"/g, '""');
+              // Always quote cells to handle special characters
+              return `"${cellValue}"`;
+            })
+            .join(","),
+        )
+        .join("\r\n"); // Use Windows-style line endings for better compatibility
+
+      // Add BOM for Excel UTF-8 compatibility
+      return "\uFEFF" + csvContent;
     }),
 });

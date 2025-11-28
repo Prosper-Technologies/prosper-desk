@@ -332,6 +332,90 @@ export const invitationCodes = pgTable("invitation_codes", {
   created_at: timestamp("created_at").defaultNow().notNull(),
 }).enableRLS();
 
+// Forms table (custom forms for data collection)
+export const forms = pgTable(
+  "forms",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    company_id: uuid("company_id")
+      .references(() => companies.id, { onDelete: "cascade" })
+      .notNull(),
+    client_id: uuid("client_id")
+      .references(() => clients.id, {
+        onDelete: "cascade",
+      })
+      .notNull(), // Required: forms are scoped per client
+
+    // Basic info
+    name: varchar("name", { length: 255 }).notNull(),
+    slug: varchar("slug", { length: 100 }).notNull(),
+    description: text("description"),
+
+    // Form configuration
+    fields: jsonb("fields").notNull(), // Array of field definitions
+    settings: jsonb("settings").default("{}").notNull(), // Form-level settings
+
+    // Publishing
+    is_published: boolean("is_published").default(false).notNull(),
+    is_public: boolean("is_public").default(true).notNull(), // If false, requires portal access
+
+    // Conditional ticket creation
+    ticket_rules: jsonb("ticket_rules").default("[]").notNull(), // Array of rule objects
+
+    // Metadata
+    created_by_membership_id: uuid("created_by_membership_id")
+      .references(() => memberships.id)
+      .notNull(),
+    created_at: timestamp("created_at").defaultNow().notNull(),
+    updated_at: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    // Unique constraint: one slug per client
+    formSlugUnique: unique().on(table.company_id, table.client_id, table.slug),
+  }),
+).enableRLS();
+
+// Form submissions table
+export const formSubmissions = pgTable("form_submissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  form_id: uuid("form_id")
+    .references(() => forms.id, { onDelete: "cascade" })
+    .notNull(),
+  company_id: uuid("company_id")
+    .references(() => companies.id, { onDelete: "cascade" })
+    .notNull(), // Denormalized for performance
+
+  // Submitter identity (polymorphic)
+  submitted_by_email: varchar("submitted_by_email", { length: 255 }).notNull(),
+  submitted_by_name: varchar("submitted_by_name", { length: 255 }).notNull(),
+  submitted_by_customer_portal_access_id: uuid(
+    "submitted_by_customer_portal_access_id",
+  ).references(() => customerPortalAccess.id),
+  submitted_by_membership_id: uuid("submitted_by_membership_id").references(
+    () => memberships.id,
+  ),
+
+  // Response data
+  data: jsonb("data").notNull(), // Key-value pairs of field responses
+  description: text("description"), // Additional context/description for the submission
+
+  // External integration
+  external_id: varchar("external_id", { length: 255 }),
+  external_type: varchar("external_type", { length: 100 }),
+
+  // Ticket creation
+  ticket_id: uuid("ticket_id").references(() => tickets.id),
+  ticket_created: boolean("ticket_created").default(false).notNull(),
+
+  // Metadata
+  submitted_at: timestamp("submitted_at").defaultNow().notNull(),
+  ip_address: varchar("ip_address", { length: 45 }), // IPv6 support
+  user_agent: text("user_agent"),
+
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+}).enableRLS();
+
 // Relations
 export const companiesRelations = relations(companies, ({ many }) => ({
   memberships: many(memberships),
@@ -344,6 +428,8 @@ export const companiesRelations = relations(companies, ({ many }) => ({
   customerPortalAccess: many(customerPortalAccess),
   apiKeys: many(apiKeys),
   invitationCodes: many(invitationCodes),
+  forms: many(forms),
+  formSubmissions: many(formSubmissions),
 }));
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -365,6 +451,8 @@ export const membershipsRelations = relations(memberships, ({ one, many }) => ({
   ticketComments: many(ticketComments),
   knowledgeBaseArticles: many(knowledgeBase),
   sentInvitations: many(invitationCodes),
+  createdForms: many(forms),
+  formSubmissions: many(formSubmissions),
 }));
 
 export const slaPoliciesRelations = relations(slaPolicies, ({ one, many }) => ({
@@ -422,6 +510,7 @@ export const ticketsRelations = relations(tickets, ({ one, many }) => ({
     references: [escalationPolicies.id],
   }),
   comments: many(ticketComments),
+  formSubmissions: many(formSubmissions),
 }));
 
 export const ticketCommentsRelations = relations(
@@ -473,6 +562,7 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
   tickets: many(tickets),
   portalAccess: many(customerPortalAccess),
   slaPolicies: many(slaPolicies),
+  forms: many(forms),
 }));
 
 export const customerPortalAccessRelations = relations(
@@ -488,6 +578,7 @@ export const customerPortalAccessRelations = relations(
     }),
     ticketComments: many(ticketComments),
     assignedTickets: many(tickets),
+    formSubmissions: many(formSubmissions),
   }),
 );
 
@@ -533,6 +624,48 @@ export const invitationCodesRelations = relations(
     invitedByMembership: one(memberships, {
       fields: [invitationCodes.invited_by_membership_id],
       references: [memberships.id],
+    }),
+  }),
+);
+
+export const formsRelations = relations(forms, ({ one, many }) => ({
+  company: one(companies, {
+    fields: [forms.company_id],
+    references: [companies.id],
+  }),
+  client: one(clients, {
+    fields: [forms.client_id],
+    references: [clients.id],
+  }),
+  createdByMembership: one(memberships, {
+    fields: [forms.created_by_membership_id],
+    references: [memberships.id],
+  }),
+  submissions: many(formSubmissions),
+}));
+
+export const formSubmissionsRelations = relations(
+  formSubmissions,
+  ({ one }) => ({
+    form: one(forms, {
+      fields: [formSubmissions.form_id],
+      references: [forms.id],
+    }),
+    company: one(companies, {
+      fields: [formSubmissions.company_id],
+      references: [companies.id],
+    }),
+    submittedByCustomerPortalAccess: one(customerPortalAccess, {
+      fields: [formSubmissions.submitted_by_customer_portal_access_id],
+      references: [customerPortalAccess.id],
+    }),
+    submittedByMembership: one(memberships, {
+      fields: [formSubmissions.submitted_by_membership_id],
+      references: [memberships.id],
+    }),
+    ticket: one(tickets, {
+      fields: [formSubmissions.ticket_id],
+      references: [tickets.id],
     }),
   }),
 );

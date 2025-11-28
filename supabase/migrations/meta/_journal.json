@@ -22,6 +22,27 @@
       "when": 1763127235874,
       "tag": "20251114133355_broken_talisman",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1763386967865,
+      "tag": "20251117134247_curious_bishop",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1763479845937,
+      "tag": "20251118153045_abandoned_centennial",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1764146353128,
+      "tag": "20251126083913_serious_silhouette",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { useParams } from "next/navigation";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -28,16 +27,30 @@ interface ArticlePortalPageProps {
 }
 
 export default function ArticlePortalPage({ params }: ArticlePortalPageProps) {
-  const { data: article, isLoading, error } = api.knowledgeBase.getBySlug.useQuery(
-    {
-      companySlug: params.companySlug,
-      articleSlug: params.articleSlug,
-    }
-  );
+  const {
+    data: article,
+    isLoading,
+    error,
+  } = api.knowledgeBase.getBySlug.useQuery({
+    companySlug: params.companySlug,
+    articleSlug: params.articleSlug,
+  }) as {
+    data:
+      | {
+          title: string;
+          content: string;
+          updated_at: Date;
+          view_count: number;
+          tags: string[] | null;
+        }
+      | undefined;
+    isLoading: boolean;
+    error: unknown;
+  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
           <p className="text-gray-600">Loading article...</p>
@@ -48,14 +61,17 @@ export default function ArticlePortalPage({ params }: ArticlePortalPageProps) {
 
   if (error || !article) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
-          <h2 className="text-lg font-bold mb-2">Article not found</h2>
-          <p className="text-gray-600 mb-4">
-            The article you're looking for doesn't exist or is no longer available.
+          <h2 className="mb-2 text-lg font-bold">Article not found</h2>
+          <p className="mb-4 text-gray-600">
+            The article you're looking for doesn't exist or is no longer
+            available.
           </p>
           <Button asChild>
-            <Link href={`/portal/${params.companySlug}/${params.clientSlug}/knowledge`}>
+            <Link
+              href={`/portal/${params.companySlug}/${params.clientSlug}/knowledge`}
+            >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Knowledge Base
             </Link>
@@ -77,13 +93,13 @@ export default function ArticlePortalPage({ params }: ArticlePortalPageProps) {
                 <h1 className="text-base font-semibold text-gray-900">
                   Knowledge Base
                 </h1>
-                <p className="text-xs text-gray-600">
-                  {article.title}
-                </p>
+                <p className="text-xs text-gray-600">{article.title}</p>
               </div>
             </div>
             <Button variant="outline" size="sm" asChild>
-              <Link href={`/portal/${params.companySlug}/${params.clientSlug}/knowledge`}>
+              <Link
+                href={`/portal/${params.companySlug}/${params.clientSlug}/knowledge`}
+              >
                 <ArrowLeft className="mr-2 h-3 w-3" />
                 Back to Articles
               </Link>
@@ -97,8 +113,10 @@ export default function ArticlePortalPage({ params }: ArticlePortalPageProps) {
         <div className="space-y-6">
           {/* Article Header */}
           <div className="space-y-4">
-            <h1 className="text-2xl font-bold text-gray-900">{article.title}</h1>
-            
+            <h1 className="text-2xl font-bold text-gray-900">
+              {article.title}
+            </h1>
+
             {/* Article Meta */}
             <div className="flex items-center gap-6 text-sm text-gray-600">
               <div className="flex items-center gap-2">
@@ -113,25 +131,31 @@ export default function ArticlePortalPage({ params }: ArticlePortalPageProps) {
                 <Clock className="h-4 w-4" />
                 <span>
                   {Math.ceil(
-                    article.content.replace(/<[^>]*>/g, "").split(/\s+/).filter(Boolean).length / 200
-                  )} min read
+                    article.content
+                      .replace(/<[^>]*>/g, "")
+                      .split(/\s+/)
+                      .filter(Boolean).length / 200,
+                  )}{" "}
+                  min read
                 </span>
               </div>
             </div>
 
             {/* Tags */}
-            {article.tags && Array.isArray(article.tags) && article.tags.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Tag className="h-4 w-4 text-gray-500" />
-                <div className="flex flex-wrap gap-1">
-                  {article.tags.map((tag, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
+            {article.tags &&
+              Array.isArray(article.tags) &&
+              article.tags.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-gray-500" />
+                  <div className="flex flex-wrap gap-1">
+                    {article.tags.map((tag, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
 
           {/* Article Content */}
@@ -153,17 +177,22 @@ export default function ArticlePortalPage({ params }: ArticlePortalPageProps) {
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-600">
                   <p>
-                    Was this article helpful? Let us know by creating a support ticket.
+                    Was this article helpful? Let us know by creating a support
+                    ticket.
                   </p>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" asChild>
-                    <Link href={`/portal/${params.companySlug}/${params.clientSlug}`}>
+                    <Link
+                      href={`/portal/${params.companySlug}/${params.clientSlug}`}
+                    >
                       Contact Support
                     </Link>
                   </Button>
                   <Button variant="outline" size="sm" asChild>
-                    <Link href={`/portal/${params.companySlug}/${params.clientSlug}/knowledge`}>
+                    <Link
+                      href={`/portal/${params.companySlug}/${params.clientSlug}/knowledge`}
+                    >
                       <ArrowLeft className="mr-2 h-3 w-3" />
                       Back to Articles
                     </Link>

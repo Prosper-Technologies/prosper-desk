@@ -35,6 +35,8 @@ import {
   Edit2,
   X,
   Save,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 import { Label } from "~/components/ui/label";
 import { useSearchParams } from "next/navigation";
@@ -51,10 +53,37 @@ import {
   getPriorityColor,
   getInitials,
   cn,
+  parseTextForLinks,
 } from "~/lib/utils";
 import { createClient } from "~/utils/supabase/client";
 import { Input } from "~/components/ui/input";
 import { toast } from "sonner";
+
+// Component to render text with clickable links
+const TextWithLinks = ({ text }: { text: string }) => {
+  const parts = parseTextForLinks(text);
+
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part.type === 'link') {
+          return (
+            <a
+              key={index}
+              href={part.content}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline hover:text-primary/80"
+            >
+              {part.content}
+            </a>
+          );
+        }
+        return <span key={index}>{part.content}</span>;
+      })}
+    </>
+  );
+};
 
 type AssigneeType = "team" | "customer";
 
@@ -253,6 +282,17 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
 
   // Get SLA metrics
   const { data: slaMetrics } = api.customerPortal.getSLAMetrics.useQuery(
+    {
+      companySlug: params.companySlug,
+      clientSlug: params.clientSlug,
+    },
+    {
+      enabled: isAuthenticated,
+    },
+  );
+
+  // Get forms
+  const { data: forms } = api.customerPortal.getForms.useQuery(
     {
       companySlug: params.companySlug,
       clientSlug: params.clientSlug,
@@ -868,46 +908,72 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-8">
-          {/* Ticket Stats */}
-          {slaMetrics && slaMetrics.totalTickets > 0 && (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center">
-                    <div className="rounded-lg bg-blue-100 p-1.5">
-                      <Activity className="h-3 w-3 text-blue-600" />
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-xs font-medium text-gray-600">
-                        Total Tickets
-                      </p>
-                      <p className="text-base font-bold text-gray-900">
-                        {slaMetrics.totalTickets}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          {/* Stats Cards */}
+          {(slaMetrics && slaMetrics.totalTickets > 0) || (forms && forms.length > 0) ? (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              {slaMetrics && slaMetrics.totalTickets > 0 && (
+                <>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center">
+                        <div className="rounded-lg bg-blue-100 p-1.5">
+                          <Activity className="h-3 w-3 text-blue-600" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-xs font-medium text-gray-600">
+                            Total Tickets
+                          </p>
+                          <p className="text-base font-bold text-gray-900">
+                            {slaMetrics.totalTickets}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center">
-                    <div className="rounded-lg bg-green-100 p-1.5">
-                      <CheckCircle className="h-3 w-3 text-green-600" />
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-xs font-medium text-gray-600">
-                        Resolved
-                      </p>
-                      <p className="text-base font-bold text-gray-900">
-                        {slaMetrics.resolvedTickets}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center">
+                        <div className="rounded-lg bg-green-100 p-1.5">
+                          <CheckCircle className="h-3 w-3 text-green-600" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-xs font-medium text-gray-600">
+                            Resolved
+                          </p>
+                          <p className="text-base font-bold text-gray-900">
+                            {slaMetrics.resolvedTickets}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+
+              {forms && forms.length > 0 && (
+                <Link href={`/portal/${params.companySlug}/${params.clientSlug}/forms`}>
+                  <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center">
+                        <div className="rounded-lg bg-purple-100 p-1.5">
+                          <Activity className="h-3 w-3 text-purple-600" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-xs font-medium text-gray-600">
+                            Forms
+                          </p>
+                          <p className="text-base font-bold text-gray-900">
+                            {forms.length}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              )}
             </div>
-          )}
+          ) : null}
 
           {/* Tickets Table */}
           <Card>
@@ -1234,9 +1300,84 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
               <div className="space-y-2">
                 <h4 className="text-sm font-medium">Description</h4>
                 <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                  {selectedTicket.description}
+                  <TextWithLinks text={selectedTicket.description} />
                 </p>
               </div>
+
+              {/* Form Submission */}
+              {selectedTicket.formSubmission && (
+                <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <h4 className="text-sm font-medium">
+                        Form: {selectedTicket.formSubmission.form?.name}
+                      </h4>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {(selectedTicket.formSubmission.external_id || selectedTicket.formSubmission.external_type) && (
+                        <div className="text-right text-xs text-muted-foreground space-y-0.5">
+                          {selectedTicket.formSubmission.external_id && (
+                            <p>
+                              <span className="font-medium">Ref:</span> {selectedTicket.formSubmission.external_id}
+                            </p>
+                          )}
+                          {selectedTicket.formSubmission.external_type && (
+                            <p>
+                              <span className="font-medium">Type:</span> {selectedTicket.formSubmission.external_type}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 text-xs text-primary hover:bg-transparent"
+                        onClick={() => {
+                          router.push(
+                            `/portal/${params.companySlug}/${params.clientSlug}/forms?submissionId=${selectedTicket.external_id}`,
+                          );
+                        }}
+                      >
+                        <ExternalLink className="mr-1 h-3 w-3" />
+                        View full details
+                      </Button>
+                    </div>
+                  </div>
+                  {selectedTicket.formSubmission.description && (
+                    <div className="text-sm text-gray-700 whitespace-pre-wrap border-l-2 border-muted pl-3">
+                      <TextWithLinks text={selectedTicket.formSubmission.description} />
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    {selectedTicket.formSubmission.form?.fields &&
+                      (selectedTicket.formSubmission.form.fields as any[]).map(
+                        (field: any) => {
+                          const value =
+                            (selectedTicket.formSubmission.data as any)?.[
+                              field.id
+                            ];
+                          if (!value) return null;
+                          return (
+                            <div
+                              key={field.id}
+                              className="rounded-md bg-background p-2"
+                            >
+                              <p className="text-xs font-medium text-muted-foreground">
+                                {field.label}
+                              </p>
+                              <p className="mt-0.5 text-sm">
+                                {Array.isArray(value)
+                                  ? value.join(", ")
+                                  : String(value)}
+                              </p>
+                            </div>
+                          );
+                        },
+                      )}
+                  </div>
+                </div>
+              )}
 
               {/* Created By */}
               <div className="space-y-2">
@@ -1394,7 +1535,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                               </span>
                             </div>
                             <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                              {comment.content}
+                              <TextWithLinks text={comment.content} />
                             </p>
                           </div>
                         </div>
