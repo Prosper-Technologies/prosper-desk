@@ -40,7 +40,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { api } from "~/trpc/react";
 import { formatRelativeTime, parseTextForLinks } from "~/lib/utils";
 import { toast } from "sonner";
-import { Download } from "lucide-react";
+import { Download, LifeBuoy, ArrowLeft } from "lucide-react";
 
 // Component to render text with clickable links
 const TextWithLinks = ({ text }: { text: string }) => {
@@ -75,6 +75,30 @@ export default function PortalFormsPage() {
   const companySlug = params?.companySlug as string;
   const clientSlug = params?.clientSlug as string;
   const submissionIdFromUrl = searchParams?.get("submissionId");
+
+  // Get customer data for header
+  const [customerData, setCustomerData] = useState<any>(null);
+
+  const verifySession = api.customerPortal.verifyToken.useMutation({
+    onSuccess: (data) => {
+      setCustomerData(data);
+    },
+  });
+
+  useEffect(() => {
+    verifySession.mutate({
+      companySlug,
+      clientSlug,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companySlug, clientSlug]);
+
+  const handleLogout = async () => {
+    const { createClient } = await import("~/utils/supabase/client");
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push(`/portal/${companySlug}/${clientSlug}/request-access`);
+  };
 
   const [submissionsPage, setSubmissionsPage] = useState(1);
   const [formFilter, setFormFilter] = useState<string>("all");
@@ -193,16 +217,51 @@ export default function PortalFormsPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Forms</h1>
-        <p className="text-muted-foreground">
-          Fill out forms and view your submissions
-        </p>
-      </div>
+      <header className="border-b bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center">
+              <LifeBuoy className="mr-2 h-5 w-5 text-primary" />
+              <div>
+                <h1 className="text-base font-semibold text-gray-900">
+                  {customerData?.companyName} Support
+                </h1>
+                <p className="text-xs text-gray-600">
+                  Welcome, {customerData?.customerName}
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              Log out
+            </Button>
+          </div>
+        </div>
+      </header>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="space-y-6">
+          {/* Back button and title */}
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push(`/portal/${companySlug}/${clientSlug}`)}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Forms</h1>
+              <p className="text-sm text-muted-foreground">
+                Fill out forms and view your submissions
+              </p>
+            </div>
+          </div>
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="forms">Available Forms</TabsTrigger>
           <TabsTrigger value="submissions">My Submissions</TabsTrigger>
@@ -437,7 +496,9 @@ export default function PortalFormsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+          </Tabs>
+        </div>
+      </main>
 
       {/* Submission Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
