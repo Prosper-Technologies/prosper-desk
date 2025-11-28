@@ -16,6 +16,16 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog";
+import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -39,21 +49,48 @@ import {
   Loader,
   Mail,
   Zap,
+  Trash2,
 } from "lucide-react";
 import { api } from "~/trpc/react";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const { data: company, isLoading: companyLoading } =
     api.company.getSettings.useQuery();
-  const { data, isLoading } = api.clients.getAll.useQuery({
+  const { data, isLoading, refetch } = api.clients.getAll.useQuery({
     page: 1,
     limit: 50,
     search: searchTerm || undefined,
   });
 
+  const deleteMutation = api.clients.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Client deleted successfully");
+      refetch();
+      setDeleteDialogOpen(false);
+      setClientToDelete(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete client");
+    },
+  });
+
   const clients = data?.clients || [];
+
+  const handleDeleteClient = (clientId: string, clientName: string) => {
+    setClientToDelete({ id: clientId, name: clientName });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (clientToDelete) {
+      deleteMutation.mutate({ id: clientToDelete.id });
+    }
+  };
 
   const filteredClients = clients.filter((client) =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -218,7 +255,10 @@ export default function SettingsPage() {
                     key={client.id}
                     className="flex items-center justify-between rounded-lg border border-gray-200 p-4 transition-shadow hover:shadow-sm"
                   >
-                    <div className="flex items-center gap-4">
+                    <Link 
+                      href={`/settings/clients/${client.id}`}
+                      className="flex flex-1 items-center gap-4 cursor-pointer"
+                    >
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={client.logo_url || undefined} />
                         <AvatarFallback>
@@ -265,7 +305,7 @@ export default function SettingsPage() {
                             )}
                         </div>
                       </div>
-                    </div>
+                    </Link>
 
                     <div className="flex items-center gap-4">
                       <div className="text-right text-sm">
@@ -325,6 +365,14 @@ export default function SettingsPage() {
                               View Portal
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteClient(client.id, client.name)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Client
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -334,6 +382,30 @@ export default function SettingsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the client &quot;{clientToDelete?.name}&quot; and all associated data including tickets, forms, and portal access.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setClientToDelete(null)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

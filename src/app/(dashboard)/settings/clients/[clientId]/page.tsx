@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -17,6 +17,16 @@ import {
 } from "~/components/ui/breadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog";
+import {
   ArrowLeft,
   Globe,
   Shield,
@@ -30,18 +40,71 @@ import {
   AlertTriangle,
   Loader2,
   Loader,
+  Trash2,
 } from "lucide-react";
 import { api } from "~/trpc/react";
 import { formatRelativeTime } from "~/lib/utils";
+import { toast } from "sonner";
 
 export default function ClientDetailsPage() {
   const params = useParams();
+  const router = useRouter();
   const clientId = params?.clientId as string;
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteFormDialogOpen, setDeleteFormDialogOpen] = useState(false);
+  const [formToDelete, setFormToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const { data: client, isLoading: clientLoading } =
     api.clients.getById.useQuery({
       id: clientId,
     });
+
+  const { data: company } = api.company.getSettings.useQuery();
+
+  const deleteMutation = api.clients.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Client deleted successfully");
+      router.push("/settings");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete client");
+    },
+  });
+
+  const { data: formsData, refetch: refetchForms } = api.forms.getAll.useQuery({
+    client_id: clientId,
+    page: 1,
+    limit: 50,
+  });
+
+  const deleteFormMutation = api.forms.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Form deleted successfully");
+      refetchForms();
+      setDeleteFormDialogOpen(false);
+      setFormToDelete(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete form");
+    },
+  });
+
+  const handleDeleteForm = (formId: string, formName: string) => {
+    setFormToDelete({ id: formId, name: formName });
+    setDeleteFormDialogOpen(true);
+  };
+
+  const confirmDeleteForm = () => {
+    if (formToDelete) {
+      deleteFormMutation.mutate({ id: formToDelete.id });
+    }
+  };
+
+  const openFormInNewTab = (formSlug: string) => {
+    if (!company?.slug || !client?.slug) return;
+    const url = `${window.location.origin}/forms/${company.slug}/${client.slug}/${formSlug}`;
+    window.open(url, "_blank");
+  };
 
   const { data: slaPolicies, isLoading: slaLoading } =
     api.sla.getByClient.useQuery({
@@ -54,11 +117,6 @@ export default function ClientDetailsPage() {
     limit: 10,
   });
 
-  const { data: formsData } = api.forms.getAll.useQuery({
-    client_id: clientId,
-    page: 1,
-    limit: 50,
-  });
 
   if (clientLoading) {
     return (
@@ -170,6 +228,14 @@ export default function ClientDetailsPage() {
                 View Portal
               </Button>
             )}
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(true)}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
           </div>
         </div>
 
@@ -558,10 +624,30 @@ export default function ClientDetailsPage() {
                               Edit
                             </Link>
                           </Button>
+                          {form.is_published && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openFormInNewTab(form.slug)}
+                              title="View published form"
+                            >
+                              <Globe className="mr-2 h-4 w-4" />
+                              View Form
+                            </Button>
+                          )}
                           <Button variant="outline" size="sm" asChild>
                             <Link href={`/form-builder/${form.id}/submissions`}>
                               View Submissions
                             </Link>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteForm(form.id, form.name)}
+                            className="text-destructive hover:text-destructive"
+                            title="Delete form"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -573,6 +659,52 @@ export default function ClientDetailsPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Delete Client Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the client &quot;{client.name}&quot; and all associated data including tickets, forms, and portal access.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate({ id: clientId })}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Form Confirmation Dialog */}
+      <AlertDialog open={deleteFormDialogOpen} onOpenChange={setDeleteFormDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Form?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the form &quot;{formToDelete?.name}&quot; and all its submissions.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setFormToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteForm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

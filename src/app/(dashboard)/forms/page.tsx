@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, FileText, Eye, Users, Copy, ExternalLink } from "lucide-react";
+import { Plus, FileText, Eye, Users, Copy, ExternalLink, Trash2, EyeOff } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import {
@@ -13,6 +13,16 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -30,6 +40,8 @@ export default function FormsPage() {
   const [page, setPage] = useState(1);
   const [clientFilter, setClientFilter] = useState<string>("");
   const [publishedFilter, setPublishedFilter] = useState<string>("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [formToDelete, setFormToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading, refetch } = api.forms.getAll.useQuery({
     page,
@@ -49,6 +61,28 @@ export default function FormsPage() {
   const forms = data?.forms || [];
   const totalPages = data?.totalPages || 1;
 
+  const deleteMutation = api.forms.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Form deleted successfully");
+      refetch();
+      setDeleteDialogOpen(false);
+      setFormToDelete(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete form");
+    },
+  });
+
+  const publishMutation = api.forms.publish.useMutation({
+    onSuccess: () => {
+      toast.success("Form updated successfully");
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update form");
+    },
+  });
+
   const copyFormUrl = (formSlug: string, clientSlug: string) => {
     if (!company?.slug) return;
     const url = `${window.location.origin}/forms/${company?.slug}/${clientSlug}/${formSlug}`;
@@ -62,6 +96,24 @@ export default function FormsPage() {
     if (!company?.slug) return;
     const url = `${window.location.origin}/forms/${company.slug}/${clientSlug}/${formSlug}`;
     window.open(url, "_blank");
+  };
+
+  const handleDeleteForm = (formId: string, formName: string) => {
+    setFormToDelete({ id: formId, name: formName });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (formToDelete) {
+      deleteMutation.mutate({ id: formToDelete.id });
+    }
+  };
+
+  const handleTogglePublish = (formId: string, currentStatus: boolean) => {
+    publishMutation.mutate({
+      id: formId,
+      is_published: !currentStatus,
+    });
   };
 
   return (
@@ -213,17 +265,18 @@ export default function FormsPage() {
                         {formatRelativeTime(new Date(form.created_at))}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() =>
                               router.push(`/form-builder/${form.id}`)
                             }
+                            title="Edit form"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {form.is_published && (
+                          {form.is_published ? (
                             <>
                               <Button
                                 variant="ghost"
@@ -245,8 +298,41 @@ export default function FormsPage() {
                               >
                                 <ExternalLink className="h-4 w-4" />
                               </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  handleTogglePublish(form.id, form.is_published)
+                                }
+                                title="Unpublish form"
+                              >
+                                <EyeOff className="h-4 w-4" />
+                              </Button>
                             </>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                handleTogglePublish(form.id, form.is_published)
+                              }
+                              title="Publish form"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
                           )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteForm(form.id, form.name);
+                            }}
+                            title="Delete form"
+                            className="hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -286,6 +372,30 @@ export default function FormsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the form &quot;{formToDelete?.name}&quot; and all its submissions.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setFormToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

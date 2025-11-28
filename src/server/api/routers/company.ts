@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, adminProcedure, companyProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, adminCompanyProcedure, companyProcedure } from "~/server/api/trpc";
 import { companies, slaPolicies, escalationPolicies } from "~/db/schema";
 import { eq } from "drizzle-orm";
 
@@ -11,7 +11,7 @@ export const companyRouter = createTRPCRouter({
     }),
 
   // Update company settings (admin only)
-  updateSettings: adminProcedure
+  updateSettings: adminCompanyProcedure
     .input(z.object({
       name: z.string().min(1).optional(),
       logoUrl: z.string().url().optional(),
@@ -20,15 +20,15 @@ export const companyRouter = createTRPCRouter({
     }))
     .mutation(async ({ ctx, input }) => {
       const updateData: Record<string, any> = {};
-      
+
       if (input.name) updateData.name = input.name;
       if (input.logoUrl) updateData.logo_url = input.logoUrl;
       if (input.primaryColor) updateData.primary_color = input.primaryColor;
       if (input.settings) updateData.settings = input.settings;
-      
+
       if (Object.keys(updateData).length > 0) {
         updateData.updated_at = new Date();
-        
+
         const [updatedCompany] = await ctx.db
           .update(companies)
           .set(updateData)
@@ -51,7 +51,7 @@ export const companyRouter = createTRPCRouter({
     }),
 
   // Create SLA policy (admin only)
-  createSLAPolicy: adminProcedure
+  createSLAPolicy: adminCompanyProcedure
     .input(z.object({
       name: z.string().min(1),
       priority: z.enum(['low', 'medium', 'high', 'urgent']),
@@ -81,7 +81,7 @@ export const companyRouter = createTRPCRouter({
     }),
 
   // Update SLA policy (admin only)
-  updateSLAPolicy: adminProcedure
+  updateSLAPolicy: adminCompanyProcedure
     .input(z.object({
       id: z.string().uuid(),
       name: z.string().min(1).optional(),
@@ -91,13 +91,13 @@ export const companyRouter = createTRPCRouter({
     }))
     .mutation(async ({ ctx, input }) => {
       const updateData: Record<string, any> = {};
-      
+
       if (input.name) updateData.name = input.name;
       if (input.responseTimeMinutes) updateData.response_time_minutes = input.responseTimeMinutes;
       if (input.resolutionTimeMinutes) updateData.resolution_time_minutes = input.resolutionTimeMinutes;
       if (typeof input.isDefault === 'boolean') {
         updateData.is_default = input.isDefault;
-        
+
         // If setting as default, remove default from others
         if (input.isDefault) {
           await ctx.db
@@ -109,7 +109,7 @@ export const companyRouter = createTRPCRouter({
 
       if (Object.keys(updateData).length > 0) {
         updateData.updated_at = new Date();
-        
+
         const [updatedSLA] = await ctx.db
           .update(slaPolicies)
           .set(updateData)
@@ -132,7 +132,7 @@ export const companyRouter = createTRPCRouter({
     }),
 
   // Create escalation policy (admin only)
-  createEscalationPolicy: adminProcedure
+  createEscalationPolicy: adminCompanyProcedure
     .input(z.object({
       name: z.string().min(1),
       escalationRules: z.array(z.object({
@@ -153,5 +153,29 @@ export const companyRouter = createTRPCRouter({
       }).returning();
 
       return escalationPolicy;
+    }),
+
+  // Delete company (owner only) - this will cascade delete all related data
+  deleteCompany: adminCompanyProcedure
+    .input(z.object({
+      confirmSlug: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Verify the user is the owner
+      if (ctx.membership.role !== 'owner') {
+        throw new Error('Only the company owner can delete the organization');
+      }
+
+      // Verify the slug matches for safety
+      if (input.confirmSlug !== ctx.company.slug) {
+        throw new Error('Company slug does not match. Please confirm the deletion.');
+      }
+
+      // Delete the company (cascade will handle all related records)
+      await ctx.db
+        .delete(companies)
+        .where(eq(companies.id, ctx.company.id));
+
+      return { success: true };
     }),
 });

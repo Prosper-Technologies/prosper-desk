@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-import { Plus, Trash2, Save, Eye, ArrowLeft, Settings2 } from "lucide-react";
+import { Plus, Trash2, Save, Eye, ArrowLeft, Settings2, EyeOff } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -24,6 +24,16 @@ import {
 import { Switch } from "~/components/ui/switch";
 import { Badge } from "~/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
 
@@ -83,6 +93,7 @@ export default function FormBuilderPage() {
   const [confirmationMessage, setConfirmationMessage] = useState(
     "Thank you for your submission!",
   );
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const { data: form, isLoading } = api.forms.getById.useQuery(
     { id: formId },
@@ -122,6 +133,16 @@ export default function FormBuilderPage() {
     },
   });
 
+  const deleteMutation = api.forms.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Form deleted successfully");
+      router.push("/form-builder");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete form");
+    },
+  });
+
   useEffect(() => {
     if (form) {
       setName(form.name);
@@ -143,14 +164,14 @@ export default function FormBuilderPage() {
 
   // Auto-generate slug from name
   useEffect(() => {
-    if (isNew && name && !slug) {
+    if (name && !slug) {
       const generatedSlug = name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "");
       setSlug(generatedSlug);
     }
-  }, [name, slug, isNew]);
+  }, [name, slug]);
 
   // Set clientId from URL parameter when creating new form
   useEffect(() => {
@@ -222,29 +243,50 @@ export default function FormBuilderPage() {
       return;
     }
 
-    const formData = {
-      name,
-      slug,
-      description,
-      client_id: clientId || undefined,
-      fields,
-      settings: {
-        allow_multiple_submissions: allowMultipleSubmissions,
-        collect_contact_info: collectContactInfo,
-        confirmation_message: confirmationMessage,
-      },
-      ticket_rules: ticketRules,
-    };
-
     if (isNew) {
+      // For creation, client_id is required
+      const formData = {
+        name,
+        slug,
+        description,
+        client_id: clientId,
+        fields,
+        settings: {
+          allow_multiple_submissions: allowMultipleSubmissions,
+          collect_contact_info: collectContactInfo,
+          confirmation_message: confirmationMessage,
+        },
+      };
       createMutation.mutate(formData);
     } else {
+      // For update, client_id is optional
+      const formData = {
+        name,
+        slug,
+        description,
+        client_id: clientId || undefined,
+        fields,
+        settings: {
+          allow_multiple_submissions: allowMultipleSubmissions,
+          collect_contact_info: collectContactInfo,
+          confirmation_message: confirmationMessage,
+        },
+        ticket_rules: ticketRules,
+      };
       updateMutation.mutate({ id: formId, ...formData });
     }
   };
 
   const handlePublish = () => {
     publishMutation.mutate({ id: formId, is_published: !isPublished });
+  };
+
+  const handleDelete = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    deleteMutation.mutate({ id: formId });
   };
 
   if (!isNew && isLoading) {
@@ -278,9 +320,26 @@ export default function FormBuilderPage() {
         </div>
         <div className="flex gap-2">
           {!isNew && (
-            <Button variant="outline" onClick={handlePublish}>
-              {isPublished ? "Unpublish" : "Publish"}
-            </Button>
+            <>
+              <Button variant="outline" onClick={handlePublish}>
+                {isPublished ? (
+                  <>
+                    <EyeOff className="mr-2 h-4 w-4" />
+                    Unpublish
+                  </>
+                ) : (
+                  "Publish"
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleDelete}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
+            </>
           )}
           <Button
             onClick={handleSave}
@@ -738,6 +797,28 @@ export default function FormBuilderPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the form &quot;{name}&quot; and all its submissions.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
