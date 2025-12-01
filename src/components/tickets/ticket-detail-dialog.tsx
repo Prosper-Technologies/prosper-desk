@@ -350,7 +350,7 @@ export default function TicketDetailDialog({
                           (ticket.formSubmission.form.fields as any[]).map(
                             (field: any) => {
                               const value =
-                                (ticket.formSubmission.data as any)?.[
+                                (ticket.formSubmission?.data as any)?.[
                                   field.id
                                 ];
                               if (!value) return null;
