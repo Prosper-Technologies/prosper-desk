@@ -1,33 +1,33 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { FileText, ExternalLink, Plus, Eye } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
-import { Label } from "~/components/ui/label";
-import { Input } from "~/components/ui/input";
+import { useState, useEffect } from "react"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
+import { FileText, ExternalLink, Plus, Eye } from "lucide-react"
+import { Button } from "~/components/ui/button"
+import { Badge } from "~/components/ui/badge"
+import { Label } from "~/components/ui/label"
+import { Input } from "~/components/ui/input"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "~/components/ui/card";
+} from "~/components/ui/card"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "~/components/ui/dialog";
+} from "~/components/ui/dialog"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
+} from "~/components/ui/select"
 import {
   Table,
   TableBody,
@@ -35,16 +35,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "~/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { api } from "~/trpc/react";
-import { formatRelativeTime, parseTextForLinks } from "~/lib/utils";
-import { toast } from "sonner";
-import { Download, LifeBuoy, ArrowLeft } from "lucide-react";
+} from "~/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
+import { api } from "~/trpc/react"
+import { formatRelativeTime, parseTextForLinks } from "~/lib/utils"
+import { toast } from "sonner"
+import { Download, LifeBuoy, ArrowLeft } from "lucide-react"
 
 // Component to render text with clickable links
 const TextWithLinks = ({ text }: { text: string }) => {
-  const parts = parseTextForLinks(text);
+  const parts = parseTextForLinks(text)
 
   return (
     <>
@@ -60,65 +60,65 @@ const TextWithLinks = ({ text }: { text: string }) => {
             >
               {part.content}
             </a>
-          );
+          )
         }
-        return <span key={index}>{part.content}</span>;
+        return <span key={index}>{part.content}</span>
       })}
     </>
-  );
-};
+  )
+}
 
 export default function PortalFormsPage() {
-  const params = useParams();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const companySlug = params?.companySlug as string;
-  const clientSlug = params?.clientSlug as string;
-  const submissionIdFromUrl = searchParams?.get("submissionId");
+  const params = useParams()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const companySlug = params?.companySlug as string
+  const clientSlug = params?.clientSlug as string
+  const submissionIdFromUrl = searchParams?.get("submissionId")
 
   // Get customer data for header
-  const [customerData, setCustomerData] = useState<any>(null);
+  const [customerData, setCustomerData] = useState<any>(null)
 
   const verifySession = api.customerPortal.verifyToken.useMutation({
     onSuccess: (data) => {
-      setCustomerData(data);
+      setCustomerData(data)
     },
-  });
+  })
 
   useEffect(() => {
     verifySession.mutate({
       companySlug,
       clientSlug,
-    });
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companySlug, clientSlug]);
+  }, [companySlug, clientSlug])
 
   const handleLogout = async () => {
-    const { createClient } = await import("~/utils/supabase/client");
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push(`/portal/${companySlug}/${clientSlug}/request-access`);
-  };
+    const { createClient } = await import("~/utils/supabase/client")
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push(`/portal/${companySlug}/${clientSlug}/request-access`)
+  }
 
-  const [submissionsPage, setSubmissionsPage] = useState(1);
-  const [formFilter, setFormFilter] = useState<string>("all");
-  const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
-  const [ticketSubject, setTicketSubject] = useState("");
+  const [submissionsPage, setSubmissionsPage] = useState(1)
+  const [formFilter, setFormFilter] = useState<string>("all")
+  const [selectedSubmission, setSelectedSubmission] = useState<any>(null)
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false)
+  const [ticketSubject, setTicketSubject] = useState("")
   const [ticketPriority, setTicketPriority] = useState<
     "low" | "medium" | "high" | "urgent"
-  >("medium");
+  >("medium")
   const [activeTab, setActiveTab] = useState(
-    submissionIdFromUrl ? "submissions" : "forms",
-  );
+    submissionIdFromUrl ? "submissions" : "forms"
+  )
 
   // Get available forms
   const { data: forms, isLoading: formsLoading } =
     api.customerPortal.getForms.useQuery({
       companySlug,
       clientSlug,
-    });
+    })
 
   // Get user's submissions
   const { data: submissionsData, isLoading: submissionsLoading } =
@@ -128,30 +128,30 @@ export default function PortalFormsPage() {
       page: submissionsPage,
       limit: 10,
       formId: formFilter !== "all" ? formFilter : undefined,
-    });
+    })
 
-  const { data: company } = api.company.getSettings.useQuery();
+  const { data: company } = api.company.getSettings.useQuery()
 
-  const submissions = submissionsData?.submissions || [];
+  const submissions = submissionsData?.submissions || []
 
   // Reset page when form filter changes
   useEffect(() => {
-    setSubmissionsPage(1);
-  }, [formFilter]);
+    setSubmissionsPage(1)
+  }, [formFilter])
 
   // Auto-open submission detail when navigating from ticket
   useEffect(() => {
     if (submissionIdFromUrl && submissions.length > 0 && !selectedSubmission) {
       const submission = submissions.find(
-        (s: any) => s.id === submissionIdFromUrl,
-      );
+        (s: any) => s.id === submissionIdFromUrl
+      )
       if (submission) {
-        setSelectedSubmission(submission);
-        setIsDetailDialogOpen(true);
+        setSelectedSubmission(submission)
+        setIsDetailDialogOpen(true)
         // Clear the URL parameter
         router.replace(`/portal/${companySlug}/${clientSlug}/forms`, {
           scroll: false,
-        });
+        })
       }
     }
   }, [
@@ -161,30 +161,30 @@ export default function PortalFormsPage() {
     router,
     companySlug,
     clientSlug,
-  ]);
+  ])
 
   const createTicketMutation =
     api.customerPortal.createTicketFromSubmission.useMutation({
       onSuccess: (ticket) => {
-        toast.success("Ticket created successfully");
-        setIsCreatingTicket(false);
-        setSelectedSubmission(null);
-        setTicketSubject("");
-        setTicketPriority("medium");
-        router.push(`/portal/${companySlug}/${clientSlug}/${ticket.id}`);
+        toast.success("Ticket created successfully")
+        setIsCreatingTicket(false)
+        setSelectedSubmission(null)
+        setTicketSubject("")
+        setTicketPriority("medium")
+        router.push(`/portal/${companySlug}/${clientSlug}/${ticket.id}`)
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to create ticket");
+        toast.error(error.message || "Failed to create ticket")
       },
-    });
+    })
 
   const openForm = (formSlug: string) => {
-    if (!company?.slug) return;
-    router.push(`/forms/${company?.slug}/${clientSlug}/${formSlug}`);
-  };
+    if (!company?.slug) return
+    router.push(`/forms/${company?.slug}/${clientSlug}/${formSlug}`)
+  }
 
   const handleCreateTicket = () => {
-    if (!selectedSubmission) return;
+    if (!selectedSubmission) return
 
     createTicketMutation.mutate({
       companySlug,
@@ -192,19 +192,19 @@ export default function PortalFormsPage() {
       submissionId: selectedSubmission.id,
       subject: ticketSubject || undefined,
       priority: ticketPriority,
-    });
-  };
+    })
+  }
 
-  const utils = api.useUtils();
+  const utils = api.useUtils()
 
   const handleDownloadCSV = async () => {
-    if (formFilter === "all") return;
+    if (formFilter === "all") return
 
     try {
-      const selectedForm = forms?.find((f: any) => f.id === formFilter);
-      if (!selectedForm) return;
+      const selectedForm = forms?.find((f: any) => f.id === formFilter)
+      if (!selectedForm) return
 
-      toast.loading("Generating CSV...");
+      toast.loading("Generating CSV...")
 
       // Fetch CSV data using tRPC
       const csvContent =
@@ -212,26 +212,26 @@ export default function PortalFormsPage() {
           companySlug,
           clientSlug,
           formId: formFilter,
-        });
+        })
 
       // Create blob and download (BOM is already included in csvContent)
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${selectedForm.name.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_submissions.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${selectedForm.name.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_submissions.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
 
-      toast.dismiss();
-      toast.success("CSV downloaded successfully");
+      toast.dismiss()
+      toast.success("CSV downloaded successfully")
     } catch (error) {
-      toast.dismiss();
-      toast.error("Failed to download CSV");
+      toast.dismiss()
+      toast.error("Failed to download CSV")
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -419,7 +419,7 @@ export default function PortalFormsPage() {
                               </TableCell>
                               <TableCell className="text-muted-foreground">
                                 {formatRelativeTime(
-                                  new Date(submission.submitted_at),
+                                  new Date(submission.submitted_at)
                                 )}
                               </TableCell>
                               <TableCell>
@@ -430,7 +430,7 @@ export default function PortalFormsPage() {
                                       className="h-auto p-0"
                                       onClick={() =>
                                         router.push(
-                                          `/portal/${companySlug}/${clientSlug}?ticket=${submission.ticket.id}`,
+                                          `/portal/${companySlug}/${clientSlug}?ticket=${submission.ticket.id}`
                                         )
                                       }
                                     >
@@ -457,8 +457,8 @@ export default function PortalFormsPage() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                      setSelectedSubmission(submission);
-                                      setIsDetailDialogOpen(true);
+                                      setSelectedSubmission(submission)
+                                      setIsDetailDialogOpen(true)
                                     }}
                                   >
                                     <Eye className="mr-2 h-4 w-4" />
@@ -469,11 +469,11 @@ export default function PortalFormsPage() {
                                       variant="outline"
                                       size="sm"
                                       onClick={() => {
-                                        setSelectedSubmission(submission);
+                                        setSelectedSubmission(submission)
                                         setTicketSubject(
-                                          `Form submission: ${submission.form.name}`,
-                                        );
-                                        setIsCreatingTicket(true);
+                                          `Form submission: ${submission.form.name}`
+                                        )
+                                        setIsCreatingTicket(true)
                                       }}
                                     >
                                       <Plus className="mr-2 h-4 w-4" />
@@ -512,7 +512,7 @@ export default function PortalFormsPage() {
                                 size="sm"
                                 onClick={() =>
                                   setSubmissionsPage((p) =>
-                                    Math.min(submissionsData.totalPages, p + 1),
+                                    Math.min(submissionsData.totalPages, p + 1)
                                   )
                                 }
                                 disabled={
@@ -541,7 +541,7 @@ export default function PortalFormsPage() {
               <DialogTitle>Submission Details</DialogTitle>
               <span className="text-sm text-muted-foreground">
                 {formatRelativeTime(
-                  new Date(selectedSubmission?.submitted_at || new Date()),
+                  new Date(selectedSubmission?.submitted_at || new Date())
                 )}
               </span>
             </div>
@@ -585,9 +585,9 @@ export default function PortalFormsPage() {
                       className="h-auto p-0"
                       onClick={() => {
                         router.push(
-                          `/portal/${companySlug}/${clientSlug}/${selectedSubmission.ticket.id}`,
-                        );
-                        setIsDetailDialogOpen(false);
+                          `/portal/${companySlug}/${clientSlug}/${selectedSubmission.ticket.id}`
+                        )
+                        setIsDetailDialogOpen(false)
                       }}
                     >
                       {selectedSubmission.ticket.subject}
@@ -602,10 +602,8 @@ export default function PortalFormsPage() {
                 {selectedSubmission.form?.fields &&
                   (selectedSubmission.form.fields as any[]).map(
                     (field: any) => {
-                      const value = (selectedSubmission.data as any)?.[
-                        field.id
-                      ];
-                      if (!value) return null;
+                      const value = (selectedSubmission.data as any)?.[field.id]
+                      if (!value) return null
                       return (
                         <div key={field.id} className="space-y-1">
                           <p className="text-sm font-medium text-gray-700">
@@ -619,8 +617,8 @@ export default function PortalFormsPage() {
                                 : String(value)}
                           </p>
                         </div>
-                      );
-                    },
+                      )
+                    }
                   )}
               </div>
             </div>
@@ -679,5 +677,5 @@ export default function PortalFormsPage() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

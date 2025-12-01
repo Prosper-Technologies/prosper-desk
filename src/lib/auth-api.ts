@@ -1,36 +1,36 @@
-import { NextRequest } from "next/server";
-import { db } from "~/db";
-import { apiKeys } from "~/db/schema";
-import { eq, and } from "drizzle-orm";
-import bcrypt from "bcryptjs";
+import { NextRequest } from "next/server"
+import { db } from "~/db"
+import { apiKeys } from "~/db/schema"
+import { eq, and } from "drizzle-orm"
+import bcrypt from "bcryptjs"
 
 export interface ApiKeyContext {
   company: {
-    id: string;
-    name: string;
-    slug: string;
-  };
-  permissions: string[];
+    id: string
+    name: string
+    slug: string
+  }
+  permissions: string[]
 }
 
 export async function validateApiKey(
-  request: NextRequest,
+  request: NextRequest
 ): Promise<ApiKeyContext | null> {
-  const authHeader = request.headers.get("authorization");
+  const authHeader = request.headers.get("authorization")
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return null;
+    return null
   }
 
-  const apiKey = authHeader.substring(7); // Remove "Bearer " prefix
+  const apiKey = authHeader.substring(7) // Remove "Bearer " prefix
 
   if (!apiKey) {
-    return null;
+    return null
   }
 
   try {
     // Extract prefix from the key
-    const prefix = apiKey.substring(0, 8);
+    const prefix = apiKey.substring(0, 8)
 
     // Find API key by prefix
     const keyRecord = await db.query.apiKeys.findFirst({
@@ -44,60 +44,60 @@ export async function validateApiKey(
           },
         },
       },
-    });
+    })
 
     if (!keyRecord) {
-      return null;
+      return null
     }
 
     // Check if key is expired
     if (keyRecord.expires_at && keyRecord.expires_at < new Date()) {
-      return null;
+      return null
     }
 
     // Verify the key hash
-    const isValidKey = await bcrypt.compare(apiKey, keyRecord.key_hash);
+    const isValidKey = await bcrypt.compare(apiKey, keyRecord.key_hash)
 
     if (!isValidKey) {
-      return null;
+      return null
     }
 
     // Update last used timestamp
     await db
       .update(apiKeys)
       .set({ last_used_at: new Date() })
-      .where(eq(apiKeys.id, keyRecord.id));
+      .where(eq(apiKeys.id, keyRecord.id))
 
     return {
       company: keyRecord.company,
       permissions: keyRecord.permissions as string[],
-    };
+    }
   } catch (error) {
-    console.error("API key validation error:", error);
-    return null;
+    console.error("API key validation error:", error)
+    return null
   }
 }
 
 export function hasPermission(
   context: ApiKeyContext,
-  permission: string,
+  permission: string
 ): boolean {
   return (
     context.permissions.includes(permission) ||
     context.permissions.includes("*")
-  );
+  )
 }
 
 export async function generateApiKey(
   companyId: string,
   name: string,
   permissions: string[] = [],
-  expiresAt?: Date,
+  expiresAt?: Date
 ): Promise<{ key: string; id: string }> {
   // Generate a random API key
-  const key = `bdk_${Math.random().toString(36).substring(2)}${Math.random().toString(36).substring(2)}`;
-  const prefix = key.substring(0, 8);
-  const keyHash = await bcrypt.hash(key, 12);
+  const key = `bdk_${Math.random().toString(36).substring(2)}${Math.random().toString(36).substring(2)}`
+  const prefix = key.substring(0, 8)
+  const keyHash = await bcrypt.hash(key, 12)
 
   const [apiKeyRecord] = await db
     .insert(apiKeys)
@@ -109,10 +109,10 @@ export async function generateApiKey(
       permissions,
       expires_at: expiresAt,
     })
-    .returning();
+    .returning()
 
   return {
     key,
     id: apiKeyRecord!.id,
-  };
+  }
 }

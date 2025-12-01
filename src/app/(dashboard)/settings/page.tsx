@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Badge } from "~/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { useState } from "react"
+import Link from "next/link"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Badge } from "~/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +14,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
+} from "~/components/ui/dropdown-menu"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +24,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "~/components/ui/alert-dialog";
+} from "~/components/ui/alert-dialog"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -32,8 +32,8 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "~/components/ui/breadcrumb";
-import { SidebarTrigger } from "~/components/ui/sidebar";
+} from "~/components/ui/breadcrumb"
+import { SidebarTrigger } from "~/components/ui/sidebar"
 import {
   Settings,
   Search,
@@ -50,51 +50,54 @@ import {
   Mail,
   Zap,
   Trash2,
-} from "lucide-react";
-import { api } from "~/trpc/react";
-import { toast } from "sonner";
+} from "lucide-react"
+import { api } from "~/trpc/react"
+import { toast } from "sonner"
 
 export default function SettingsPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [clientToDelete, setClientToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [searchTerm, setSearchTerm] = useState("")
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [clientToDelete, setClientToDelete] = useState<{
+    id: string
+    name: string
+  } | null>(null)
 
   const { data: company, isLoading: companyLoading } =
-    api.company.getSettings.useQuery();
+    api.company.getSettings.useQuery()
   const { data, isLoading, refetch } = api.clients.getAll.useQuery({
     page: 1,
     limit: 50,
     search: searchTerm || undefined,
-  });
+  })
 
   const deleteMutation = api.clients.delete.useMutation({
     onSuccess: () => {
-      toast.success("Client deleted successfully");
-      refetch();
-      setDeleteDialogOpen(false);
-      setClientToDelete(null);
+      toast.success("Client deleted successfully")
+      refetch()
+      setDeleteDialogOpen(false)
+      setClientToDelete(null)
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to delete client");
+      toast.error(error.message || "Failed to delete client")
     },
-  });
+  })
 
-  const clients = data?.clients || [];
+  const clients = data?.clients || []
 
   const handleDeleteClient = (clientId: string, clientName: string) => {
-    setClientToDelete({ id: clientId, name: clientName });
-    setDeleteDialogOpen(true);
-  };
+    setClientToDelete({ id: clientId, name: clientName })
+    setDeleteDialogOpen(true)
+  }
 
   const confirmDelete = () => {
     if (clientToDelete) {
-      deleteMutation.mutate({ id: clientToDelete.id });
+      deleteMutation.mutate({ id: clientToDelete.id })
     }
-  };
+  }
 
   const filteredClients = clients.filter((client) =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+    client.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <div>
@@ -174,7 +177,7 @@ export default function SettingsPage() {
                     {clients.reduce(
                       (total, client) =>
                         total + (client.activePortalUsers || 0),
-                      0,
+                      0
                     )}
                   </p>
                 </div>
@@ -255,9 +258,9 @@ export default function SettingsPage() {
                     key={client.id}
                     className="flex items-center justify-between rounded-lg border border-gray-200 p-4 transition-shadow hover:shadow-sm"
                   >
-                    <Link 
+                    <Link
                       href={`/settings/clients/${client.id}`}
-                      className="flex flex-1 items-center gap-4 cursor-pointer"
+                      className="flex flex-1 cursor-pointer items-center gap-4"
                     >
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={client.logo_url || undefined} />
@@ -357,8 +360,8 @@ export default function SettingsPage() {
                           {client.portal_enabled && (
                             <DropdownMenuItem
                               onClick={() => {
-                                const portalUrl = `${window.location.origin}/portal/${company?.slug}/${client.slug}`;
-                                window.open(portalUrl, "_blank");
+                                const portalUrl = `${window.location.origin}/portal/${company?.slug}/${client.slug}`
+                                window.open(portalUrl, "_blank")
                               }}
                             >
                               <Globe className="mr-2 h-4 w-4" />
@@ -367,7 +370,9 @@ export default function SettingsPage() {
                           )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleDeleteClient(client.id, client.name)}
+                            onClick={() =>
+                              handleDeleteClient(client.id, client.name)
+                            }
                             className="text-destructive focus:text-destructive"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
@@ -389,8 +394,9 @@ export default function SettingsPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete the client &quot;{clientToDelete?.name}&quot; and all associated data including tickets, forms, and portal access.
-                This action cannot be undone.
+                This will permanently delete the client &quot;
+                {clientToDelete?.name}&quot; and all associated data including
+                tickets, forms, and portal access. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -408,5 +414,5 @@ export default function SettingsPage() {
         </AlertDialog>
       </div>
     </div>
-  );
+  )
 }

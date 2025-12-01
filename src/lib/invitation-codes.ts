@@ -1,10 +1,10 @@
-import { db } from "~/db";
-import { invitationCodes } from "~/db/schema";
-import { eq, and, gt, lt } from "drizzle-orm";
+import { db } from "~/db"
+import { invitationCodes } from "~/db/schema"
+import { eq, and, gt, lt } from "drizzle-orm"
 
 export function generateInvitationCode(): string {
   // Generate a 6-digit numeric code
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
 export async function createInvitationCode({
@@ -13,37 +13,37 @@ export async function createInvitationCode({
   role,
   invitedByMembershipId,
 }: {
-  companyId: string;
-  userId: string;
-  role: "admin" | "agent";
-  invitedByMembershipId: string;
+  companyId: string
+  userId: string
+  role: "admin" | "agent"
+  invitedByMembershipId: string
 }): Promise<string> {
-  let code: string;
-  let attempts = 0;
-  const maxAttempts = 10;
+  let code: string
+  let attempts = 0
+  const maxAttempts = 10
 
   // Keep generating codes until we find a unique one
   do {
-    code = generateInvitationCode();
-    attempts++;
+    code = generateInvitationCode()
+    attempts++
 
     if (attempts >= maxAttempts) {
-      throw new Error("Unable to generate unique invitation code");
+      throw new Error("Unable to generate unique invitation code")
     }
 
     // Check if code already exists
     const existing = await db.query.invitationCodes.findFirst({
       where: eq(invitationCodes.code, code),
-    });
+    })
 
     if (!existing) {
-      break;
+      break
     }
-  } while (true);
+  } while (true)
 
   // Create expiration date (7 days from now)
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
+  const expiresAt = new Date()
+  expiresAt.setDate(expiresAt.getDate() + 7)
 
   // Insert the invitation code
   await db.insert(invitationCodes).values({
@@ -53,29 +53,29 @@ export async function createInvitationCode({
     role,
     invited_by_membership_id: invitedByMembershipId,
     expires_at: expiresAt,
-  });
+  })
 
-  return code;
+  return code
 }
 
 export async function validateInvitationCode(code: string): Promise<{
-  isValid: boolean;
+  isValid: boolean
   invitation?: {
-    id: string;
-    companyId: string;
-    userId: string;
-    role: "admin" | "agent";
-    companySlug?: string;
-    companyName?: string;
-    userEmail?: string;
-  };
-  error?: string;
+    id: string
+    companyId: string
+    userId: string
+    role: "admin" | "agent"
+    companySlug?: string
+    companyName?: string
+    userEmail?: string
+  }
+  error?: string
 }> {
   if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
     return {
       isValid: false,
       error: "Invalid code format. Please enter a 6-digit numeric code.",
-    };
+    }
   }
 
   // Find the invitation code with company and user info
@@ -83,7 +83,7 @@ export async function validateInvitationCode(code: string): Promise<{
     where: and(
       eq(invitationCodes.code, code),
       eq(invitationCodes.is_used, false),
-      gt(invitationCodes.expires_at, new Date()),
+      gt(invitationCodes.expires_at, new Date())
     ),
     with: {
       company: {
@@ -100,14 +100,14 @@ export async function validateInvitationCode(code: string): Promise<{
         },
       },
     },
-  });
+  })
 
   if (!invitation) {
     return {
       isValid: false,
       error:
         "Invalid or expired invitation code. Please check the code or request a new invitation.",
-    };
+    }
   }
 
   return {
@@ -121,7 +121,7 @@ export async function validateInvitationCode(code: string): Promise<{
       companyName: invitation.company.name,
       userEmail: invitation.user.email,
     },
-  };
+  }
 }
 
 export async function useInvitationCode(codeId: string): Promise<void> {
@@ -131,7 +131,7 @@ export async function useInvitationCode(codeId: string): Promise<void> {
       is_used: true,
       used_at: new Date(),
     })
-    .where(eq(invitationCodes.id, codeId));
+    .where(eq(invitationCodes.id, codeId))
 }
 
 export async function cleanupExpiredCodes(): Promise<number> {
@@ -140,10 +140,10 @@ export async function cleanupExpiredCodes(): Promise<number> {
     .where(
       and(
         eq(invitationCodes.is_used, false),
-        lt(invitationCodes.expires_at, new Date()),
-      ),
+        lt(invitationCodes.expires_at, new Date())
+      )
     )
-    .returning({ id: invitationCodes.id });
+    .returning({ id: invitationCodes.id })
 
-  return result.length;
+  return result.length
 }

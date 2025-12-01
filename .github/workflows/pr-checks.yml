@@ -30,6 +30,8 @@ jobs:
 
       - name: Run ESLint
         run: pnpm lint
+        env:
+          SKIP_ENV_VALIDATION: true
 
   type-check:
     name: TypeScript Type Check
@@ -54,6 +56,8 @@ jobs:
 
       - name: Run type check
         run: pnpm type-check
+        env:
+          SKIP_ENV_VALIDATION: true
 
   build:
     name: Build Verification
@@ -132,7 +136,7 @@ jobs:
       - name: Generate Drizzle migrations
         run: pnpm db:generate
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: postgresql://user:password@localhost:5432/db
 
       - name: Check for uncommitted migration changes
         run: |

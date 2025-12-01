@@ -1,68 +1,68 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useMemo } from "react";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Textarea } from "~/components/ui/textarea";
-import { Badge } from "~/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { useState, useEffect, useMemo } from "react"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Textarea } from "~/components/ui/textarea"
+import { Badge } from "~/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "~/components/ui/dialog";
+} from "~/components/ui/dialog"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { api } from "~/trpc/react";
+} from "~/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { api } from "~/trpc/react"
 import {
   formatDateTime,
   getStatusColor,
   getPriorityColor,
   getInitials,
   parseTextForLinks,
-} from "~/lib/utils";
-import { Send, Edit, Save, Clock, User, FileText } from "lucide-react";
+} from "~/lib/utils"
+import { Send, Edit, Save, Clock, User, FileText } from "lucide-react"
 
-type AssigneeType = "team" | "customer";
+type AssigneeType = "team" | "customer"
 
 interface UnifiedAssignee {
-  id: string;
-  name: string;
-  type: AssigneeType;
-  clientName?: string;
+  id: string
+  name: string
+  type: AssigneeType
+  clientName?: string
 }
 
 interface TicketDetailDialogProps {
-  ticketId: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onTicketUpdated: () => void;
+  ticketId: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onTicketUpdated: () => void
   agents: Array<{
-    id: string;
+    id: string
     user: {
-      id: string;
-      first_name: string;
-      last_name: string;
-      email: string;
-    };
-  }>;
+      id: string
+      first_name: string
+      last_name: string
+      email: string
+    }
+  }>
   customerAccesses: Array<{
-    id: string;
-    name: string;
-    email: string;
+    id: string
+    name: string
+    email: string
     client: {
-      id: string;
-      name: string;
-      slug: string;
-    };
-  }>;
+      id: string
+      name: string
+      slug: string
+    }
+  }>
 }
 
 export default function TicketDetailDialog({
@@ -73,18 +73,18 @@ export default function TicketDetailDialog({
   agents,
   customerAccesses,
 }: TicketDetailDialogProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editSubject, setEditSubject] = useState("");
-  const [editDescription, setEditDescription] = useState("");
+  const [isEditing, setIsEditing] = useState(false)
+  const [editSubject, setEditSubject] = useState("")
+  const [editDescription, setEditDescription] = useState("")
   const [editStatus, setEditStatus] = useState<
     "open" | "in_progress" | "resolved" | "closed"
-  >("open");
+  >("open")
   const [editPriority, setEditPriority] = useState<
     "low" | "medium" | "high" | "urgent"
-  >("medium");
-  const [editAssignedTo, setEditAssignedTo] = useState("unassigned");
-  const [newComment, setNewComment] = useState("");
-  const [isInternal, setIsInternal] = useState(false);
+  >("medium")
+  const [editAssignedTo, setEditAssignedTo] = useState("unassigned")
+  const [newComment, setNewComment] = useState("")
+  const [isInternal, setIsInternal] = useState(false)
 
   // Merge agents and customer accesses into unified assignee list
   const unifiedAssignees = useMemo<UnifiedAssignee[]>(() => {
@@ -92,84 +92,84 @@ export default function TicketDetailDialog({
       id: `membership-${agent.id}`,
       name: `${agent.user.first_name} ${agent.user.last_name}`,
       type: "team" as const,
-    }));
+    }))
 
     const customers: UnifiedAssignee[] = customerAccesses.map((access) => ({
       id: `customer-${access.id}`,
       name: access.name,
       type: "customer" as const,
       clientName: access.client.name,
-    }));
+    }))
 
-    return [...teamMembers, ...customers];
-  }, [agents, customerAccesses]);
+    return [...teamMembers, ...customers]
+  }, [agents, customerAccesses])
 
   const {
     data: ticket,
     isLoading,
     refetch,
-  } = api.ticket.getById.useQuery({ id: ticketId }, { enabled: open });
+  } = api.ticket.getById.useQuery({ id: ticketId }, { enabled: open })
 
   const updateTicket = api.ticket.update.useMutation({
     onSuccess: () => {
-      onTicketUpdated();
-      refetch();
-      setIsEditing(false);
+      onTicketUpdated()
+      refetch()
+      setIsEditing(false)
     },
-  });
+  })
 
   const addComment = api.ticket.addComment.useMutation({
     onSuccess: () => {
-      setNewComment("");
-      refetch();
+      setNewComment("")
+      refetch()
     },
-  });
+  })
 
   useEffect(() => {
     if (ticket) {
-      setEditSubject(ticket.subject);
-      setEditDescription(ticket.description);
-      setEditStatus(ticket.status);
-      setEditPriority(ticket.priority);
+      setEditSubject(ticket.subject)
+      setEditDescription(ticket.description)
+      setEditStatus(ticket.status)
+      setEditPriority(ticket.priority)
 
       // Set assignment value based on type
       if (ticket.assigned_to_membership_id) {
-        setEditAssignedTo(`membership-${ticket.assigned_to_membership_id}`);
+        setEditAssignedTo(`membership-${ticket.assigned_to_membership_id}`)
       } else if (ticket.assigned_to_customer_portal_access_id) {
         setEditAssignedTo(
-          `customer-${ticket.assigned_to_customer_portal_access_id}`,
-        );
+          `customer-${ticket.assigned_to_customer_portal_access_id}`
+        )
       } else {
-        setEditAssignedTo("unassigned");
+        setEditAssignedTo("unassigned")
       }
     }
-  }, [ticket]);
+  }, [ticket])
 
   const handleSave = async () => {
-    if (!ticket) return;
+    if (!ticket) return
 
     // Determine current assignment value
     const currentAssignment = ticket.assigned_to_membership_id
       ? `membership-${ticket.assigned_to_membership_id}`
       : ticket.assigned_to_customer_portal_access_id
         ? `customer-${ticket.assigned_to_customer_portal_access_id}`
-        : "unassigned";
+        : "unassigned"
 
     // Parse new assignment
-    let assignedToId: string | undefined = undefined;
-    let assignedToCustomerPortalAccessId: string | undefined = undefined;
+    let assignedToId: string | undefined = undefined
+    let assignedToCustomerPortalAccessId: string | undefined = undefined
 
     if (editAssignedTo !== currentAssignment) {
       if (editAssignedTo === "unassigned") {
-        assignedToId = undefined;
-        assignedToCustomerPortalAccessId = undefined;
+        assignedToId = undefined
+        assignedToCustomerPortalAccessId = undefined
       } else if (editAssignedTo.startsWith("membership-")) {
-        assignedToId = editAssignedTo.replace("membership-", "");
+        assignedToId = editAssignedTo.replace("membership-", "")
       } else if (editAssignedTo.startsWith("customer-")) {
         assignedToCustomerPortalAccessId = editAssignedTo.replace(
           "customer-",
-          "",
-        );
+          ""
+        )
       }
     }
 
@@ -182,19 +182,19 @@ export default function TicketDetailDialog({
       priority: editPriority !== ticket.priority ? editPriority : undefined,
       assignedToId,
       assignedToCustomerPortalAccessId,
-    });
-  };
+    })
+  }
 
   const handleAddComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
+    e.preventDefault()
+    if (!newComment.trim()) return
 
     await addComment.mutateAsync({
       ticketId: ticket!.id,
       content: newComment.trim(),
       isInternal,
-    });
-  };
+    })
+  }
 
   if (isLoading || !ticket) {
     return (
@@ -205,7 +205,7 @@ export default function TicketDetailDialog({
           </div>
         </DialogContent>
       </Dialog>
-    );
+    )
   }
 
   return (
@@ -288,7 +288,7 @@ export default function TicketDetailDialog({
                               </a>
                             ) : (
                               <span key={index}>{part.content}</span>
-                            ),
+                            )
                         )}
                       </div>
                     )}
@@ -331,7 +331,7 @@ export default function TicketDetailDialog({
                       {ticket.formSubmission.description && (
                         <div className="whitespace-pre-wrap border-l-2 border-muted pl-3 text-sm text-gray-700">
                           {parseTextForLinks(
-                            ticket.formSubmission.description,
+                            ticket.formSubmission.description
                           ).map((part, index) =>
                             part.type === "link" ? (
                               <a
@@ -345,7 +345,7 @@ export default function TicketDetailDialog({
                               </a>
                             ) : (
                               <span key={index}>{part.content}</span>
-                            ),
+                            )
                           )}
                         </div>
                       )}
@@ -355,8 +355,8 @@ export default function TicketDetailDialog({
                               (field: any) => {
                                 const value = (
                                   ticket.formSubmission?.data as any
-                                )?.[field.id];
-                                if (!value) return null;
+                                )?.[field.id]
+                                if (!value) return null
                                 return (
                                   <div
                                     key={field.id}
@@ -371,8 +371,8 @@ export default function TicketDetailDialog({
                                         : String(value)}
                                     </p>
                                   </div>
-                                );
-                              },
+                                )
+                              }
                             )
                           : null}
                       </div>
@@ -401,7 +401,7 @@ export default function TicketDetailDialog({
                         <AvatarFallback className="text-xs">
                           {comment.membership?.user
                             ? getInitials(
-                                `${comment.membership.user.first_name} ${comment.membership.user.last_name}`,
+                                `${comment.membership.user.first_name} ${comment.membership.user.last_name}`
                               )
                             : comment.customerPortalAccess
                               ? getInitials(comment.customerPortalAccess.name)
@@ -614,7 +614,7 @@ export default function TicketDetailDialog({
                               />
                               <AvatarFallback className="text-xs">
                                 {getInitials(
-                                  `${ticket.assignedToMembership.user.first_name} ${ticket.assignedToMembership.user.last_name}`,
+                                  `${ticket.assignedToMembership.user.first_name} ${ticket.assignedToMembership.user.last_name}`
                                 )}
                               </AvatarFallback>
                             </Avatar>
@@ -633,7 +633,7 @@ export default function TicketDetailDialog({
                             <Avatar className="h-6 w-6">
                               <AvatarFallback className="text-xs">
                                 {getInitials(
-                                  ticket.assignedToCustomerPortalAccess.name,
+                                  ticket.assignedToCustomerPortalAccess.name
                                 )}
                               </AvatarFallback>
                             </Avatar>
@@ -670,7 +670,7 @@ export default function TicketDetailDialog({
                         <AvatarFallback className="text-xs">
                           {ticket.createdByMembership?.user
                             ? getInitials(
-                                `${ticket.createdByMembership.user.first_name} ${ticket.createdByMembership.user.last_name}`,
+                                `${ticket.createdByMembership.user.first_name} ${ticket.createdByMembership.user.last_name}`
                               )
                             : ticket.customer_name
                               ? getInitials(ticket.customer_name)
@@ -733,5 +733,5 @@ export default function TicketDetailDialog({
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

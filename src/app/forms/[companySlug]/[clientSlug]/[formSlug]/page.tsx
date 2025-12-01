@@ -1,64 +1,64 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useParams, useSearchParams } from "next/navigation";
-import { Loader2, CheckCircle2 } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { Textarea } from "~/components/ui/textarea";
+import { useState, useEffect } from "react"
+import { useParams, useSearchParams } from "next/navigation"
+import { Loader2, CheckCircle2 } from "lucide-react"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
+import { Textarea } from "~/components/ui/textarea"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
-import { Checkbox } from "~/components/ui/checkbox";
+} from "~/components/ui/select"
+import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
+import { Checkbox } from "~/components/ui/checkbox"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "~/components/ui/card";
-import { api } from "~/trpc/react";
-import { toast } from "sonner";
+} from "~/components/ui/card"
+import { api } from "~/trpc/react"
+import { toast } from "sonner"
 
 export default function PublicFormPage() {
-  const params = useParams();
-  const searchParams = useSearchParams();
+  const params = useParams()
+  const searchParams = useSearchParams()
 
-  const companySlug = params?.companySlug as string;
-  const clientSlug = params?.clientSlug as string;
-  const formSlug = params?.formSlug as string;
+  const companySlug = params?.companySlug as string
+  const clientSlug = params?.clientSlug as string
+  const formSlug = params?.formSlug as string
 
-  const [formData, setFormData] = useState<Record<string, any>>({});
-  const [contactName, setContactName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [submissionMessage, setSubmissionMessage] = useState("");
+  const [formData, setFormData] = useState<Record<string, any>>({})
+  const [contactName, setContactName] = useState("")
+  const [contactEmail, setContactEmail] = useState("")
+  const [submitted, setSubmitted] = useState(false)
+  const [submissionMessage, setSubmissionMessage] = useState("")
 
   // Get URL parameters for external integration
-  const [externalId, setExternalId] = useState<string | null>(null);
-  const [externalType, setExternalType] = useState<string | null>(null);
-  const [description, setDescription] = useState<string | null>(null);
+  const [externalId, setExternalId] = useState<string | null>(null)
+  const [externalType, setExternalType] = useState<string | null>(null)
+  const [description, setDescription] = useState<string | null>(null)
 
-  console.log({ description });
+  console.log({ description })
 
   useEffect(() => {
     // Read URL parameters on component mount
     if (searchParams) {
-      const extId = searchParams.get("external_id");
-      const extType = searchParams.get("external_type");
-      const desc = searchParams.get("description");
+      const extId = searchParams.get("external_id")
+      const extType = searchParams.get("external_type")
+      const desc = searchParams.get("description")
 
-      if (extId) setExternalId(extId);
-      if (extType) setExternalType(extType);
-      if (desc) setDescription(desc);
+      if (extId) setExternalId(extId)
+      if (extType) setExternalType(extType)
+      if (desc) setDescription(desc)
     }
-  }, [searchParams]);
+  }, [searchParams])
 
   const {
     data: form,
@@ -68,42 +68,42 @@ export default function PublicFormPage() {
     company_slug: companySlug,
     client_slug: clientSlug,
     form_slug: formSlug,
-  });
+  })
 
   const submitMutation = api.forms.submitPublic.useMutation({
     onSuccess: (data) => {
-      setSubmitted(true);
-      setSubmissionMessage(data.message);
-      setFormData({});
-      setContactName("");
-      setContactEmail("");
+      setSubmitted(true)
+      setSubmissionMessage(data.message)
+      setFormData({})
+      setContactName("")
+      setContactEmail("")
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(error.message)
     },
-  });
+  })
 
   const handleFieldChange = (fieldId: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [fieldId]: value }));
-  };
+    setFormData((prev) => ({ ...prev, [fieldId]: value }))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     // Validate required fields
-    const fields = (form?.fields as any[]) || [];
+    const fields = (form?.fields as any[]) || []
     for (const field of fields) {
       if (field.required && !formData[field.id]) {
-        toast.error(`${field.label} is required`);
-        return;
+        toast.error(`${field.label} is required`)
+        return
       }
     }
 
     // Check if contact info is needed
-    const settings = form?.settings as any;
+    const settings = form?.settings as any
     if (settings?.collect_contact_info && (!contactName || !contactEmail)) {
-      toast.error("Please provide your name and email");
-      return;
+      toast.error("Please provide your name and email")
+      return
     }
 
     submitMutation.mutate({
@@ -118,11 +118,11 @@ export default function PublicFormPage() {
       external_id: externalId || undefined,
       external_type: externalType || undefined,
       description: description || undefined,
-    });
-  };
+    })
+  }
 
   const renderField = (field: any) => {
-    const value = formData[field.id];
+    const value = formData[field.id]
 
     switch (field.type) {
       case "text":
@@ -136,7 +136,7 @@ export default function PublicFormPage() {
             placeholder={field.placeholder}
             required={field.required}
           />
-        );
+        )
 
       case "number":
         return (
@@ -149,7 +149,7 @@ export default function PublicFormPage() {
             min={field.min}
             max={field.max}
           />
-        );
+        )
 
       case "textarea":
         return (
@@ -160,7 +160,7 @@ export default function PublicFormPage() {
             required={field.required}
             rows={4}
           />
-        );
+        )
 
       case "select":
         return (
@@ -181,7 +181,7 @@ export default function PublicFormPage() {
               ))}
             </SelectContent>
           </Select>
-        );
+        )
 
       case "radio":
         return (
@@ -205,7 +205,7 @@ export default function PublicFormPage() {
               </div>
             ))}
           </RadioGroup>
-        );
+        )
 
       case "checkbox":
         return (
@@ -215,11 +215,11 @@ export default function PublicFormPage() {
                 <Checkbox
                   checked={(value || []).includes(option.value)}
                   onCheckedChange={(checked) => {
-                    const currentValues = value || [];
+                    const currentValues = value || []
                     const newValues = checked
                       ? [...currentValues, option.value]
-                      : currentValues.filter((v: string) => v !== option.value);
-                    handleFieldChange(field.id, newValues);
+                      : currentValues.filter((v: string) => v !== option.value)
+                    handleFieldChange(field.id, newValues)
                   }}
                   id={`${field.id}-${option.value}`}
                   className="mt-0.5 flex-shrink-0"
@@ -233,11 +233,11 @@ export default function PublicFormPage() {
               </div>
             ))}
           </div>
-        );
+        )
 
       case "rating":
-        const max = field.max || 5;
-        const min = field.min || 1;
+        const max = field.max || 5
+        const min = field.min || 1
         return (
           <div className="flex flex-wrap gap-2">
             {Array.from({ length: max - min + 1 }, (_, i) => min + i).map(
@@ -252,22 +252,22 @@ export default function PublicFormPage() {
                 >
                   {num}
                 </Button>
-              ),
+              )
             )}
           </div>
-        );
+        )
 
       default:
-        return null;
+        return null
     }
-  };
+  }
 
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
-    );
+    )
   }
 
   if (error || !form) {
@@ -282,7 +282,7 @@ export default function PublicFormPage() {
           </CardHeader>
         </Card>
       </div>
-    );
+    )
   }
 
   if (submitted) {
@@ -299,11 +299,11 @@ export default function PublicFormPage() {
           </CardContent>
         </Card>
       </div>
-    );
+    )
   }
 
-  const settings = form.settings as any;
-  const fields = (form.fields as any[]) || [];
+  const settings = form.settings as any
+  const fields = (form.fields as any[]) || []
 
   return (
     <div className="min-h-screen bg-muted/30 px-4 py-6 sm:px-6 sm:py-12">
@@ -394,5 +394,5 @@ export default function PublicFormPage() {
         </Card>
       </div>
     </div>
-  );
+  )
 }

@@ -1,4 +1,4 @@
-import swaggerJsdoc from "swagger-jsdoc";
+import swaggerJsdoc from "swagger-jsdoc"
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -247,7 +247,7 @@ const options: swaggerJsdoc.Options = {
     ],
   },
   apis: [], // We'll define paths manually below
-};
+}
 
 // Define API paths manually
 const paths = {
@@ -578,9 +578,9 @@ const paths = {
       },
     },
   },
-};
+}
 
 // Add paths to the definition
-options.definition!.paths = paths;
+options.definition!.paths = paths
 
-export const spec = swaggerJsdoc(options);
+export const spec = swaggerJsdoc(options)

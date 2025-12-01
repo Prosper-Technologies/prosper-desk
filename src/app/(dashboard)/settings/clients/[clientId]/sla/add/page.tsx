@@ -1,21 +1,21 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { Switch } from "~/components/ui/switch";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { useParams } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
+import { Switch } from "~/components/ui/switch"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
+} from "~/components/ui/select"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -23,7 +23,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "~/components/ui/breadcrumb";
+} from "~/components/ui/breadcrumb"
 import {
   ArrowLeft,
   Save,
@@ -33,9 +33,9 @@ import {
   CheckCircle,
   XCircle,
   Minus,
-} from "lucide-react";
-import { api } from "~/trpc/react";
-import { toast } from "sonner";
+} from "lucide-react"
+import { api } from "~/trpc/react"
+import { toast } from "sonner"
 
 const priorityOptions = [
   { value: "low", label: "Low", icon: Minus, color: "text-gray-500" },
@@ -52,12 +52,12 @@ const priorityOptions = [
     color: "text-orange-500",
   },
   { value: "urgent", label: "Urgent", icon: XCircle, color: "text-red-500" },
-];
+]
 
 export default function AddSLAPolicyPage() {
-  const router = useRouter();
-  const params = useParams();
-  const clientId = params?.clientId as string;
+  const router = useRouter()
+  const params = useParams()
+  const clientId = params?.clientId as string
 
   const [formData, setFormData] = useState({
     name: "",
@@ -67,34 +67,34 @@ export default function AddSLAPolicyPage() {
     resolutionTimeHours: 24,
     resolutionTimeMinutes: 0,
     isDefault: false,
-  });
+  })
 
   const { data: client, isLoading: clientLoading } =
     api.clients.getById.useQuery({
       id: clientId,
-    });
+    })
 
   const createSLA = api.sla.create.useMutation({
     onSuccess: () => {
       toast.success("SLA policy created successfully", {
         description: "SLA policy created successfully",
-      });
-      router.push(`/settings/clients/${clientId}`);
+      })
+      router.push(`/settings/clients/${clientId}`)
     },
     onError: (error) => {
       toast.error(error.message, {
         description: error.message,
-      });
+      })
     },
-  });
+  })
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     const responseTimeMinutes =
-      formData.responseTimeHours * 60 + formData.responseTimeMinutes;
+      formData.responseTimeHours * 60 + formData.responseTimeMinutes
     const resolutionTimeMinutes =
-      formData.resolutionTimeHours * 60 + formData.resolutionTimeMinutes;
+      formData.resolutionTimeHours * 60 + formData.resolutionTimeMinutes
 
     createSLA.mutate({
       clientId,
@@ -103,40 +103,40 @@ export default function AddSLAPolicyPage() {
       responseTimeMinutes,
       resolutionTimeMinutes,
       isDefault: formData.isDefault,
-    });
-  };
+    })
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+    const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
       [name]:
         name.includes("Hours") || name.includes("Minutes")
           ? parseInt(value) || 0
           : value,
-    }));
-  };
+    }))
+  }
 
   const handlePriorityChange = (value: string) => {
     setFormData((prev) => ({
       ...prev,
       priority: value as "low" | "medium" | "high" | "urgent",
-    }));
-  };
+    }))
+  }
 
   const handleSwitchChange = (checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
       isDefault: checked,
-    }));
-  };
+    }))
+  }
 
   if (clientLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="h-4 w-4 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
       </div>
-    );
+    )
   }
 
   if (!client) {
@@ -149,12 +149,12 @@ export default function AddSLAPolicyPage() {
           </p>
         </div>
       </div>
-    );
+    )
   }
 
   const selectedPriority = priorityOptions.find(
-    (p) => p.value === formData.priority,
-  );
+    (p) => p.value === formData.priority
+  )
 
   return (
     <div className="space-y-6">
@@ -382,5 +382,5 @@ export default function AddSLAPolicyPage() {
         </form>
       </div>
     </div>
-  );
+  )
 }

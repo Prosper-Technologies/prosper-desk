@@ -1,18 +1,18 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Switch } from "~/components/ui/switch";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Switch } from "~/components/ui/switch"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
+} from "~/components/ui/select"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -20,7 +20,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "~/components/ui/breadcrumb";
+} from "~/components/ui/breadcrumb"
 import {
   ArrowLeft,
   UserPlus,
@@ -29,53 +29,53 @@ import {
   User,
   Check,
   AlertCircle,
-} from "lucide-react";
-import Link from "next/link";
-import { api } from "~/trpc/react";
+} from "lucide-react"
+import Link from "next/link"
+import { api } from "~/trpc/react"
 
 export default function AddTeamMemberPage() {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"admin" | "agent" | "none">("none");
-  const [sendInvite, setSendInvite] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const router = useRouter();
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [email, setEmail] = useState("")
+  const [role, setRole] = useState<"admin" | "agent" | "none">("none")
+  const [sendInvite, setSendInvite] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const router = useRouter()
 
   const inviteMember = api.user.invite.useMutation({
     onSuccess: () => {
-      setSuccess(`${firstName} ${lastName} has been invited to the team!`);
+      setSuccess(`${firstName} ${lastName} has been invited to the team!`)
       // Redirect after success
       setTimeout(() => {
-        router.push("/team");
-      }, 2000);
+        router.push("/team")
+      }, 2000)
     },
     onError: (error) => {
-      setError(error.message);
-      setIsLoading(false);
+      setError(error.message)
+      setIsLoading(false)
     },
-  });
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
-    setSuccess("");
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+    setSuccess("")
 
     if (!firstName || !lastName || !email || role === "none") {
-      setError("Please fill in all required fields");
-      setIsLoading(false);
-      return;
+      setError("Please fill in all required fields")
+      setIsLoading(false)
+      return
     }
 
     // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address");
-      setIsLoading(false);
-      return;
+      setError("Please enter a valid email address")
+      setIsLoading(false)
+      return
     }
 
     try {
@@ -84,23 +84,23 @@ export default function AddTeamMemberPage() {
         firstName,
         lastName,
         role: role as "admin" | "agent",
-      });
+      })
     } catch (err) {
-      setError("Failed to add team member. Please try again.");
-      setIsLoading(false);
+      setError("Failed to add team member. Please try again.")
+      setIsLoading(false)
     }
-  };
+  }
 
   const getRoleDescription = (roleValue: string) => {
     switch (roleValue) {
       case "admin":
-        return "Full access to all features, settings, and team management";
+        return "Full access to all features, settings, and team management"
       case "agent":
-        return "Can manage tickets, view reports, and access knowledge base";
+        return "Can manage tickets, view reports, and access knowledge base"
       default:
-        return "";
+        return ""
     }
-  };
+  }
 
   if (success) {
     return (
@@ -140,7 +140,7 @@ export default function AddTeamMemberPage() {
           </Card>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -385,5 +385,5 @@ export default function AddTeamMemberPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

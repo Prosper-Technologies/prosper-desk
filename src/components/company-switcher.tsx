@@ -1,8 +1,8 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Check, ChevronDown, Building } from "lucide-react";
-import { Button } from "~/components/ui/button";
+import { useState } from "react"
+import { Check, ChevronDown, Building } from "lucide-react"
+import { Button } from "~/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,30 +10,30 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
-import { Badge } from "~/components/ui/badge";
-import { useCompany } from "~/contexts/company-context";
-import { api } from "~/trpc/react";
+} from "~/components/ui/dropdown-menu"
+import { Badge } from "~/components/ui/badge"
+import { useCompany } from "~/contexts/company-context"
+import { api } from "~/trpc/react"
 
 export function CompanySwitcher() {
-  const { currentCompanyId, setCurrentCompanyId } = useCompany();
-  const [isOpen, setIsOpen] = useState(false);
+  const { currentCompanyId, setCurrentCompanyId } = useCompany()
+  const [isOpen, setIsOpen] = useState(false)
 
-  const { data: memberships, isLoading } = api.auth.getUserMemberships.useQuery();
+  const { data: memberships, isLoading } =
+    api.auth.getUserMemberships.useQuery()
 
   if (isLoading || !memberships || memberships.length <= 1) {
     // Don't show switcher if user only has one company or loading
-    return null;
+    return null
   }
 
-  const currentMembership = memberships.find(
-    (m) => m.company.id === currentCompanyId
-  ) || memberships[0];
+  const currentMembership =
+    memberships.find((m) => m.company.id === currentCompanyId) || memberships[0]
 
-  const handleCompanySwitch = (membership: typeof memberships[0]) => {
-    setCurrentCompanyId(membership.company.id);
-    setIsOpen(false);
-  };
+  const handleCompanySwitch = (membership: (typeof memberships)[0]) => {
+    setCurrentCompanyId(membership.company.id)
+    setIsOpen(false)
+  }
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -88,5 +88,5 @@ export function CompanySwitcher() {
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  )
 }

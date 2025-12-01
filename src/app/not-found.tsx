@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { Button } from "~/components/ui/button";
-import { Card, CardContent } from "~/components/ui/card";
-import { Home, ArrowLeft, FileQuestion, Search } from "lucide-react";
+import Link from "next/link"
+import { Button } from "~/components/ui/button"
+import { Card, CardContent } from "~/components/ui/card"
+import { Home, ArrowLeft, FileQuestion, Search } from "lucide-react"
 
 export default function NotFound() {
   return (
@@ -58,5 +58,5 @@ export default function NotFound() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

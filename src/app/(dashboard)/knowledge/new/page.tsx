@@ -1,19 +1,19 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Badge } from "~/components/ui/badge";
-import { Switch } from "~/components/ui/switch";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Badge } from "~/components/ui/badge"
+import { Switch } from "~/components/ui/switch"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
+} from "~/components/ui/select"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -21,13 +21,13 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "~/components/ui/breadcrumb";
-import { TiptapEditor } from "~/components/ui/tiptap-editor";
-import { ArrowLeft, Save, Eye, FileText, Settings } from "lucide-react";
-import Link from "next/link";
-import { SidebarTrigger } from "~/components/ui/sidebar";
-import { api } from "~/trpc/react";
-import { toast } from "sonner";
+} from "~/components/ui/breadcrumb"
+import { TiptapEditor } from "~/components/ui/tiptap-editor"
+import { ArrowLeft, Save, Eye, FileText, Settings } from "lucide-react"
+import Link from "next/link"
+import { SidebarTrigger } from "~/components/ui/sidebar"
+import { api } from "~/trpc/react"
+import { toast } from "sonner"
 
 const categories = [
   "Getting Started",
@@ -35,56 +35,56 @@ const categories = [
   "Team Management",
   "Settings",
   "API",
-];
+]
 
 export default function NewArticlePage() {
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [category, setCategory] = useState("");
-  const [content, setContent] = useState("");
-  const [isPublished, setIsPublished] = useState(false);
-  const [isPublic, setIsPublic] = useState(true);
-  const [previewMode, setPreviewMode] = useState(false);
-  const router = useRouter();
+  const [title, setTitle] = useState("")
+  const [slug, setSlug] = useState("")
+  const [category, setCategory] = useState("")
+  const [content, setContent] = useState("")
+  const [isPublished, setIsPublished] = useState(false)
+  const [isPublic, setIsPublic] = useState(true)
+  const [previewMode, setPreviewMode] = useState(false)
+  const router = useRouter()
 
   const generateSlug = (title: string) => {
     return title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-  };
+      .replace(/(^-|-$)/g, "")
+  }
 
   const handleTitleChange = (value: string) => {
-    setTitle(value);
+    setTitle(value)
     if (!slug) {
-      setSlug(generateSlug(value));
+      setSlug(generateSlug(value))
     }
-  };
+  }
 
   const createArticle = api.knowledgeBase.create.useMutation({
     onSuccess: (article) => {
-      toast.success("Article created successfully!");
-      router.push(`/knowledge/${article.slug}` as any);
+      toast.success("Article created successfully!")
+      router.push(`/knowledge/${article.slug}` as any)
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(error.message)
     },
-  });
+  })
 
   const handleSave = async (publish = false) => {
     if (!title.trim()) {
-      toast.error("Please enter a title");
-      return;
+      toast.error("Please enter a title")
+      return
     }
 
     if (!slug.trim()) {
-      toast.error("Please enter a URL slug");
-      return;
+      toast.error("Please enter a URL slug")
+      return
     }
 
     if (!content.trim()) {
-      toast.error("Please add some content");
-      return;
+      toast.error("Please add some content")
+      return
     }
 
     await createArticle.mutateAsync({
@@ -94,8 +94,8 @@ export default function NewArticlePage() {
       isPublished: publish || isPublished,
       isPublic,
       tags: category ? [category] : [],
-    });
-  };
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -330,7 +330,7 @@ export default function NewArticlePage() {
                       content
                         .replace(/<[^>]*>/g, "")
                         .split(/\s+/)
-                        .filter(Boolean).length / 200,
+                        .filter(Boolean).length / 200
                     )}{" "}
                     min
                   </span>
@@ -341,5 +341,5 @@ export default function NewArticlePage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Badge } from "~/components/ui/badge";
-import { DashboardHeader } from "~/components/layout/dashboard-header";
+import { useState } from "react"
+import Link from "next/link"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Badge } from "~/components/ui/badge"
+import { DashboardHeader } from "~/components/layout/dashboard-header"
 import {
   BookOpen,
   Search,
@@ -15,8 +15,8 @@ import {
   Calendar,
   User,
   FileText,
-} from "lucide-react";
-import { api } from "~/trpc/react";
+} from "lucide-react"
+import { api } from "~/trpc/react"
 
 const categories = [
   "All",
@@ -24,24 +24,24 @@ const categories = [
   "Tickets",
   "Team Management",
   "Settings",
-];
+]
 
 export default function KnowledgeBasePage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("All")
 
   const { data: articlesData } = api.knowledgeBase.getAll.useQuery({
     page: 1,
     limit: 50,
     search: searchTerm || undefined,
-  });
+  })
 
-  const articles = articlesData?.articles || [];
+  const articles = articlesData?.articles || []
 
   const filteredArticles = articles.filter(() => {
-    const matchesCategory = selectedCategory === "All";
-    return matchesCategory;
-  });
+    const matchesCategory = selectedCategory === "All"
+    return matchesCategory
+  })
 
   return (
     <div className="space-y-6">
@@ -190,5 +190,5 @@ export default function KnowledgeBasePage() {
         )}
       </div>
     </div>
-  );
+  )
 }

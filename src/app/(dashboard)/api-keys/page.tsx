@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { DashboardHeader } from "~/components/layout/dashboard-header";
+import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Badge } from "~/components/ui/badge"
+import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
+import { DashboardHeader } from "~/components/layout/dashboard-header"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "~/components/ui/alert-dialog";
+} from "~/components/ui/alert-dialog"
 import {
   Dialog,
   DialogContent,
@@ -26,13 +26,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "~/components/ui/dialog";
+} from "~/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
+} from "~/components/ui/dropdown-menu"
 import {
   Key,
   Plus,
@@ -44,66 +44,66 @@ import {
   AlertCircle,
   CheckCircle,
   X,
-} from "lucide-react";
-import { api } from "~/trpc/react";
+} from "lucide-react"
+import { api } from "~/trpc/react"
 
 export default function ApiKeysPage() {
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [newKeyName, setNewKeyName] = useState("");
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [newKeyName, setNewKeyName] = useState("")
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<{
-    id: string;
-    key: string;
-    name: string;
-  } | null>(null);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+    id: string
+    key: string
+    name: string
+  } | null>(null)
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
   const {
     data: apiKeys = [],
     isLoading,
     refetch,
-  } = api.apiKeys.getAll.useQuery();
+  } = api.apiKeys.getAll.useQuery()
 
   const createApiKey = api.apiKeys.create.useMutation({
     onSuccess: (data) => {
-      refetch();
-      setShowCreateDialog(false);
+      refetch()
+      setShowCreateDialog(false)
       setNewlyCreatedKey({
         id: data.id!,
         key: data.key,
         name: data.name!,
-      });
-      setNewKeyName("");
+      })
+      setNewKeyName("")
     },
-  });
+  })
 
   const deleteApiKey = api.apiKeys.delete.useMutation({
     onSuccess: () => {
-      refetch();
+      refetch()
     },
-  });
+  })
 
   const handleCreateKey = () => {
-    if (!newKeyName.trim()) return;
-    createApiKey.mutate({ name: newKeyName.trim() });
-  };
+    if (!newKeyName.trim()) return
+    createApiKey.mutate({ name: newKeyName.trim() })
+  }
 
   const handleDeleteKey = (keyId: string) => {
-    deleteApiKey.mutate({ id: keyId });
-  };
+    deleteApiKey.mutate({ id: keyId })
+  }
 
   const copyToClipboard = async (text: string, keyId: string) => {
     try {
-      await navigator.clipboard.writeText(text);
-      setCopiedKey(keyId);
-      setTimeout(() => setCopiedKey(null), 2000);
+      await navigator.clipboard.writeText(text)
+      setCopiedKey(keyId)
+      setTimeout(() => setCopiedKey(null), 2000)
     } catch (error) {
-      console.error("Failed to copy:", error);
+      console.error("Failed to copy:", error)
     }
-  };
+  }
 
   const dismissNewKey = () => {
-    setNewlyCreatedKey(null);
-  };
+    setNewlyCreatedKey(null)
+  }
 
   return (
     <div className="space-y-6">
@@ -455,5 +455,5 @@ export default function ApiKeysPage() {
         </Card>
       </div>
     </div>
-  );
+  )
 }

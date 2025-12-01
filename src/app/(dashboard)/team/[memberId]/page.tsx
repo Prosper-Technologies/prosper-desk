@@ -1,20 +1,20 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Badge } from "~/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Badge } from "~/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
+} from "~/components/ui/select"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -22,7 +22,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "~/components/ui/breadcrumb";
+} from "~/components/ui/breadcrumb"
 import {
   ArrowLeft,
   User,
@@ -33,65 +33,65 @@ import {
   Edit,
   Save,
   X,
-} from "lucide-react";
-import { api } from "~/trpc/react";
+} from "lucide-react"
+import { api } from "~/trpc/react"
 
 interface UserProfilePageProps {
   params: {
-    memberId: string;
-  };
+    memberId: string
+  }
 }
 
 const getRoleColor = (role: string) => {
   switch (role) {
     case "admin":
-      return "bg-red-100 text-red-800 border-red-200";
+      return "bg-red-100 text-red-800 border-red-200"
     case "agent":
-      return "bg-blue-100 text-blue-800 border-blue-200";
+      return "bg-blue-100 text-blue-800 border-blue-200"
     case "owner":
-      return "bg-green-100 text-green-800 border-green-200";
+      return "bg-green-100 text-green-800 border-green-200"
     default:
-      return "bg-gray-100 text-gray-800 border-gray-200";
+      return "bg-gray-100 text-gray-800 border-gray-200"
   }
-};
+}
 
 const getInitials = (firstName: string, lastName: string) => {
-  return `${firstName[0]}${lastName[0]}`.toUpperCase();
-};
+  return `${firstName[0]}${lastName[0]}`.toUpperCase()
+}
 
 export default function UserProfilePage({ params }: UserProfilePageProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [role, setRole] = useState<"admin" | "agent">("agent");
-  const router = useRouter();
+  const [isEditing, setIsEditing] = useState(false)
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [role, setRole] = useState<"admin" | "agent">("agent")
+  const router = useRouter()
 
   const { data: member, isLoading } = api.user.getById.useQuery({
     id: params.memberId,
-  });
+  })
 
   const updateMember = api.user.update.useMutation({
     onSuccess: () => {
-      setIsEditing(false);
+      setIsEditing(false)
       // Refetch member data
-      api.useContext().user.getById.invalidate({ id: params.memberId });
+      api.useContext().user.getById.invalidate({ id: params.memberId })
     },
-  });
+  })
 
   const deactivateMember = api.user.deactivate.useMutation({
     onSuccess: () => {
-      router.push("/team");
+      router.push("/team")
     },
-  });
+  })
 
   // Initialize form values when member data loads
   useEffect(() => {
     if (member) {
-      setFirstName(member.user.first_name);
-      setLastName(member.user.last_name);
-      setRole(member.role as "admin" | "agent");
+      setFirstName(member.user.first_name)
+      setLastName(member.user.last_name)
+      setRole(member.role as "admin" | "agent")
     }
-  }, [member]);
+  }, [member])
 
   const handleSave = () => {
     updateMember.mutate({
@@ -99,21 +99,21 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
       firstName,
       lastName,
       role,
-    });
-  };
+    })
+  }
 
   const handleDeactivate = () => {
     if (confirm("Are you sure you want to deactivate this user?")) {
-      deactivateMember.mutate({ id: params.memberId });
+      deactivateMember.mutate({ id: params.memberId })
     }
-  };
+  }
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
       </div>
-    );
+    )
   }
 
   if (!member) {
@@ -154,7 +154,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
           </Card>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -242,7 +242,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                     <AvatarFallback className="text-lg">
                       {getInitials(
                         member.user.first_name,
-                        member.user.last_name,
+                        member.user.last_name
                       )}
                     </AvatarFallback>
                   </Avatar>
@@ -393,5 +393,5 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         </div>
       </div>
     </div>
-  );
+  )
 }

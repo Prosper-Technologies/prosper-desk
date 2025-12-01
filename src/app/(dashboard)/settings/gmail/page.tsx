@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Badge } from "~/components/ui/badge"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,8 +12,8 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "~/components/ui/breadcrumb";
-import { SidebarTrigger } from "~/components/ui/sidebar";
+} from "~/components/ui/breadcrumb"
+import { SidebarTrigger } from "~/components/ui/sidebar"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "~/components/ui/alert-dialog";
+} from "~/components/ui/alert-dialog"
 import {
   Mail,
   CheckCircle,
@@ -35,110 +35,110 @@ import {
   RotateCcw,
   AlertCircle,
   Bell,
-} from "lucide-react";
-import { api } from "~/trpc/react";
+} from "lucide-react"
+import { api } from "~/trpc/react"
 
 export default function GmailSetupPage() {
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [syncResult, setRotateCcwResult] = useState<string>("");
-  const [processedCode, setProcessedCode] = useState<string | null>(null);
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [syncResult, setRotateCcwResult] = useState<string>("")
+  const [processedCode, setProcessedCode] = useState<string | null>(null)
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
   const { data: integration, refetch: refetchIntegration } =
-    api.gmail.getIntegration.useQuery();
+    api.gmail.getIntegration.useQuery()
 
   const setupIntegration = api.gmail.setupIntegration.useMutation({
     onSuccess: () => {
-      refetchIntegration();
-      setIsConnecting(false);
+      refetchIntegration()
+      setIsConnecting(false)
       // Clean up URL
-      router.replace("/settings/gmail");
+      router.replace("/settings/gmail")
     },
     onError: (error) => {
-      console.error("Gmail setup failed:", error);
-      setIsConnecting(false);
+      console.error("Gmail setup failed:", error)
+      setIsConnecting(false)
     },
-  });
+  })
 
   const getAuthUrl = api.gmail.getAuthUrl.useQuery(undefined, {
     enabled: false,
-  });
+  })
 
-  const testConnection = api.gmail.testConnection.useMutation();
+  const testConnection = api.gmail.testConnection.useMutation()
   const disableIntegration = api.gmail.disableIntegration.useMutation({
     onSuccess: () => {
-      refetchIntegration();
+      refetchIntegration()
     },
-  });
+  })
 
   const syncEmails = api.gmail.syncEmails.useMutation({
     onSuccess: (data) => {
       setRotateCcwResult(
-        `Processed ${data.messagesProcessed} messages, created ${data.ticketsCreated} new tickets`,
-      );
-      refetchIntegration();
+        `Processed ${data.messagesProcessed} messages, created ${data.ticketsCreated} new tickets`
+      )
+      refetchIntegration()
     },
-  });
+  })
 
   const setupPushNotifications = api.gmail.setupPushNotifications.useMutation({
     onSuccess: (data) => {
       setRotateCcwResult(
-        `Push notifications enabled! History ID: ${data.historyId}`,
-      );
-      refetchIntegration();
+        `Push notifications enabled! History ID: ${data.historyId}`
+      )
+      refetchIntegration()
     },
-  });
+  })
 
-  const subscribeToWebhook = api.gmail.subscribeToWebhook.useMutation();
-  const unsubscribeFromWebhook = api.gmail.unsubscribeFromWebhook.useMutation();
+  const subscribeToWebhook = api.gmail.subscribeToWebhook.useMutation()
+  const unsubscribeFromWebhook = api.gmail.unsubscribeFromWebhook.useMutation()
 
   // Handle OAuth callback
   useEffect(() => {
-    const code = searchParams?.get("code");
-    const state = searchParams?.get("state");
+    const code = searchParams?.get("code")
+    const state = searchParams?.get("state")
 
     // Only process the code once and if it's different from the last processed one
     if (code && code !== processedCode && !setupIntegration.isPending) {
-      setProcessedCode(code);
-      setIsConnecting(true);
-      setupIntegration.mutate({ code, state: state || undefined });
+      setProcessedCode(code)
+      setIsConnecting(true)
+      setupIntegration.mutate({ code, state: state || undefined })
     }
-  }, [searchParams, setupIntegration, processedCode]);
+  }, [searchParams, setupIntegration, processedCode])
 
   const handleConnect = async () => {
     try {
-      const authData = await getAuthUrl.refetch();
+      const authData = await getAuthUrl.refetch()
       if (authData.data?.authUrl) {
-        window.location.href = authData.data.authUrl;
+        window.location.href = authData.data.authUrl
       }
     } catch (error) {
-      console.error("Failed to get auth URL:", error);
+      console.error("Failed to get auth URL:", error)
     }
-  };
+  }
 
   const handleTest = () => {
-    testConnection.mutate();
-  };
+    testConnection.mutate()
+  }
 
   const handleDisable = () => {
-    disableIntegration.mutate();
-  };
+    disableIntegration.mutate()
+  }
 
   const handleRotateCcw = () => {
-    setRotateCcwResult("");
-    syncEmails.mutate();
-  };
+    setRotateCcwResult("")
+    syncEmails.mutate()
+  }
 
   const handleSubscribeWebhook = () => {
-    subscribeToWebhook.mutate();
-  };
+    subscribeToWebhook.mutate()
+  }
 
   const handleUnsubscribeWebhook = () => {
-    unsubscribeFromWebhook.mutate();
-  };
+    unsubscribeFromWebhook.mutate()
+  }
 
-  const isConnected = integration?.is_active;
+  const isConnected = integration?.is_active
 
   return (
     <div className="space-y-6">
@@ -476,7 +476,7 @@ export default function GmailSetupPage() {
                           <>
                             , Expires:{" "}
                             {new Date(
-                              parseInt(subscribeToWebhook.data.expiration),
+                              parseInt(subscribeToWebhook.data.expiration)
                             ).toLocaleString()}
                           </>
                         )}
@@ -587,5 +587,5 @@ export default function GmailSetupPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

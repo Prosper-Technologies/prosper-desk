@@ -86,12 +86,8 @@
           "name": "api_keys_company_id_companies_id_fk",
           "tableFrom": "api_keys",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -101,9 +97,7 @@
         "api_keys_key_hash_unique": {
           "name": "api_keys_key_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "key_hash"
-          ]
+          "columns": ["key_hash"]
         }
       },
       "policies": {},
@@ -193,12 +187,8 @@
           "name": "clients_company_id_companies_id_fk",
           "tableFrom": "clients",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -281,9 +271,7 @@
         "companies_slug_unique": {
           "name": "companies_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -359,12 +347,8 @@
           "name": "customer_portal_access_company_id_companies_id_fk",
           "tableFrom": "customer_portal_access",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -372,12 +356,8 @@
           "name": "customer_portal_access_client_id_clients_id_fk",
           "tableFrom": "customer_portal_access",
           "tableTo": "clients",
-          "columnsFrom": [
-            "client_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["client_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -457,12 +437,8 @@
           "name": "email_threads_company_id_companies_id_fk",
           "tableFrom": "email_threads",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -470,12 +446,8 @@
           "name": "email_threads_ticket_id_tickets_id_fk",
           "tableFrom": "email_threads",
           "tableTo": "tickets",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -543,12 +515,8 @@
           "name": "escalation_policies_company_id_companies_id_fk",
           "tableFrom": "escalation_policies",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -669,12 +637,8 @@
           "name": "gmail_integration_company_id_companies_id_fk",
           "tableFrom": "gmail_integration",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -760,12 +724,8 @@
           "name": "invitation_codes_company_id_companies_id_fk",
           "tableFrom": "invitation_codes",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -773,12 +733,8 @@
           "name": "invitation_codes_user_id_users_id_fk",
           "tableFrom": "invitation_codes",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -786,12 +742,8 @@
           "name": "invitation_codes_invited_by_membership_id_memberships_id_fk",
           "tableFrom": "invitation_codes",
           "tableTo": "memberships",
-          "columnsFrom": [
-            "invited_by_membership_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invited_by_membership_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -801,9 +753,7 @@
         "invitation_codes_code_unique": {
           "name": "invitation_codes_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -900,12 +850,8 @@
           "name": "knowledge_base_company_id_companies_id_fk",
           "tableFrom": "knowledge_base",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -913,12 +859,8 @@
           "name": "knowledge_base_author_membership_id_memberships_id_fk",
           "tableFrom": "knowledge_base",
           "tableTo": "memberships",
-          "columnsFrom": [
-            "author_membership_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["author_membership_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -995,12 +937,8 @@
           "name": "memberships_user_id_users_id_fk",
           "tableFrom": "memberships",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1008,12 +946,8 @@
           "name": "memberships_company_id_companies_id_fk",
           "tableFrom": "memberships",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1023,10 +957,7 @@
         "memberships_user_id_company_id_unique": {
           "name": "memberships_user_id_company_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "company_id"
-          ]
+          "columns": ["user_id", "company_id"]
         }
       },
       "policies": {},
@@ -1109,12 +1040,8 @@
           "name": "sla_policies_company_id_companies_id_fk",
           "tableFrom": "sla_policies",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1122,12 +1049,8 @@
           "name": "sla_policies_client_id_clients_id_fk",
           "tableFrom": "sla_policies",
           "tableTo": "clients",
-          "columnsFrom": [
-            "client_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["client_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1227,12 +1150,8 @@
           "name": "ticket_comments_company_id_companies_id_fk",
           "tableFrom": "ticket_comments",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1240,12 +1159,8 @@
           "name": "ticket_comments_ticket_id_tickets_id_fk",
           "tableFrom": "ticket_comments",
           "tableTo": "tickets",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1253,12 +1168,8 @@
           "name": "ticket_comments_parent_comment_id_ticket_comments_id_fk",
           "tableFrom": "ticket_comments",
           "tableTo": "ticket_comments",
-          "columnsFrom": [
-            "parent_comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_comment_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1266,12 +1177,8 @@
           "name": "ticket_comments_membership_id_memberships_id_fk",
           "tableFrom": "ticket_comments",
           "tableTo": "memberships",
-          "columnsFrom": [
-            "membership_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["membership_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1279,12 +1186,8 @@
           "name": "ticket_comments_customer_portal_access_id_customer_portal_access_id_fk",
           "tableFrom": "ticket_comments",
           "tableTo": "customer_portal_access",
-          "columnsFrom": [
-            "customer_portal_access_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_portal_access_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1462,12 +1365,8 @@
           "name": "tickets_company_id_companies_id_fk",
           "tableFrom": "tickets",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1475,12 +1374,8 @@
           "name": "tickets_created_by_membership_id_memberships_id_fk",
           "tableFrom": "tickets",
           "tableTo": "memberships",
-          "columnsFrom": [
-            "created_by_membership_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by_membership_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1488,12 +1383,8 @@
           "name": "tickets_assigned_to_membership_id_memberships_id_fk",
           "tableFrom": "tickets",
           "tableTo": "memberships",
-          "columnsFrom": [
-            "assigned_to_membership_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["assigned_to_membership_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1501,12 +1392,8 @@
           "name": "tickets_sla_policy_id_sla_policies_id_fk",
           "tableFrom": "tickets",
           "tableTo": "sla_policies",
-          "columnsFrom": [
-            "sla_policy_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sla_policy_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1514,12 +1401,8 @@
           "name": "tickets_escalation_policy_id_escalation_policies_id_fk",
           "tableFrom": "tickets",
           "tableTo": "escalation_policies",
-          "columnsFrom": [
-            "escalation_policy_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["escalation_policy_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1527,12 +1410,8 @@
           "name": "tickets_client_id_clients_id_fk",
           "tableFrom": "tickets",
           "tableTo": "clients",
-          "columnsFrom": [
-            "client_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["client_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1619,16 +1498,12 @@
         "users_auth_user_id_unique": {
           "name": "users_auth_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "auth_user_id"
-          ]
+          "columns": ["auth_user_id"]
         },
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -1640,42 +1515,22 @@
     "public.company_size": {
       "name": "company_size",
       "schema": "public",
-      "values": [
-        "1-10",
-        "11-50",
-        "51-200",
-        "201-1000",
-        "1000+"
-      ]
+      "values": ["1-10", "11-50", "51-200", "201-1000", "1000+"]
     },
     "public.membership_role": {
       "name": "membership_role",
       "schema": "public",
-      "values": [
-        "owner",
-        "admin",
-        "agent"
-      ]
+      "values": ["owner", "admin", "agent"]
     },
     "public.ticket_priority": {
       "name": "ticket_priority",
       "schema": "public",
-      "values": [
-        "low",
-        "medium",
-        "high",
-        "urgent"
-      ]
+      "values": ["low", "medium", "high", "urgent"]
     },
     "public.ticket_status": {
       "name": "ticket_status",
       "schema": "public",
-      "values": [
-        "open",
-        "in_progress",
-        "resolved",
-        "closed"
-      ]
+      "values": ["open", "in_progress", "resolved", "closed"]
     }
   },
   "schemas": {},

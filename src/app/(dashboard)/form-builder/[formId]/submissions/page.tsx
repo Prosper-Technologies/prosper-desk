@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Download, ExternalLink, Plus } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
+import { useState } from "react"
+import { useRouter, useParams } from "next/navigation"
+import { ArrowLeft, Download, ExternalLink, Plus } from "lucide-react"
+import { Button } from "~/components/ui/button"
+import { Badge } from "~/components/ui/badge"
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "~/components/ui/table";
+} from "~/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -20,89 +20,89 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "~/components/ui/dialog";
-import { Label } from "~/components/ui/label";
-import { Input } from "~/components/ui/input";
+} from "~/components/ui/dialog"
+import { Label } from "~/components/ui/label"
+import { Input } from "~/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { api } from "~/trpc/react";
-import { formatRelativeTime } from "~/lib/utils";
-import { toast } from "sonner";
+} from "~/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { api } from "~/trpc/react"
+import { formatRelativeTime } from "~/lib/utils"
+import { toast } from "sonner"
 
 export default function FormSubmissionsPage() {
-  const router = useRouter();
-  const params = useParams();
-  const formId = params?.formId as string;
+  const router = useRouter()
+  const params = useParams()
+  const formId = params?.formId as string
 
-  const [page, setPage] = useState(1);
-  const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
-  const [createTicketDialogOpen, setCreateTicketDialogOpen] = useState(false);
-  const [ticketSubject, setTicketSubject] = useState("");
+  const [page, setPage] = useState(1)
+  const [selectedSubmission, setSelectedSubmission] = useState<any>(null)
+  const [createTicketDialogOpen, setCreateTicketDialogOpen] = useState(false)
+  const [ticketSubject, setTicketSubject] = useState("")
   const [ticketPriority, setTicketPriority] = useState<
     "low" | "medium" | "high" | "urgent"
-  >("medium");
+  >("medium")
 
-  const { data: form } = api.forms.getById.useQuery({ id: formId });
+  const { data: form } = api.forms.getById.useQuery({ id: formId })
 
   const { data, isLoading, refetch } = api.forms.getSubmissions.useQuery({
     form_id: formId,
     page,
     limit: 25,
-  });
+  })
 
   const createTicketMutation = api.forms.createTicketFromSubmission.useMutation(
     {
       onSuccess: () => {
-        toast.success("Ticket created successfully");
-        setCreateTicketDialogOpen(false);
-        setSelectedSubmission(null);
-        refetch();
+        toast.success("Ticket created successfully")
+        setCreateTicketDialogOpen(false)
+        setSelectedSubmission(null)
+        refetch()
       },
       onError: (error) => {
-        toast.error(error.message);
+        toast.error(error.message)
       },
-    },
-  );
+    }
+  )
 
-  const submissions = data?.submissions || [];
-  const totalPages = data?.totalPages || 1;
+  const submissions = data?.submissions || []
+  const totalPages = data?.totalPages || 1
 
   const handleExportCSV = async () => {
     const result = await api.forms.exportSubmissions.useQuery({
       form_id: formId,
-    });
+    })
     if (result.data) {
-      const blob = new Blob([result.data.csv], { type: "text/csv" });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = result.data.filename;
-      a.click();
-      window.URL.revokeObjectURL(url);
+      const blob = new Blob([result.data.csv], { type: "text/csv" })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = result.data.filename
+      a.click()
+      window.URL.revokeObjectURL(url)
     }
-  };
+  }
 
   const handleCreateTicket = () => {
-    if (!selectedSubmission) return;
+    if (!selectedSubmission) return
 
     createTicketMutation.mutate({
       submission_id: selectedSubmission.id,
       subject: ticketSubject,
       priority: ticketPriority,
-    });
-  };
+    })
+  }
 
   const openCreateTicketDialog = (submission: any) => {
-    setSelectedSubmission(submission);
-    setTicketSubject(`Form submission from ${submission.submitted_by_name}`);
-    setCreateTicketDialogOpen(true);
-  };
+    setSelectedSubmission(submission)
+    setTicketSubject(`Form submission from ${submission.submitted_by_name}`)
+    setCreateTicketDialogOpen(true)
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -266,7 +266,7 @@ export default function FormSubmissionsPage() {
                     <Label>Submitted At</Label>
                     <div className="text-sm">
                       {new Date(
-                        selectedSubmission.submitted_at,
+                        selectedSubmission.submitted_at
                       ).toLocaleString()}
                     </div>
                   </div>
@@ -276,11 +276,11 @@ export default function FormSubmissionsPage() {
                   <h4 className="mb-4 font-semibold">Form Responses</h4>
                   <div className="space-y-3">
                     {Object.entries(
-                      selectedSubmission.data as Record<string, any>,
+                      selectedSubmission.data as Record<string, any>
                     ).map(([fieldId, value]) => {
                       const field = (form?.fields as any[])?.find(
-                        (f) => f.id === fieldId,
-                      );
+                        (f) => f.id === fieldId
+                      )
                       return (
                         <div key={fieldId} className="space-y-1">
                           <Label>{field?.label || fieldId}</Label>
@@ -290,7 +290,7 @@ export default function FormSubmissionsPage() {
                               : String(value)}
                           </div>
                         </div>
-                      );
+                      )
                     })}
                   </div>
                 </div>
@@ -303,7 +303,7 @@ export default function FormSubmissionsPage() {
                       className="h-auto p-0"
                       onClick={() =>
                         router.push(
-                          `/tickets?id=${selectedSubmission.ticket.id}`,
+                          `/tickets?id=${selectedSubmission.ticket.id}`
                         )
                       }
                     >
@@ -386,5 +386,5 @@ export default function FormSubmissionsPage() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

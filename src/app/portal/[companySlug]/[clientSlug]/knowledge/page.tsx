@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import { useState } from "react";
+import { useState } from "react"
 
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
 import {
   Search,
   BookOpen,
@@ -14,22 +14,22 @@ import {
   ArrowLeft,
   Loader,
   FileText,
-} from "lucide-react";
-import Link from "next/link";
-import { api } from "~/trpc/react";
-import { formatRelativeTime } from "~/lib/utils";
+} from "lucide-react"
+import Link from "next/link"
+import { api } from "~/trpc/react"
+import { formatRelativeTime } from "~/lib/utils"
 
 interface KnowledgePortalPageProps {
   params: {
-    companySlug: string;
-    clientSlug: string;
-  };
+    companySlug: string
+    clientSlug: string
+  }
 }
 
 export default function KnowledgePortalPage({
   params,
 }: KnowledgePortalPageProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState("")
 
   const { data: articles, isLoading } = api.knowledgeBase.getPublished.useQuery(
     {
@@ -37,13 +37,13 @@ export default function KnowledgePortalPage({
       page: 1,
       limit: 50,
       search: searchTerm || undefined,
-    },
-  );
+    }
+  )
 
   const filteredArticles =
     articles?.filter((article) =>
-      article.title.toLowerCase().includes(searchTerm.toLowerCase()),
-    ) || [];
+      article.title.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || []
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -170,7 +170,7 @@ export default function KnowledgePortalPage({
                           article.content
                             .replace(/<[^>]*>/g, "")
                             .split(/\s+/)
-                            .filter(Boolean).length / 200,
+                            .filter(Boolean).length / 200
                         )}{" "}
                         min read
                       </div>
@@ -198,5 +198,5 @@ export default function KnowledgePortalPage({
         </div>
       </main>
     </div>
-  );
+  )
 }

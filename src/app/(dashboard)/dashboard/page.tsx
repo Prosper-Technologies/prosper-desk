@@ -1,16 +1,16 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Badge } from "~/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Badge } from "~/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
+} from "~/components/ui/select"
 import {
   Ticket,
   Users,
@@ -19,41 +19,41 @@ import {
   TrendingUp,
   Calendar,
   BarChart3,
-} from "lucide-react";
-import { api } from "~/trpc/react";
+} from "lucide-react"
+import { api } from "~/trpc/react"
 import {
   formatRelativeTime,
   getStatusColor,
   getPriorityColor,
   getInitials,
-} from "~/lib/utils";
-import { DashboardHeader } from "~/components/layout/dashboard-header";
+} from "~/lib/utils"
+import { DashboardHeader } from "~/components/layout/dashboard-header"
 
 export default function DashboardPage() {
   const [dateRange] = useState({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
     endDate: new Date(),
-  });
-  const [selectedClientId, setSelectedClientId] = useState<string>("all");
+  })
+  const [selectedClientId, setSelectedClientId] = useState<string>("all")
 
   const { data: metrics, isLoading: metricsLoading } =
     api.dashboard.getMetrics.useQuery({
       startDate: dateRange.startDate,
       endDate: dateRange.endDate,
       clientId: selectedClientId === "all" ? undefined : selectedClientId,
-    });
+    })
 
   const { data: clients } = api.clients.getAll.useQuery({
     page: 1,
     limit: 50,
-  });
+  })
 
   const { isLoading: trendsLoading } = api.dashboard.getTicketTrends.useQuery({
     days: 30,
-  });
+  })
 
   const { data: workload, isLoading: workloadLoading } =
-    api.dashboard.getAgentWorkload.useQuery();
+    api.dashboard.getAgentWorkload.useQuery()
 
   if (metricsLoading || trendsLoading || workloadLoading) {
     return (
@@ -67,24 +67,24 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
-  const statusData = metrics?.ticketsByStatus || [];
-  const priorityData = metrics?.ticketsByPriority || [];
+  const statusData = metrics?.ticketsByStatus || []
+  const priorityData = metrics?.ticketsByPriority || []
   const slaMetrics = metrics?.slaMetrics || {
     totalWithSLA: 0,
     breachedResponse: 0,
     breachedResolution: 0,
     avgResponseTimeMinutes: 0,
-  };
+  }
 
   const slaComplianceRate =
     slaMetrics.totalWithSLA > 0
       ? ((slaMetrics.totalWithSLA - slaMetrics.breachedResolution) /
           slaMetrics.totalWithSLA) *
         100
-      : 0;
+      : 0
 
   return (
     <div>
@@ -299,7 +299,7 @@ export default function DashboardPage() {
                         />
                         <AvatarFallback className="text-xs">
                           {getInitials(
-                            `${ticket.assignedToMembership.user.first_name} ${ticket.assignedToMembership.user.last_name}`,
+                            `${ticket.assignedToMembership.user.first_name} ${ticket.assignedToMembership.user.last_name}`
                           )}
                         </AvatarFallback>
                       </Avatar>
@@ -380,5 +380,5 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

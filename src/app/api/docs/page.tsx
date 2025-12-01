@@ -1,5 +1,5 @@
-import SwaggerUIWrapper from "~/components/swagger-ui";
-import { spec } from "~/lib/openapi-schema";
+import SwaggerUIWrapper from "~/components/swagger-ui"
+import { spec } from "~/lib/openapi-schema"
 
 export default function ApiDocsPage() {
   return (
@@ -20,5 +20,5 @@ export default function ApiDocsPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

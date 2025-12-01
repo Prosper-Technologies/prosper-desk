@@ -1,16 +1,16 @@
-import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
-import { authRouter } from "./routers/auth";
-import { companyRouter } from "./routers/company";
-import { userRouter } from "./routers/user";
-import { ticketRouter } from "./routers/ticket";
-import { knowledgeBaseRouter } from "./routers/knowledgeBase";
-import { dashboardRouter } from "./routers/dashboard";
-import { customerPortalRouter } from "./routers/customerPortal";
-import { clientRouter } from "./routers/client";
-import { slaRouter } from "./routers/sla";
-import { gmailRouter } from "./routers/gmail";
-import { apiKeysRouter } from "./routers/apiKeys";
-import { formsRouter } from "./routers/forms";
+import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc"
+import { authRouter } from "./routers/auth"
+import { companyRouter } from "./routers/company"
+import { userRouter } from "./routers/user"
+import { ticketRouter } from "./routers/ticket"
+import { knowledgeBaseRouter } from "./routers/knowledgeBase"
+import { dashboardRouter } from "./routers/dashboard"
+import { customerPortalRouter } from "./routers/customerPortal"
+import { clientRouter } from "./routers/client"
+import { slaRouter } from "./routers/sla"
+import { gmailRouter } from "./routers/gmail"
+import { apiKeysRouter } from "./routers/apiKeys"
+import { formsRouter } from "./routers/forms"
 
 /**
  * This is the primary router for your server.
@@ -30,10 +30,10 @@ export const appRouter = createTRPCRouter({
   gmail: gmailRouter,
   apiKeys: apiKeysRouter,
   forms: formsRouter,
-});
+})
 
 // export type definition of API
-export type AppRouter = typeof appRouter;
+export type AppRouter = typeof appRouter
 
 /**
  * Create a server-side caller for the tRPC API.
@@ -42,4 +42,4 @@ export type AppRouter = typeof appRouter;
  * const res = await trpc.post.all();
  *       ^? Post[]
  */
-export const createCaller = createCallerFactory(appRouter);
+export const createCaller = createCallerFactory(appRouter)

@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import * as React from "react";
+import * as React from "react"
 import {
   LayoutDashboard,
   Ticket,
@@ -11,14 +11,14 @@ import {
   MoreHorizontal,
   Key,
   BookOpen,
-} from "lucide-react";
+} from "lucide-react"
 
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "~/components/ui/collapsible";
+} from "~/components/ui/collapsible"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +26,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
+} from "~/components/ui/dropdown-menu"
 import {
   Sidebar,
   SidebarContent,
@@ -41,13 +41,13 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
-} from "~/components/ui/sidebar";
-import { createClient } from "~/utils/supabase/client";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { CompanySwitcher } from "~/components/company-switcher";
+} from "~/components/ui/sidebar"
+import { createClient } from "~/utils/supabase/client"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { CompanySwitcher } from "~/components/company-switcher"
 
-const supabase = createClient();
+const supabase = createClient()
 
 // Navigation data structure
 const data = {
@@ -114,29 +114,29 @@ const data = {
       icon: Key,
     },
   ],
-};
+}
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user?: {
-    first_name: string;
-    last_name: string;
-    email: string;
-    avatar_url?: string | null;
-  };
+    first_name: string
+    last_name: string
+    email: string
+    avatar_url?: string | null
+  }
   company?: {
-    name: string;
-    slug: string;
-    logo_url?: string | null;
-  };
+    name: string
+    slug: string
+    logo_url?: string | null
+  }
 }
 
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
-  const router = useRouter();
+  const router = useRouter()
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
+    await supabase.auth.signOut()
+    router.push("/login")
+  }
 
   return (
     <Sidebar variant="floating" collapsible="icon" {...props}>
@@ -280,5 +280,5 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  );
+  )
 }

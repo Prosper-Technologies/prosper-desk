@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { useParams } from "next/navigation";
-import { Card, CardContent } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
+import { useParams } from "next/navigation"
+import { Card, CardContent } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Badge } from "~/components/ui/badge"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,9 +11,9 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "~/components/ui/breadcrumb";
-import { SidebarTrigger } from "~/components/ui/sidebar";
-import { TiptapEditor } from "~/components/ui/tiptap-editor";
+} from "~/components/ui/breadcrumb"
+import { SidebarTrigger } from "~/components/ui/sidebar"
+import { TiptapEditor } from "~/components/ui/tiptap-editor"
 import {
   ArrowLeft,
   Calendar,
@@ -25,14 +25,14 @@ import {
   Globe,
   Lock,
   Loader,
-} from "lucide-react";
-import Link from "next/link";
-import { api } from "~/trpc/react";
-import { formatRelativeTime } from "~/lib/utils";
+} from "lucide-react"
+import Link from "next/link"
+import { api } from "~/trpc/react"
+import { formatRelativeTime } from "~/lib/utils"
 
 export default function ArticleViewPage() {
-  const params = useParams();
-  const slug = params?.slug as string;
+  const params = useParams()
+  const slug = params?.slug as string
 
   // Use the internal getBySlugInternal endpoint for dashboard views
   const {
@@ -41,8 +41,8 @@ export default function ArticleViewPage() {
     error,
   } = api.knowledgeBase.getBySlugInternal.useQuery(
     { slug },
-    { enabled: !!slug },
-  );
+    { enabled: !!slug }
+  )
 
   if (isLoading) {
     return (
@@ -52,7 +52,7 @@ export default function ArticleViewPage() {
           <p className="text-gray-600">Loading article...</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (error || !article) {
@@ -72,7 +72,7 @@ export default function ArticleViewPage() {
           </Button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -169,7 +169,7 @@ export default function ArticleViewPage() {
                       article.content
                         .replace(/<[^>]*>/g, "")
                         .split(/\s+/)
-                        .filter(Boolean).length / 200,
+                        .filter(Boolean).length / 200
                     )}{" "}
                     min read
                   </span>
@@ -237,5 +237,5 @@ export default function ArticleViewPage() {
         </Card>
       </div>
     </div>
-  );
+  )
 }

@@ -1,5 +1,5 @@
-import { renderTrpcPanel } from "trpc-panel";
-import { appRouter } from "~/server/api/root";
+import { renderTrpcPanel } from "trpc-panel"
+import { appRouter } from "~/server/api/root"
 
 export async function GET() {
   return new Response(
@@ -10,5 +10,5 @@ export async function GET() {
     {
       headers: { "Content-Type": "text/html" },
     }
-  );
+  )
 }

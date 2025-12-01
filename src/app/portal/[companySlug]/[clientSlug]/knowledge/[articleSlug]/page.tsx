@@ -1,8 +1,8 @@
-"use client";
+"use client"
 
-import { Card, CardContent } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
+import { Card, CardContent } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Badge } from "~/components/ui/badge"
 import {
   BookOpen,
   ArrowLeft,
@@ -11,18 +11,18 @@ import {
   Clock,
   Loader,
   Tag,
-} from "lucide-react";
-import Link from "next/link";
-import { api } from "~/trpc/react";
-import { formatRelativeTime } from "~/lib/utils";
-import { TiptapEditor } from "~/components/ui/tiptap-editor";
+} from "lucide-react"
+import Link from "next/link"
+import { api } from "~/trpc/react"
+import { formatRelativeTime } from "~/lib/utils"
+import { TiptapEditor } from "~/components/ui/tiptap-editor"
 
 interface ArticlePortalPageProps {
   params: {
-    companySlug: string;
-    clientSlug: string;
-    articleSlug: string;
-  };
+    companySlug: string
+    clientSlug: string
+    articleSlug: string
+  }
 }
 
 export default function ArticlePortalPage({ params }: ArticlePortalPageProps) {
@@ -36,16 +36,16 @@ export default function ArticlePortalPage({ params }: ArticlePortalPageProps) {
   }) as {
     data:
       | {
-          title: string;
-          content: string;
-          updated_at: Date;
-          view_count: number;
-          tags: string[] | null;
+          title: string
+          content: string
+          updated_at: Date
+          view_count: number
+          tags: string[] | null
         }
-      | undefined;
-    isLoading: boolean;
-    error: unknown;
-  };
+      | undefined
+    isLoading: boolean
+    error: unknown
+  }
 
   if (isLoading) {
     return (
@@ -55,7 +55,7 @@ export default function ArticlePortalPage({ params }: ArticlePortalPageProps) {
           <p className="text-gray-600">Loading article...</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (error || !article) {
@@ -77,7 +77,7 @@ export default function ArticlePortalPage({ params }: ArticlePortalPageProps) {
           </Button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -133,7 +133,7 @@ export default function ArticlePortalPage({ params }: ArticlePortalPageProps) {
                     article.content
                       .replace(/<[^>]*>/g, "")
                       .split(/\s+/)
-                      .filter(Boolean).length / 200,
+                      .filter(Boolean).length / 200
                   )}{" "}
                   min read
                 </span>
@@ -203,5 +203,5 @@ export default function ArticlePortalPage({ params }: ArticlePortalPageProps) {
         </div>
       </main>
     </div>
-  );
+  )
 }

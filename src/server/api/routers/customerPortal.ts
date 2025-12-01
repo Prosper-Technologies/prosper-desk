@@ -1,26 +1,26 @@
-import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import { customerPortalAccess, tickets, ticketComments } from "~/db/schema";
-import { eq, inArray, and, or, asc } from "drizzle-orm";
-import { TRPCError } from "@trpc/server";
-import type { db } from "~/db";
+import { z } from "zod"
+import { createTRPCRouter, publicProcedure } from "~/server/api/trpc"
+import { customerPortalAccess, tickets, ticketComments } from "~/db/schema"
+import { eq, inArray, and, or, asc } from "drizzle-orm"
+import { TRPCError } from "@trpc/server"
+import type { db } from "~/db"
 
 // Helper function to verify portal access via Supabase session
 async function verifyPortalAccess(
   ctx: { db: typeof db; supabase: any },
-  input: { companySlug: string; clientSlug: string },
+  input: { companySlug: string; clientSlug: string }
 ) {
   // Get the current user session
   const {
     data: { user },
     error: authError,
-  } = await ctx.supabase.auth.getUser();
+  } = await ctx.supabase.auth.getUser()
 
   if (authError || !user) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
       message: "Not authenticated. Please log in to the customer portal.",
-    });
+    })
   }
 
   // Find client by both company slug and client slug
@@ -29,22 +29,22 @@ async function verifyPortalAccess(
     with: {
       company: true,
     },
-  });
+  })
 
-  const client = clients.find((c) => c.company.slug === input.companySlug);
+  const client = clients.find((c) => c.company.slug === input.companySlug)
 
   // Verify the client exists and portal is enabled
   if (!client || !client.portal_enabled) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: "Client not found or portal disabled",
-    });
+    })
   }
 
   // First, check if user is a team member with access to this company
   const teamMember = await ctx.db.query.users.findFirst({
     where: (users, { eq }) => eq(users.email, user.email!),
-  });
+  })
 
   if (teamMember) {
     // Check if they have an active membership in the company
@@ -53,9 +53,9 @@ async function verifyPortalAccess(
         and(
           eq(memberships.user_id, teamMember.id),
           eq(memberships.company_id, client.company.id),
-          eq(memberships.is_active, true),
+          eq(memberships.is_active, true)
         ),
-    });
+    })
 
     if (membership) {
       // Team member has access
@@ -70,7 +70,7 @@ async function verifyPortalAccess(
         companySlug: client.company.slug,
         portalAccessId: null, // Team members don't have portal access records
         isTeamMember: true,
-      };
+      }
     }
   }
 
@@ -80,16 +80,16 @@ async function verifyPortalAccess(
       and(
         eq(customerPortalAccess.client_id, client.id),
         eq(customerPortalAccess.email, user.email!),
-        eq(customerPortalAccess.is_active, true),
+        eq(customerPortalAccess.is_active, true)
       ),
-  });
+  })
 
   if (!access) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message:
         "You don't have access to this customer portal. Please use the correct customer portal login.",
-    });
+    })
   }
 
   return {
@@ -103,7 +103,7 @@ async function verifyPortalAccess(
     companySlug: client.company.slug,
     portalAccessId: access.id,
     isTeamMember: false,
-  };
+  }
 }
 
 export const customerPortalRouter = createTRPCRouter({
@@ -114,7 +114,7 @@ export const customerPortalRouter = createTRPCRouter({
         companySlug: z.string(),
         clientSlug: z.string(),
         email: z.string().email(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Find client by both company slug and client slug
@@ -123,15 +123,15 @@ export const customerPortalRouter = createTRPCRouter({
         with: {
           company: true,
         },
-      });
+      })
 
-      const client = clients.find((c) => c.company.slug === input.companySlug);
+      const client = clients.find((c) => c.company.slug === input.companySlug)
 
       if (!client || !client.portal_enabled) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Portal not found or disabled",
-        });
+        })
       }
 
       // Check if this email has portal access
@@ -140,35 +140,35 @@ export const customerPortalRouter = createTRPCRouter({
           and(
             eq(customerPortalAccess.client_id, client.id),
             eq(customerPortalAccess.email, input.email),
-            eq(customerPortalAccess.is_active, true),
+            eq(customerPortalAccess.is_active, true)
           ),
-      });
+      })
 
       if (!access) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message:
             "This email does not have portal access. Please contact support.",
-        });
+        })
       }
 
       // Send OTP email using Supabase Auth
       const { error } = await ctx.supabase.auth.signInWithOtp({
         email: input.email,
-      });
+      })
 
       if (error) {
-        console.error("Failed to send OTP:", error);
+        console.error("Failed to send OTP:", error)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to send verification code. Please try again.",
-        });
+        })
       }
 
       return {
         message: "Verification code sent! Please check your email.",
         email: input.email,
-      };
+      }
     }),
 
   // Verify OTP and validate portal access
@@ -178,7 +178,7 @@ export const customerPortalRouter = createTRPCRouter({
         companySlug: z.string(),
         clientSlug: z.string(),
         email: z.string().email(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Verify the client exists and portal is enabled
@@ -187,15 +187,15 @@ export const customerPortalRouter = createTRPCRouter({
         with: {
           company: true,
         },
-      });
+      })
 
-      const client = clients.find((c) => c.company.slug === input.companySlug);
+      const client = clients.find((c) => c.company.slug === input.companySlug)
 
       if (!client || !client.portal_enabled) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Portal not found or disabled",
-        });
+        })
       }
 
       // Check if this email has portal access
@@ -204,27 +204,27 @@ export const customerPortalRouter = createTRPCRouter({
           and(
             eq(customerPortalAccess.client_id, client.id),
             eq(customerPortalAccess.email, input.email),
-            eq(customerPortalAccess.is_active, true),
+            eq(customerPortalAccess.is_active, true)
           ),
-      });
+      })
 
       if (!access) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "This email does not have portal access.",
-        });
+        })
       }
 
       // Update last login time
       await ctx.db
         .update(customerPortalAccess)
         .set({ last_login_at: new Date() })
-        .where(eq(customerPortalAccess.id, access.id));
+        .where(eq(customerPortalAccess.id, access.id))
 
       return {
         message: "Access validated!",
         accessId: access.id,
-      };
+      }
     }),
 
   // Verify session access (replaces token verification)
@@ -234,13 +234,13 @@ export const customerPortalRouter = createTRPCRouter({
         companySlug: z.string(),
         clientSlug: z.string(),
         accessToken: z.string().optional(), // Kept for backwards compatibility, but not used
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-      });
+      })
 
       // Update last login only for customer portal access (not team members)
       if (!access.isTeamMember && access.portalAccessId) {
@@ -250,7 +250,7 @@ export const customerPortalRouter = createTRPCRouter({
             last_login_at: new Date(),
             updated_at: new Date(),
           })
-          .where(eq(customerPortalAccess.id, access.portalAccessId));
+          .where(eq(customerPortalAccess.id, access.portalAccessId))
       }
 
       return {
@@ -262,7 +262,7 @@ export const customerPortalRouter = createTRPCRouter({
         companyId: access.companyId,
         companyName: access.companyName,
         companySlug: access.companySlug,
-      };
+      }
     }),
 
   // Get customer tickets
@@ -274,16 +274,16 @@ export const customerPortalRouter = createTRPCRouter({
         accessToken: z.string().optional(), // Kept for backwards compatibility, but not used
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(50).default(10),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       // Verify access first
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-      });
+      })
 
-      const offset = (input.page - 1) * input.limit;
+      const offset = (input.page - 1) * input.limit
 
       // Get ALL tickets for this client (not filtered by customer email)
       const baseTickets = await ctx.db.query.tickets.findMany({
@@ -291,54 +291,54 @@ export const customerPortalRouter = createTRPCRouter({
         limit: input.limit,
         offset,
         orderBy: (tickets, { desc }) => [desc(tickets.created_at)],
-      });
+      })
 
       // If no tickets found, return empty array
       if (baseTickets.length === 0) {
-        return [];
+        return []
       }
 
       // Get assigned memberships for tickets that have them
       const membershipIds = baseTickets
         .map((ticket) => ticket.assigned_to_membership_id)
-        .filter((id): id is string => id !== null);
+        .filter((id): id is string => id !== null)
 
-      let memberships: any[] = [];
+      let memberships: any[] = []
       if (membershipIds.length > 0) {
         const baseMemberships = await ctx.db.query.memberships.findMany({
           where: (memberships) => inArray(memberships.id, membershipIds),
-        });
+        })
 
-        const userIds = baseMemberships.map((m) => m.user_id);
-        let users: any[] = [];
+        const userIds = baseMemberships.map((m) => m.user_id)
+        let users: any[] = []
         if (userIds.length > 0) {
           users = await ctx.db.query.users.findMany({
             where: (users) => inArray(users.id, userIds),
-          });
+          })
         }
 
         memberships = baseMemberships.map((membership) => ({
           ...membership,
           user: users.find((u) => u.id === membership.user_id) || null,
-        }));
+        }))
       }
 
       // Get assigned customer portal accesses for tickets that have them
       const customerPortalAccessIds = baseTickets
         .map((ticket) => ticket.assigned_to_customer_portal_access_id)
-        .filter((id): id is string => id !== null);
+        .filter((id): id is string => id !== null)
 
-      let assignedCustomerPortalAccesses: any[] = [];
+      let assignedCustomerPortalAccesses: any[] = []
       if (customerPortalAccessIds.length > 0) {
         assignedCustomerPortalAccesses =
           await ctx.db.query.customerPortalAccess.findMany({
             where: (customerPortalAccess) =>
               inArray(customerPortalAccess.id, customerPortalAccessIds),
-          });
+          })
       }
 
-      const ticketIds = baseTickets.map((ticket) => ticket.id);
-      let baseComments: any[] = [];
+      const ticketIds = baseTickets.map((ticket) => ticket.id)
+      let baseComments: any[] = []
       if (ticketIds.length > 0) {
         try {
           baseComments = await ctx.db
@@ -347,51 +347,51 @@ export const customerPortalRouter = createTRPCRouter({
             .where(
               and(
                 inArray(ticketComments.ticket_id, ticketIds),
-                eq(ticketComments.is_internal, false),
-              ),
+                eq(ticketComments.is_internal, false)
+              )
             )
-            .orderBy(asc(ticketComments.created_at));
+            .orderBy(asc(ticketComments.created_at))
         } catch (error) {
-          console.error("Failed to fetch comments:", error);
-          baseComments = [];
+          console.error("Failed to fetch comments:", error)
+          baseComments = []
         }
       }
 
       const commentMembershipIds = baseComments
         .map((comment) => comment.membership_id)
-        .filter((id): id is string => id !== null);
+        .filter((id): id is string => id !== null)
 
-      let commentMemberships: any[] = [];
-      let commentUsers: any[] = [];
+      let commentMemberships: any[] = []
+      let commentUsers: any[] = []
       if (commentMembershipIds.length > 0) {
         const baseMemberships = await ctx.db.query.memberships.findMany({
           where: (memberships) => inArray(memberships.id, commentMembershipIds),
-        });
+        })
 
-        const userIds = baseMemberships.map((m) => m.user_id);
+        const userIds = baseMemberships.map((m) => m.user_id)
         if (userIds.length > 0) {
           commentUsers = await ctx.db.query.users.findMany({
             where: (users) => inArray(users.id, userIds),
-          });
+          })
         }
 
         commentMemberships = baseMemberships.map((membership) => ({
           ...membership,
           user: commentUsers.find((u) => u.id === membership.user_id) || null,
-        }));
+        }))
       }
 
       // Get customer portal access data for comments that have customer_portal_access_id
       const commentPortalAccessIds = baseComments
         .map((comment) => comment.customer_portal_access_id)
-        .filter((id): id is string => id !== null);
+        .filter((id): id is string => id !== null)
 
-      let commentPortalAccess: any[] = [];
+      let commentPortalAccess: any[] = []
       if (commentPortalAccessIds.length > 0) {
         commentPortalAccess = await ctx.db.query.customerPortalAccess.findMany({
           where: (customerPortalAccess) =>
             inArray(customerPortalAccess.id, commentPortalAccessIds),
-        });
+        })
       }
 
       // Combine comment data
@@ -402,9 +402,9 @@ export const customerPortalRouter = createTRPCRouter({
           null,
         customerPortalAccess:
           commentPortalAccess.find(
-            (p) => p.id === comment.customer_portal_access_id,
+            (p) => p.id === comment.customer_portal_access_id
           ) || null,
-      }));
+      }))
 
       // Combine the data manually
       const customerTickets = baseTickets.map((ticket) => ({
@@ -414,12 +414,12 @@ export const customerPortalRouter = createTRPCRouter({
           null,
         assignedToCustomerPortalAccess:
           assignedCustomerPortalAccesses.find(
-            (cpa) => cpa.id === ticket.assigned_to_customer_portal_access_id,
+            (cpa) => cpa.id === ticket.assigned_to_customer_portal_access_id
           ) || null,
         comments: comments.filter((comment) => comment.ticket_id === ticket.id),
-      }));
+      }))
 
-      return customerTickets;
+      return customerTickets
     }),
 
   // Create ticket from customer portal
@@ -432,23 +432,23 @@ export const customerPortalRouter = createTRPCRouter({
         subject: z.string().min(1),
         description: z.string().min(1),
         priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Verify access first
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-      });
+      })
 
       // Get default SLA policy for the company
       const defaultSLA = await ctx.db.query.slaPolicies.findFirst({
         where: (slaPolicies, { and, eq }) =>
           and(
             eq(slaPolicies.company_id, access.companyId),
-            eq(slaPolicies.is_default, true),
+            eq(slaPolicies.is_default, true)
           ),
-      });
+      })
 
       // Find a suitable agent to auto-assign (optional)
       const availableAgentMembership = await ctx.db.query.memberships.findFirst(
@@ -457,14 +457,14 @@ export const customerPortalRouter = createTRPCRouter({
             and(
               eq(memberships.company_id, access.companyId),
               eq(memberships.role, "agent"),
-              eq(memberships.is_active, true),
+              eq(memberships.is_active, true)
             ),
           with: {
             user: true,
           },
           orderBy: (memberships, { asc }) => [asc(memberships.joined_at)], // Simple round-robin
-        },
-      );
+        }
+      )
 
       const ticketData = {
         company_id: access.companyId,
@@ -477,14 +477,14 @@ export const customerPortalRouter = createTRPCRouter({
         created_by_membership_id: null, // Customer created, not a member
         assigned_to_membership_id: availableAgentMembership?.id || null,
         sla_policy_id: defaultSLA?.id || null,
-      };
+      }
 
       const [ticket] = await ctx.db
         .insert(tickets)
         .values(ticketData)
-        .returning();
+        .returning()
 
-      return ticket;
+      return ticket
     }),
 
   // Add comment to ticket from customer portal
@@ -496,47 +496,47 @@ export const customerPortalRouter = createTRPCRouter({
         accessToken: z.string().optional(), // Kept for backwards compatibility, but not used
         ticketId: z.string().uuid(),
         content: z.string().min(1),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Verify access first
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-      });
+      })
 
       // Verify ticket belongs to this client (not checking customer email)
       const ticket = await ctx.db.query.tickets.findFirst({
         where: (tickets, { and, eq }) =>
           and(
             eq(tickets.id, input.ticketId),
-            eq(tickets.client_id, access.clientId),
+            eq(tickets.client_id, access.clientId)
           ),
-      });
+      })
 
       if (!ticket) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Ticket not found or access denied",
-        });
+        })
       }
 
       // Get membership_id if this is a team member
-      let membershipId = null;
+      let membershipId = null
       if (access.isTeamMember) {
         const user = await ctx.db.query.users.findFirst({
           where: (users, { eq }) => eq(users.email, access.customerEmail),
-        });
+        })
         if (user) {
           const membership = await ctx.db.query.memberships.findFirst({
             where: (memberships, { and, eq }) =>
               and(
                 eq(memberships.user_id, user.id),
                 eq(memberships.company_id, access.companyId),
-                eq(memberships.is_active, true),
+                eq(memberships.is_active, true)
               ),
-          });
-          membershipId = membership?.id || null;
+          })
+          membershipId = membership?.id || null
         }
       }
 
@@ -553,15 +553,15 @@ export const customerPortalRouter = createTRPCRouter({
           is_internal: false,
           is_system: false,
         })
-        .returning();
+        .returning()
 
       // Update ticket to show activity
       await ctx.db
         .update(tickets)
         .set({ updated_at: new Date() })
-        .where(eq(tickets.id, input.ticketId));
+        .where(eq(tickets.id, input.ticketId))
 
-      return comment;
+      return comment
     }),
 
   // Get customer portal knowledge base
@@ -572,7 +572,7 @@ export const customerPortalRouter = createTRPCRouter({
         clientSlug: z.string(),
         search: z.string().optional(),
         limit: z.number().min(1).max(50).default(20),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       // First get the client to find the company
@@ -581,7 +581,7 @@ export const customerPortalRouter = createTRPCRouter({
         with: {
           company: true,
         },
-      });
+      })
 
       if (
         !client ||
@@ -591,7 +591,7 @@ export const customerPortalRouter = createTRPCRouter({
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Client not found or portal disabled",
-        });
+        })
       }
 
       // Get published knowledge base articles for the client's company
@@ -601,19 +601,19 @@ export const customerPortalRouter = createTRPCRouter({
             eq(knowledgeBase.company_id, client.company.id),
             eq(knowledgeBase.is_published, true),
             eq(knowledgeBase.is_public, true),
-          ];
+          ]
 
           if (input.search) {
-            conditions.push(ilike(knowledgeBase.title, `%${input.search}%`));
+            conditions.push(ilike(knowledgeBase.title, `%${input.search}%`))
           }
 
-          return and(...conditions);
+          return and(...conditions)
         },
         limit: input.limit,
         orderBy: (knowledgeBase, { desc }) => [desc(knowledgeBase.created_at)],
-      });
+      })
 
-      return articles;
+      return articles
     }),
 
   // Get SLA metrics for customer portal
@@ -623,14 +623,14 @@ export const customerPortalRouter = createTRPCRouter({
         companySlug: z.string(),
         clientSlug: z.string(),
         accessToken: z.string().optional(), // Kept for backwards compatibility, but not used
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       // Verify access first
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-      });
+      })
 
       // Get ALL tickets for this client with SLA data
       const customerTickets = await ctx.db.query.tickets.findMany({
@@ -638,55 +638,54 @@ export const customerPortalRouter = createTRPCRouter({
         with: {
           slaPolicy: true,
         },
-      });
+      })
 
       // Calculate SLA metrics
-      const totalTickets = customerTickets.length;
+      const totalTickets = customerTickets.length
       const resolvedTickets = customerTickets.filter(
-        (t) => t.status === "resolved" || t.status === "closed",
-      );
+        (t) => t.status === "resolved" || t.status === "closed"
+      )
 
       // Response time SLA compliance
       const ticketsWithResponseSLA = customerTickets.filter(
         (t) =>
-          t.first_response_at && t.slaPolicy && t.sla_response_breach === false,
-      );
+          t.first_response_at && t.slaPolicy && t.sla_response_breach === false
+      )
 
       // Resolution time SLA compliance
       const ticketsWithResolutionSLA = resolvedTickets.filter(
-        (t) =>
-          t.resolved_at && t.slaPolicy && t.sla_resolution_breach === false,
-      );
+        (t) => t.resolved_at && t.slaPolicy && t.sla_resolution_breach === false
+      )
 
       // Average response time (in hours)
       const responseTimesInHours = customerTickets
         .filter((t) => t.first_response_at)
         .map((t) => {
-          const created = new Date(t.created_at);
-          const responded = new Date(t.first_response_at!);
-          return (responded.getTime() - created.getTime()) / (1000 * 60 * 60);
-        });
+          const created = new Date(t.created_at)
+          const responded = new Date(t.first_response_at!)
+          return (responded.getTime() - created.getTime()) / (1000 * 60 * 60)
+        })
 
       const avgResponseTime =
         responseTimesInHours.length > 0
           ? responseTimesInHours.reduce((a, b) => a + b, 0) /
             responseTimesInHours.length
-          : 0;
+          : 0
 
       // Average resolution time (in hours)
       const resolutionTimesInHours = resolvedTickets
         .filter((t) => t.resolved_at)
         .map((t) => {
-          const created = new Date(t.created_at);
-          const resolved = new Date(t.resolved_at!);
-          return (resolved.getTime() - created.getTime()) / (1000 * 60 * 60);
-        });
+          const created = new Date(t.created_at)
+          const resolved = new Date(t.resolved_at!)
+          return (resolved.getTime() - created.getTime()) / (1000 * 60 * 60)
+        })
 
       const avgResolutionTime =
         resolutionTimesInHours.length > 0
           ? resolutionTimesInHours.reduce((a, b) => a + b, 0) /
             resolutionTimesInHours.length
-          : 0;
+          : 0
 
       // Status breakdown
       const statusBreakdown = {
@@ -695,7 +694,7 @@ export const customerPortalRouter = createTRPCRouter({
           .length,
         resolved: customerTickets.filter((t) => t.status === "resolved").length,
         closed: customerTickets.filter((t) => t.status === "closed").length,
-      };
+      }
 
       // Priority breakdown
       const priorityBreakdown = {
@@ -703,7 +702,7 @@ export const customerPortalRouter = createTRPCRouter({
         medium: customerTickets.filter((t) => t.priority === "medium").length,
         high: customerTickets.filter((t) => t.priority === "high").length,
         urgent: customerTickets.filter((t) => t.priority === "urgent").length,
-      };
+      }
 
       return {
         totalTickets,
@@ -720,7 +719,7 @@ export const customerPortalRouter = createTRPCRouter({
         avgResolutionTimeHours: Number(avgResolutionTime.toFixed(1)),
         statusBreakdown,
         priorityBreakdown,
-      };
+      }
     }),
 
   // Get a single ticket by ID
@@ -730,81 +729,81 @@ export const customerPortalRouter = createTRPCRouter({
         companySlug: z.string(),
         clientSlug: z.string(),
         ticketId: z.string().uuid(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       // Verify access first
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-      });
+      })
 
       // Get the specific ticket
       const ticket = await ctx.db.query.tickets.findFirst({
         where: (tickets, { and, eq }) =>
           and(
             eq(tickets.id, input.ticketId),
-            eq(tickets.client_id, access.clientId),
+            eq(tickets.client_id, access.clientId)
           ),
-      });
+      })
 
       if (!ticket) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Ticket not found",
-        });
+        })
       }
 
       // Get assigned membership if exists
-      let assignedTo = null;
+      let assignedTo = null
       if (ticket.assigned_to_membership_id) {
         const membership = await ctx.db.query.memberships.findFirst({
           where: (memberships, { eq }) =>
             eq(memberships.id, ticket.assigned_to_membership_id!),
-        });
+        })
 
         if (membership) {
           const user = await ctx.db.query.users.findFirst({
             where: (users, { eq }) => eq(users.id, membership.user_id),
-          });
+          })
 
           assignedTo = {
             ...membership,
             user: user || null,
-          };
+          }
         }
       }
 
       // Get assigned customer portal access if exists
-      let assignedToCustomerPortalAccess = null;
+      let assignedToCustomerPortalAccess = null
       if (ticket.assigned_to_customer_portal_access_id) {
         assignedToCustomerPortalAccess =
           await ctx.db.query.customerPortalAccess.findFirst({
             where: (customerPortalAccess, { eq }) =>
               eq(
                 customerPortalAccess.id,
-                ticket.assigned_to_customer_portal_access_id!,
+                ticket.assigned_to_customer_portal_access_id!
               ),
-          });
+          })
       }
 
       // Get created by membership if exists
-      let createdBy = null;
+      let createdBy = null
       if (ticket.created_by_membership_id) {
         const membership = await ctx.db.query.memberships.findFirst({
           where: (memberships, { eq }) =>
             eq(memberships.id, ticket.created_by_membership_id!),
-        });
+        })
 
         if (membership) {
           const user = await ctx.db.query.users.findFirst({
             where: (users, { eq }) => eq(users.id, membership.user_id),
-          });
+          })
 
           createdBy = {
             ...membership,
             user: user || null,
-          };
+          }
         }
       }
 
@@ -813,44 +812,44 @@ export const customerPortalRouter = createTRPCRouter({
         where: (ticketComments, { eq }) =>
           eq(ticketComments.ticket_id, input.ticketId),
         orderBy: (ticketComments, { asc }) => [asc(ticketComments.created_at)],
-      });
+      })
 
       // Get membership info for comments
       const commentMembershipIds = baseComments
         .map((comment) => comment.membership_id)
-        .filter((id): id is string => id !== null);
+        .filter((id): id is string => id !== null)
 
-      let commentMemberships: any[] = [];
-      let commentUsers: any[] = [];
+      let commentMemberships: any[] = []
+      let commentUsers: any[] = []
       if (commentMembershipIds.length > 0) {
         const baseMemberships = await ctx.db.query.memberships.findMany({
           where: (memberships) => inArray(memberships.id, commentMembershipIds),
-        });
+        })
 
-        const userIds = baseMemberships.map((m) => m.user_id);
+        const userIds = baseMemberships.map((m) => m.user_id)
         if (userIds.length > 0) {
           commentUsers = await ctx.db.query.users.findMany({
             where: (users) => inArray(users.id, userIds),
-          });
+          })
         }
 
         commentMemberships = baseMemberships.map((membership) => ({
           ...membership,
           user: commentUsers.find((u) => u.id === membership.user_id) || null,
-        }));
+        }))
       }
 
       // Get customer portal access data for comments
       const commentPortalAccessIds = baseComments
         .map((comment) => comment.customer_portal_access_id)
-        .filter((id): id is string => id !== null);
+        .filter((id): id is string => id !== null)
 
-      let commentPortalAccess: any[] = [];
+      let commentPortalAccess: any[] = []
       if (commentPortalAccessIds.length > 0) {
         commentPortalAccess = await ctx.db.query.customerPortalAccess.findMany({
           where: (customerPortalAccess) =>
             inArray(customerPortalAccess.id, commentPortalAccessIds),
-        });
+        })
       }
 
       // Combine comment data
@@ -861,12 +860,12 @@ export const customerPortalRouter = createTRPCRouter({
           null,
         customerPortalAccess:
           commentPortalAccess.find(
-            (p) => p.id === comment.customer_portal_access_id,
+            (p) => p.id === comment.customer_portal_access_id
           ) || null,
-      }));
+      }))
 
       // Get form submission if ticket was created from a form
-      let formSubmission = null;
+      let formSubmission = null
       if (ticket.external_type === "form_submission" && ticket.external_id) {
         formSubmission = await ctx.db.query.formSubmissions.findFirst({
           where: (formSubmissions, { eq }) =>
@@ -891,11 +890,11 @@ export const customerPortalRouter = createTRPCRouter({
               },
             },
           },
-        });
+        })
       }
 
       // Everyone in the customer portal can edit tickets
-      const canEdit = true;
+      const canEdit = true
 
       return {
         ...ticket,
@@ -905,7 +904,7 @@ export const customerPortalRouter = createTRPCRouter({
         comments,
         formSubmission,
         canEdit, // Add permission flag
-      };
+      }
     }),
 
   // Update ticket (subject, description, priority, assignee)
@@ -924,29 +923,29 @@ export const customerPortalRouter = createTRPCRouter({
           .uuid()
           .nullable()
           .optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Verify access first
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-      });
+      })
 
       // Get the ticket
       const ticket = await ctx.db.query.tickets.findFirst({
         where: (tickets, { and, eq }) =>
           and(
             eq(tickets.id, input.ticketId),
-            eq(tickets.client_id, access.clientId),
+            eq(tickets.client_id, access.clientId)
           ),
-      });
+      })
 
       if (!ticket) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Ticket not found",
-        });
+        })
       }
 
       // Everyone in the customer portal can edit tickets
@@ -955,33 +954,33 @@ export const customerPortalRouter = createTRPCRouter({
       // Build update object
       const updateData: any = {
         updated_at: new Date(),
-      };
+      }
 
-      if (input.subject !== undefined) updateData.subject = input.subject;
+      if (input.subject !== undefined) updateData.subject = input.subject
       if (input.description !== undefined)
-        updateData.description = input.description;
-      if (input.priority !== undefined) updateData.priority = input.priority;
+        updateData.description = input.description
+      if (input.priority !== undefined) updateData.priority = input.priority
 
       // Handle assignment - membership and customer portal access are mutually exclusive
       if (input.assigned_to_membership_id !== undefined) {
-        updateData.assigned_to_membership_id = input.assigned_to_membership_id;
+        updateData.assigned_to_membership_id = input.assigned_to_membership_id
         // Clear customer portal access assignment
-        updateData.assigned_to_customer_portal_access_id = null;
+        updateData.assigned_to_customer_portal_access_id = null
       }
       if (input.assigned_to_customer_portal_access_id !== undefined) {
         updateData.assigned_to_customer_portal_access_id =
-          input.assigned_to_customer_portal_access_id;
+          input.assigned_to_customer_portal_access_id
         // Clear membership assignment
-        updateData.assigned_to_membership_id = null;
+        updateData.assigned_to_membership_id = null
       }
 
       // Update the ticket
       await ctx.db
         .update(tickets)
         .set(updateData)
-        .where(eq(tickets.id, input.ticketId));
+        .where(eq(tickets.id, input.ticketId))
 
-      return { success: true };
+      return { success: true }
     }),
 
   // Resolve ticket (anyone logged in can resolve)
@@ -991,29 +990,29 @@ export const customerPortalRouter = createTRPCRouter({
         companySlug: z.string(),
         clientSlug: z.string(),
         ticketId: z.string().uuid(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Verify access first
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-      });
+      })
 
       // Get the ticket
       const ticket = await ctx.db.query.tickets.findFirst({
         where: (tickets, { and, eq }) =>
           and(
             eq(tickets.id, input.ticketId),
-            eq(tickets.client_id, access.clientId),
+            eq(tickets.client_id, access.clientId)
           ),
-      });
+      })
 
       if (!ticket) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Ticket not found",
-        });
+        })
       }
 
       // Anyone with portal access can resolve
@@ -1024,9 +1023,9 @@ export const customerPortalRouter = createTRPCRouter({
           resolved_at: new Date(),
           updated_at: new Date(),
         })
-        .where(eq(tickets.id, input.ticketId));
+        .where(eq(tickets.id, input.ticketId))
 
-      return { success: true };
+      return { success: true }
     }),
 
   // Get available team members for assignment
@@ -1035,14 +1034,14 @@ export const customerPortalRouter = createTRPCRouter({
       z.object({
         companySlug: z.string(),
         clientSlug: z.string(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       // Verify access first
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-      });
+      })
 
       // Get all active memberships for the company (agents, admins, and owners)
       const memberships = await ctx.db.query.memberships.findMany({
@@ -1053,18 +1052,18 @@ export const customerPortalRouter = createTRPCRouter({
             or(
               eq(memberships.role, "agent"),
               eq(memberships.role, "admin"),
-              eq(memberships.role, "owner"),
-            ),
+              eq(memberships.role, "owner")
+            )
           ),
-      });
+      })
 
       // Get user details for these memberships
-      const userIds = memberships.map((m) => m.user_id);
-      let users: any[] = [];
+      const userIds = memberships.map((m) => m.user_id)
+      let users: any[] = []
       if (userIds.length > 0) {
         users = await ctx.db.query.users.findMany({
           where: (users) => inArray(users.id, userIds),
-        });
+        })
       }
 
       // Combine and return
@@ -1072,7 +1071,7 @@ export const customerPortalRouter = createTRPCRouter({
         id: membership.id,
         role: membership.role,
         user: users.find((u) => u.id === membership.user_id) || null,
-      }));
+      }))
     }),
 
   // Get all customer portal accesses for the client
@@ -1081,21 +1080,21 @@ export const customerPortalRouter = createTRPCRouter({
       z.object({
         companySlug: z.string(),
         clientSlug: z.string(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       // Verify access first
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-      });
+      })
 
       // Get all active customer portal accesses for the client
       const portalAccesses = await ctx.db.query.customerPortalAccess.findMany({
         where: (customerPortalAccess, { and, eq }) =>
           and(
             eq(customerPortalAccess.client_id, access.clientId),
-            eq(customerPortalAccess.is_active, true),
+            eq(customerPortalAccess.is_active, true)
           ),
         with: {
           client: {
@@ -1103,9 +1102,9 @@ export const customerPortalRouter = createTRPCRouter({
           },
         },
         orderBy: (portalAccess, { desc }) => [desc(portalAccess.created_at)],
-      });
+      })
 
-      return portalAccesses;
+      return portalAccesses
     }),
 
   // Get forms available for this client
@@ -1114,14 +1113,14 @@ export const customerPortalRouter = createTRPCRouter({
       z.object({
         companySlug: z.string(),
         clientSlug: z.string(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       // Verify access first
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-      });
+      })
 
       // Get forms for this specific client only
       const clientForms = await ctx.db.query.forms.findMany({
@@ -1129,12 +1128,12 @@ export const customerPortalRouter = createTRPCRouter({
           and(
             eq(forms.company_id, access.companyId),
             eq(forms.is_published, true),
-            eq(forms.client_id, access.clientId),
+            eq(forms.client_id, access.clientId)
           ),
         orderBy: (forms, { desc }) => [desc(forms.created_at)],
-      });
+      })
 
-      return clientForms;
+      return clientForms
     }),
 
   // Get form submissions for this client
@@ -1146,30 +1145,30 @@ export const customerPortalRouter = createTRPCRouter({
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(50).default(10),
         formId: z.string().uuid().optional(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       // Verify access first
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-      });
+      })
 
-      const { formSubmissions } = await import("~/db/schema");
-      const { count } = await import("drizzle-orm");
+      const { formSubmissions } = await import("~/db/schema")
+      const { count } = await import("drizzle-orm")
 
-      const offset = (input.page - 1) * input.limit;
+      const offset = (input.page - 1) * input.limit
 
       // Get forms for this specific client only
       const clientForms = await ctx.db.query.forms.findMany({
         where: (forms, { and, eq }) =>
           and(
             eq(forms.company_id, access.companyId),
-            eq(forms.client_id, access.clientId),
+            eq(forms.client_id, access.clientId)
           ),
-      });
+      })
 
-      const formIds = clientForms.map((f) => f.id);
+      const formIds = clientForms.map((f) => f.id)
 
       if (formIds.length === 0) {
         return {
@@ -1177,7 +1176,7 @@ export const customerPortalRouter = createTRPCRouter({
           total: 0,
           page: input.page,
           limit: input.limit,
-        };
+        }
       }
 
       // Get submissions for these forms from this user
@@ -1189,18 +1188,18 @@ export const customerPortalRouter = createTRPCRouter({
             or(
               eq(
                 formSubmissions.submitted_by_customer_portal_access_id,
-                access.portalAccessId!,
+                access.portalAccessId!
               ),
-              eq(formSubmissions.submitted_by_email, access.customerEmail),
+              eq(formSubmissions.submitted_by_email, access.customerEmail)
             ),
-          ];
+          ]
 
           // Add form filter if specified
           if (input.formId) {
-            conditions.push(eq(formSubmissions.form_id, input.formId));
+            conditions.push(eq(formSubmissions.form_id, input.formId))
           }
 
-          return and(...conditions);
+          return and(...conditions)
         },
         with: {
           form: {
@@ -1225,7 +1224,7 @@ export const customerPortalRouter = createTRPCRouter({
         orderBy: (formSubmissions, { desc }) => [
           desc(formSubmissions.submitted_at),
         ],
-      });
+      })
 
       // Get total count
       const countConditions = [
@@ -1233,21 +1232,21 @@ export const customerPortalRouter = createTRPCRouter({
         or(
           eq(
             formSubmissions.submitted_by_customer_portal_access_id,
-            access.portalAccessId!,
+            access.portalAccessId!
           ),
-          eq(formSubmissions.submitted_by_email, access.customerEmail),
+          eq(formSubmissions.submitted_by_email, access.customerEmail)
         ),
-      ];
+      ]
 
       // Add form filter if specified
       if (input.formId) {
-        countConditions.push(eq(formSubmissions.form_id, input.formId));
+        countConditions.push(eq(formSubmissions.form_id, input.formId))
       }
 
       const [{ total }] = await ctx.db
         .select({ total: count() })
         .from(formSubmissions)
-        .where(and(...countConditions));
+        .where(and(...countConditions))
 
       return {
         submissions,
@@ -1255,7 +1254,7 @@ export const customerPortalRouter = createTRPCRouter({
         page: input.page,
         limit: input.limit,
         totalPages: Math.ceil(total / input.limit),
-      };
+      }
     }),
 
   // Create a ticket from a form submission
@@ -1267,42 +1266,42 @@ export const customerPortalRouter = createTRPCRouter({
         submissionId: z.string().uuid(),
         subject: z.string().optional(),
         priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Verify access first
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-      });
+      })
 
       // Import schemas
-      const { formSubmissions } = await import("~/db/schema");
+      const { formSubmissions } = await import("~/db/schema")
 
       // Get the submission
       const submission = await ctx.db.query.formSubmissions.findFirst({
         where: (formSubmissions, { and, eq }) =>
           and(
             eq(formSubmissions.id, input.submissionId),
-            eq(formSubmissions.company_id, access.companyId),
+            eq(formSubmissions.company_id, access.companyId)
           ),
         with: {
           form: true,
         },
-      });
+      })
 
       if (!submission) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Submission not found",
-        });
+        })
       }
 
       if (submission.ticket_id) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "A ticket has already been created for this submission",
-        });
+        })
       }
 
       const [ticket] = await ctx.db
@@ -1321,7 +1320,7 @@ export const customerPortalRouter = createTRPCRouter({
           external_id: submission.id,
           external_type: "form_submission",
         })
-        .returning();
+        .returning()
 
       // Update submission with ticket reference
       await ctx.db
@@ -1331,9 +1330,9 @@ export const customerPortalRouter = createTRPCRouter({
           ticket_created: true,
           updated_at: new Date(),
         })
-        .where(eq(formSubmissions.id, input.submissionId));
+        .where(eq(formSubmissions.id, input.submissionId))
 
-      return ticket;
+      return ticket
     }),
 
   // Download form submissions as CSV
@@ -1343,14 +1342,14 @@ export const customerPortalRouter = createTRPCRouter({
         companySlug: z.string(),
         clientSlug: z.string(),
         formId: z.string().uuid(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       // Verify access first
       const access = await verifyPortalAccess(ctx, {
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
-      });
+      })
 
       // Get the form
       const form = await ctx.db.query.forms.findFirst({
@@ -1358,15 +1357,15 @@ export const customerPortalRouter = createTRPCRouter({
           and(
             eq(forms.id, input.formId),
             eq(forms.company_id, access.companyId),
-            eq(forms.client_id, access.clientId),
+            eq(forms.client_id, access.clientId)
           ),
-      });
+      })
 
       if (!form) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Form not found",
-        });
+        })
       }
 
       // Get all submissions for this form from this user
@@ -1377,10 +1376,10 @@ export const customerPortalRouter = createTRPCRouter({
             or(
               eq(
                 formSubmissions.submitted_by_customer_portal_access_id,
-                access.portalAccessId!,
+                access.portalAccessId!
               ),
-              eq(formSubmissions.submitted_by_email, access.customerEmail),
-            ),
+              eq(formSubmissions.submitted_by_email, access.customerEmail)
+            )
           ),
         columns: {
           id: true,
@@ -1395,10 +1394,10 @@ export const customerPortalRouter = createTRPCRouter({
         orderBy: (formSubmissions, { desc }) => [
           desc(formSubmissions.submitted_at),
         ],
-      });
+      })
 
       // Build CSV
-      const fields = (form.fields as any[]) || [];
+      const fields = (form.fields as any[]) || []
       const headers = [
         "Submitted At",
         "Submitted By",
@@ -1406,40 +1405,40 @@ export const customerPortalRouter = createTRPCRouter({
         "Description",
         "External ID",
         "External Type",
-      ];
+      ]
 
       const rows = submissions.map((submission) => {
         const row = [
           new Date(submission.submitted_at).toLocaleString(),
           submission.submitted_by_name || submission.submitted_by_email,
           ...fields.map((field) => {
-            const value = (submission.data as any)?.[field.id];
-            if (Array.isArray(value)) return value.join(", ");
-            return value || "";
+            const value = (submission.data as any)?.[field.id]
+            if (Array.isArray(value)) return value.join(", ")
+            return value || ""
           }),
           submission.description || "",
           submission.external_id || "",
           submission.external_type || "",
-        ];
-        return row;
-      });
+        ]
+        return row
+      })
 
       // Convert to CSV string with proper formatting
-      const csvRows = [headers, ...rows];
+      const csvRows = [headers, ...rows]
       const csvContent = csvRows
         .map((row) =>
           row
             .map((cell) => {
               // Convert to string and escape quotes
-              const cellValue = String(cell ?? "").replace(/"/g, '""');
+              const cellValue = String(cell ?? "").replace(/"/g, '""')
               // Always quote cells to handle special characters
-              return `"${cellValue}"`;
+              return `"${cellValue}"`
             })
-            .join(","),
+            .join(",")
         )
-        .join("\r\n"); // Use Windows-style line endings for better compatibility
+        .join("\r\n") // Use Windows-style line endings for better compatibility
 
       // Add BOM for Excel UTF-8 compatibility
-      return "\uFEFF" + csvContent;
+      return "\uFEFF" + csvContent
     }),
-});
+})

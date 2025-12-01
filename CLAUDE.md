@@ -5,6 +5,7 @@ This document provides project-specific instructions for Claude to ensure consis
 ## Project Overview
 
 BlueDesk is a Next.js application built with:
+
 - **Framework**: Next.js 14 with TypeScript
 - **Database**: PostgreSQL with Drizzle ORM
 - **Authentication**: Supabase
@@ -19,11 +20,12 @@ BlueDesk is a Next.js application built with:
 When working on this project, use these specific commands:
 
 ### Database & Services
+
 ```bash
 # Start all development services
 pnpm run dev:services
 
-# Stop all services  
+# Stop all services
 pnpm run stop:services
 
 # Database operations
@@ -34,6 +36,7 @@ pnpm run db:studio      # Open Drizzle Studio
 ```
 
 ### Development
+
 ```bash
 pnpm dev                # Start development server
 pnpm build              # Build for production
@@ -45,11 +48,13 @@ pnpm type-check         # Run TypeScript type checking
 ## Code Quality Standards
 
 ### Linting & Type Checking
+
 - **Always run** `pnpm lint` and `pnpm type-check` after making code changes
 - ESLint and TypeScript errors are ignored during builds (see next.config.js) but should be fixed during development
 - Follow the existing ESLint configuration in `eslint.config.mjs`
 
 ### Code Style
+
 - Use TypeScript for all new files
 - Follow the existing code conventions (analyze existing files first)
 - Use the `~/*` path alias for imports from the `src/` directory
@@ -72,12 +77,14 @@ src/
 ## Database & Backend
 
 ### Database Schema
+
 - Located in `src/db/schema.ts`
 - Use Drizzle ORM for all database operations
 - Migrations are stored in `supabase/migrations/`
 - Configuration in `drizzle.config.ts`
 
 ### API Architecture
+
 - Use tRPC for type-safe API routes
 - Server procedures in `src/server/`
 - Client setup in `src/trpc/`
@@ -85,46 +92,55 @@ src/
 ## UI Guidelines
 
 ### Components
+
 - Use shadcn/ui components as the base layer
 - Extend with custom components in `src/components/`
 - Follow the existing component patterns and structure
 - Use Radix UI primitives for complex interactions
 
 ### Styling
+
 - Use Tailwind CSS for all styling
 - Custom colors and theme defined in `tailwind.config.ts`
 - Dark mode support via `next-themes`
 - Use CSS custom properties for theming
 
 ### Fonts
+
 - Geist Sans and Geist Mono are configured
 - Fonts are loaded via the theme configuration
 
 ## Environment Setup
 
 ### Required Environment Variables
+
 Reference `.env.example` for all required variables:
+
 - Database connection (`DATABASE_URL`)
 - Supabase configuration (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
 - App URL (`NEXT_PUBLIC_APP_URL`)
 
 ### Development Environment
+
 - Use `.env.local` for local development
 - Production environment uses `.env.production`
 
 ## Important Notes
 
 ### Build Configuration
+
 - TypeScript errors and ESLint errors are ignored during builds
 - This is intentional for rapid prototyping but code should still follow standards
 - Experimental typed routes are enabled
 
 ### Package Management
+
 - **Always use pnpm** (not npm or yarn)
 - Dependencies are managed in `package.json`
 - Lock file is `pnpm-lock.yaml`
 
 ### Git Workflow
+
 - Follow conventional commit messages
 - Ensure code is properly formatted before committing
 - Run type checks and linting before pushing

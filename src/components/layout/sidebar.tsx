@@ -1,8 +1,8 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useState } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Ticket,
@@ -13,14 +13,14 @@ import {
   X,
   Building2,
   LogOut,
-} from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { cn } from "~/lib/utils";
-import { createClient } from "~/utils/supabase/client";
-import { useRouter } from "next/navigation";
-import { CompanySwitcher } from "~/components/company-switcher";
+} from "lucide-react"
+import { Button } from "~/components/ui/button"
+import { cn } from "~/lib/utils"
+import { createClient } from "~/utils/supabase/client"
+import { useRouter } from "next/navigation"
+import { CompanySwitcher } from "~/components/company-switcher"
 
-const supabase = createClient();
+const supabase = createClient()
 
 const navigation = [
   {
@@ -48,28 +48,28 @@ const navigation = [
     href: "/settings",
     icon: Settings,
   },
-];
+]
 
 interface SidebarProps {
-  user: any;
-  company: any;
+  user: any
+  company: any
 }
 
 export default function Sidebar({ user, company }: SidebarProps) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const pathname = usePathname();
-  const router = useRouter();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const pathname = usePathname()
+  const router = useRouter()
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
+    await supabase.auth.signOut()
+    router.push("/login")
+  }
 
   const NavItems = () => (
     <>
       {navigation.map((item) => {
         const isActive =
-          pathname === item.href || pathname?.startsWith(`${item.href}/`);
+          pathname === item.href || pathname?.startsWith(`${item.href}/`)
         return (
           <Link
             key={item.name}
@@ -78,17 +78,17 @@ export default function Sidebar({ user, company }: SidebarProps) {
               "flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               isActive
                 ? "bg-primary text-primary-foreground"
-                : "text-gray-700 hover:bg-gray-100 hover:text-gray-900",
+                : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
             )}
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <item.icon className="mr-3 h-4 w-4" />
             {item.name}
           </Link>
-        );
+        )
       })}
     </>
-  );
+  )
 
   return (
     <>
@@ -227,5 +227,5 @@ export default function Sidebar({ user, company }: SidebarProps) {
         </div>
       )}
     </>
-  );
+  )
 }

@@ -1,12 +1,12 @@
-import { z } from "zod";
+import { z } from "zod"
 import {
   createTRPCRouter,
   companyProcedure,
   publicProcedure,
-} from "~/server/api/trpc";
-import { forms, formSubmissions, tickets } from "~/db/schema";
-import { eq, and, count } from "drizzle-orm";
-import { TRPCError } from "@trpc/server";
+} from "~/server/api/trpc"
+import { forms, formSubmissions, tickets } from "~/db/schema"
+import { eq, and, count } from "drizzle-orm"
+import { TRPCError } from "@trpc/server"
 
 const fieldTypeSchema = z.enum([
   "text",
@@ -19,7 +19,7 @@ const fieldTypeSchema = z.enum([
   "radio",
   "checkbox",
   "rating",
-]);
+])
 
 const formFieldSchema = z.object({
   id: z.string().uuid(),
@@ -41,7 +41,7 @@ const formFieldSchema = z.object({
     })
     .optional(),
   order: z.number(),
-});
+})
 
 const formSettingsSchema = z.object({
   allow_multiple_submissions: z.boolean().default(true),
@@ -51,7 +51,7 @@ const formSettingsSchema = z.object({
   redirect_url: z.string().url().optional(),
   notify_on_submission: z.boolean().default(false),
   notification_emails: z.array(z.string().email()).optional(),
-});
+})
 
 const ticketRuleSchema = z.object({
   id: z.string().uuid(),
@@ -63,34 +63,34 @@ const ticketRuleSchema = z.object({
   ticket_subject: z.string().optional(),
   ticket_priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
   assign_to_membership_id: z.string().uuid().optional(),
-});
+})
 
 // Helper function to evaluate ticket rules
 function evaluateRule(
   rule: z.infer<typeof ticketRuleSchema>,
-  fieldValue: any,
+  fieldValue: any
 ): boolean {
-  const { operator, value } = rule;
+  const { operator, value } = rule
 
   switch (operator) {
     case "eq":
-      return fieldValue == value;
+      return fieldValue == value
     case "neq":
-      return fieldValue != value;
+      return fieldValue != value
     case "lt":
-      return Number(fieldValue) < Number(value);
+      return Number(fieldValue) < Number(value)
     case "lte":
-      return Number(fieldValue) <= Number(value);
+      return Number(fieldValue) <= Number(value)
     case "gt":
-      return Number(fieldValue) > Number(value);
+      return Number(fieldValue) > Number(value)
     case "gte":
-      return Number(fieldValue) >= Number(value);
+      return Number(fieldValue) >= Number(value)
     case "contains":
       return String(fieldValue)
         .toLowerCase()
-        .includes(String(value).toLowerCase());
+        .includes(String(value).toLowerCase())
     default:
-      return false;
+      return false
   }
 }
 
@@ -99,40 +99,40 @@ async function createTicketFromRule(
   ctx: any,
   rule: z.infer<typeof ticketRuleSchema>,
   submission: {
-    id: string;
-    form_id: string;
-    company_id: string;
-    submitted_by_email: string;
-    submitted_by_name: string;
-    submitted_by_customer_portal_access_id?: string | null;
-    data: Record<string, any>;
-    description?: string | null;
+    id: string
+    form_id: string
+    company_id: string
+    submitted_by_email: string
+    submitted_by_name: string
+    submitted_by_customer_portal_access_id?: string | null
+    data: Record<string, any>
+    description?: string | null
   },
-  form: { name: string; client_id: string | null },
+  form: { name: string; client_id: string | null }
 ) {
-  if (!rule.create_ticket) return null;
+  if (!rule.create_ticket) return null
 
   // Build ticket subject from template
-  let subject = rule.ticket_subject || `Form submission: ${form.name}`;
+  let subject = rule.ticket_subject || `Form submission: ${form.name}`
 
   // Replace {{field_name}} placeholders in subject (including customer_name if it's a field)
   Object.entries(submission.data).forEach(([key, value]) => {
-    subject = subject.replace(new RegExp(`{{${key}}}`, "g"), String(value));
-  });
+    subject = subject.replace(new RegExp(`{{${key}}}`, "g"), String(value))
+  })
 
   // Replace {{customer_name}} placeholder if not already replaced by a field
   // This uses the contact info name as fallback
   if (subject.includes("{{customer_name}}")) {
     subject = subject.replace(
       /\{\{customer_name\}\}/g,
-      submission.submitted_by_name,
-    );
+      submission.submitted_by_name
+    )
   }
 
   // Use submission description as ticket description, or default message
   const ticketDescription =
     submission.description ||
-    `Form submission from ${submission.submitted_by_name}. View the form submission details for more information.`;
+    `Form submission from ${submission.submitted_by_name}. View the form submission details for more information.`
 
   const [ticket] = await ctx.db
     .insert(tickets)
@@ -151,9 +151,9 @@ async function createTicketFromRule(
       external_id: submission.id,
       external_type: "form_submission",
     })
-    .returning();
+    .returning()
 
-  return ticket;
+  return ticket
 }
 
 export const formsRouter = createTRPCRouter({
@@ -167,26 +167,26 @@ export const formsRouter = createTRPCRouter({
         limit: z.number().min(1).max(100).default(25),
         client_id: z.string().uuid().optional(),
         is_published: z.boolean().optional(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
-      const offset = (input.page - 1) * input.limit;
+      const offset = (input.page - 1) * input.limit
 
-      const whereConditions = [eq(forms.company_id, ctx.company.id)];
+      const whereConditions = [eq(forms.company_id, ctx.company.id)]
 
       if (input.client_id) {
-        whereConditions.push(eq(forms.client_id, input.client_id));
+        whereConditions.push(eq(forms.client_id, input.client_id))
       }
 
       if (input.is_published !== undefined) {
-        whereConditions.push(eq(forms.is_published, input.is_published));
+        whereConditions.push(eq(forms.is_published, input.is_published))
       }
 
       // Get total count
       const [{ total }] = await ctx.db
         .select({ total: count() })
         .from(forms)
-        .where(and(...whereConditions));
+        .where(and(...whereConditions))
 
       // Get forms with relations
       const formsList = await ctx.db.query.forms.findMany({
@@ -210,7 +210,7 @@ export const formsRouter = createTRPCRouter({
         limit: input.limit,
         offset,
         orderBy: (forms, { desc }) => [desc(forms.created_at)],
-      });
+      })
 
       return {
         forms: formsList,
@@ -218,7 +218,7 @@ export const formsRouter = createTRPCRouter({
         page: input.page,
         limit: input.limit,
         totalPages: Math.ceil(total / input.limit),
-      };
+      }
     }),
 
   // Get a single form by ID
@@ -228,7 +228,7 @@ export const formsRouter = createTRPCRouter({
       const form = await ctx.db.query.forms.findFirst({
         where: and(
           eq(forms.id, input.id),
-          eq(forms.company_id, ctx.company.id),
+          eq(forms.company_id, ctx.company.id)
         ),
         with: {
           client: {
@@ -246,16 +246,16 @@ export const formsRouter = createTRPCRouter({
             },
           },
         },
-      });
+      })
 
       if (!form) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Form not found",
-        });
+        })
       }
 
-      return form;
+      return form
     }),
 
   // Create a new form
@@ -268,7 +268,7 @@ export const formsRouter = createTRPCRouter({
         client_id: z.string().uuid(),
         fields: z.array(formFieldSchema),
         settings: formSettingsSchema.optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Check if slug already exists for this client
@@ -276,15 +276,15 @@ export const formsRouter = createTRPCRouter({
         where: and(
           eq(forms.slug, input.slug),
           eq(forms.company_id, ctx.company.id),
-          eq(forms.client_id, input.client_id),
+          eq(forms.client_id, input.client_id)
         ),
-      });
+      })
 
       if (existingForm) {
         throw new TRPCError({
           code: "CONFLICT",
           message: "A form with this slug already exists for this client",
-        });
+        })
       }
 
       const [form] = await ctx.db
@@ -299,9 +299,9 @@ export const formsRouter = createTRPCRouter({
           settings: input.settings || {},
           created_by_membership_id: ctx.membership.id,
         })
-        .returning();
+        .returning()
 
-      return form;
+      return form
     }),
 
   // Update a form
@@ -316,46 +316,46 @@ export const formsRouter = createTRPCRouter({
         fields: z.array(formFieldSchema).optional(),
         settings: formSettingsSchema.optional(),
         ticket_rules: z.array(ticketRuleSchema).optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Verify form exists and belongs to company
       const existingForm = await ctx.db.query.forms.findFirst({
         where: and(
           eq(forms.id, input.id),
-          eq(forms.company_id, ctx.company.id),
+          eq(forms.company_id, ctx.company.id)
         ),
-      });
+      })
 
       if (!existingForm) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Form not found",
-        });
+        })
       }
 
       // Determine the client_id to use for uniqueness check
-      const targetClientId = input.client_id || existingForm.client_id;
+      const targetClientId = input.client_id || existingForm.client_id
 
       // Check slug uniqueness if updating slug or client_id
       if (
         (input.slug && input.slug !== existingForm.slug) ||
         (input.client_id && input.client_id !== existingForm.client_id)
       ) {
-        const checkSlug = input.slug || existingForm.slug;
+        const checkSlug = input.slug || existingForm.slug
         const slugExists = await ctx.db.query.forms.findFirst({
           where: and(
             eq(forms.slug, checkSlug),
             eq(forms.company_id, ctx.company.id),
-            eq(forms.client_id, targetClientId),
+            eq(forms.client_id, targetClientId)
           ),
-        });
+        })
 
         if (slugExists && slugExists.id !== input.id) {
           throw new TRPCError({
             code: "CONFLICT",
             message: "A form with this slug already exists for this client",
-          });
+          })
         }
       }
 
@@ -372,9 +372,9 @@ export const formsRouter = createTRPCRouter({
           updated_at: new Date(),
         })
         .where(eq(forms.id, input.id))
-        .returning();
+        .returning()
 
-      return updatedForm;
+      return updatedForm
     }),
 
   // Publish/unpublish a form
@@ -383,7 +383,7 @@ export const formsRouter = createTRPCRouter({
       z.object({
         id: z.string().uuid(),
         is_published: z.boolean(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       const [form] = await ctx.db
@@ -393,18 +393,18 @@ export const formsRouter = createTRPCRouter({
           updated_at: new Date(),
         })
         .where(
-          and(eq(forms.id, input.id), eq(forms.company_id, ctx.company.id)),
+          and(eq(forms.id, input.id), eq(forms.company_id, ctx.company.id))
         )
-        .returning();
+        .returning()
 
       if (!form) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Form not found",
-        });
+        })
       }
 
-      return form;
+      return form
     }),
 
   // Delete a form
@@ -414,18 +414,18 @@ export const formsRouter = createTRPCRouter({
       const result = await ctx.db
         .delete(forms)
         .where(
-          and(eq(forms.id, input.id), eq(forms.company_id, ctx.company.id)),
+          and(eq(forms.id, input.id), eq(forms.company_id, ctx.company.id))
         )
-        .returning();
+        .returning()
 
       if (result.length === 0) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Form not found",
-        });
+        })
       }
 
-      return { success: true };
+      return { success: true }
     }),
 
   // Get submissions for a form
@@ -435,31 +435,31 @@ export const formsRouter = createTRPCRouter({
         form_id: z.string().uuid(),
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(100).default(25),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
-      const offset = (input.page - 1) * input.limit;
+      const offset = (input.page - 1) * input.limit
 
       // Verify form belongs to company
       const form = await ctx.db.query.forms.findFirst({
         where: and(
           eq(forms.id, input.form_id),
-          eq(forms.company_id, ctx.company.id),
+          eq(forms.company_id, ctx.company.id)
         ),
-      });
+      })
 
       if (!form) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Form not found",
-        });
+        })
       }
 
       // Get total count
       const [{ total }] = await ctx.db
         .select({ total: count() })
         .from(formSubmissions)
-        .where(eq(formSubmissions.form_id, input.form_id));
+        .where(eq(formSubmissions.form_id, input.form_id))
 
       // Get submissions with relations
       const submissions = await ctx.db.query.formSubmissions.findMany({
@@ -498,7 +498,7 @@ export const formsRouter = createTRPCRouter({
         orderBy: (formSubmissions, { desc }) => [
           desc(formSubmissions.submitted_at),
         ],
-      });
+      })
 
       return {
         submissions,
@@ -506,7 +506,7 @@ export const formsRouter = createTRPCRouter({
         page: input.page,
         limit: input.limit,
         totalPages: Math.ceil(total / input.limit),
-      };
+      }
     }),
 
   // Get a single submission by ID
@@ -516,7 +516,7 @@ export const formsRouter = createTRPCRouter({
       const submission = await ctx.db.query.formSubmissions.findFirst({
         where: and(
           eq(formSubmissions.id, input.id),
-          eq(formSubmissions.company_id, ctx.company.id),
+          eq(formSubmissions.company_id, ctx.company.id)
         ),
         with: {
           form: {
@@ -548,16 +548,16 @@ export const formsRouter = createTRPCRouter({
             },
           },
         },
-      });
+      })
 
       if (!submission) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Submission not found",
-        });
+        })
       }
 
-      return submission;
+      return submission
     }),
 
   // Create a ticket from a submission
@@ -567,38 +567,38 @@ export const formsRouter = createTRPCRouter({
         submission_id: z.string().uuid(),
         subject: z.string().optional(),
         priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Get the submission
       const submission = await ctx.db.query.formSubmissions.findFirst({
         where: and(
           eq(formSubmissions.id, input.submission_id),
-          eq(formSubmissions.company_id, ctx.company.id),
+          eq(formSubmissions.company_id, ctx.company.id)
         ),
         with: {
           form: true,
         },
-      });
+      })
 
       if (!submission) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Submission not found",
-        });
+        })
       }
 
       if (submission.ticket_id) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "A ticket has already been created for this submission",
-        });
+        })
       }
 
       // Use submission description as ticket description, or default message
       const ticketDescription =
         submission.description ||
-        `Form submission from ${submission.submitted_by_name}. View the form submission details for more information.`;
+        `Form submission from ${submission.submitted_by_name}. View the form submission details for more information.`
 
       const [ticket] = await ctx.db
         .insert(tickets)
@@ -617,7 +617,7 @@ export const formsRouter = createTRPCRouter({
           external_id: submission.id,
           external_type: "form_submission",
         })
-        .returning();
+        .returning()
 
       // Update submission with ticket reference
       await ctx.db
@@ -627,9 +627,9 @@ export const formsRouter = createTRPCRouter({
           ticket_created: true,
           updated_at: new Date(),
         })
-        .where(eq(formSubmissions.id, input.submission_id));
+        .where(eq(formSubmissions.id, input.submission_id))
 
-      return ticket;
+      return ticket
     }),
 
   // Export submissions as CSV
@@ -640,15 +640,15 @@ export const formsRouter = createTRPCRouter({
       const form = await ctx.db.query.forms.findFirst({
         where: and(
           eq(forms.id, input.form_id),
-          eq(forms.company_id, ctx.company.id),
+          eq(forms.company_id, ctx.company.id)
         ),
-      });
+      })
 
       if (!form) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Form not found",
-        });
+        })
       }
 
       // Get all submissions
@@ -657,11 +657,11 @@ export const formsRouter = createTRPCRouter({
         orderBy: (formSubmissions, { desc }) => [
           desc(formSubmissions.submitted_at),
         ],
-      });
+      })
 
       // Extract field names from form definition
-      const fields = form.fields as any[];
-      const fieldNames = fields.map((f) => f.label);
+      const fields = form.fields as any[]
+      const fieldNames = fields.map((f) => f.label)
 
       // Build CSV header
       const csvHeader = [
@@ -671,16 +671,16 @@ export const formsRouter = createTRPCRouter({
         "Submitted At",
         "Ticket Created",
         ...fieldNames,
-      ].join(",");
+      ].join(",")
 
       // Build CSV rows
       const csvRows = submissions.map((sub) => {
-        const data = sub.data as Record<string, any>;
+        const data = sub.data as Record<string, any>
         const fieldValues = fields.map((f) => {
-          const value = data[f.id] || "";
+          const value = data[f.id] || ""
           // Escape commas and quotes in CSV
-          return `"${String(value).replace(/"/g, '""')}"`;
-        });
+          return `"${String(value).replace(/"/g, '""')}"`
+        })
 
         return [
           sub.id,
@@ -689,12 +689,12 @@ export const formsRouter = createTRPCRouter({
           sub.submitted_at.toISOString(),
           sub.ticket_created ? "Yes" : "No",
           ...fieldValues,
-        ].join(",");
-      });
+        ].join(",")
+      })
 
-      const csv = [csvHeader, ...csvRows].join("\n");
+      const csv = [csvHeader, ...csvRows].join("\n")
 
-      return { csv, filename: `${form.slug}-submissions-${Date.now()}.csv` };
+      return { csv, filename: `${form.slug}-submissions-${Date.now()}.csv` }
     }),
 
   // ========== PUBLIC ENDPOINTS ==========
@@ -706,19 +706,19 @@ export const formsRouter = createTRPCRouter({
         company_slug: z.string(),
         client_slug: z.string(),
         form_slug: z.string(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       // Find company by slug
       const company = await ctx.db.query.companies.findFirst({
         where: (companies, { eq }) => eq(companies.slug, input.company_slug),
-      });
+      })
 
       if (!company) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Company not found",
-        });
+        })
       }
 
       // Find client by slug
@@ -726,15 +726,15 @@ export const formsRouter = createTRPCRouter({
         where: (clients, { eq, and }) =>
           and(
             eq(clients.slug, input.client_slug),
-            eq(clients.company_id, company.id),
+            eq(clients.company_id, company.id)
           ),
-      });
+      })
 
       if (!client) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Client not found",
-        });
+        })
       }
 
       // Find form by slug
@@ -743,20 +743,20 @@ export const formsRouter = createTRPCRouter({
           eq(forms.slug, input.form_slug),
           eq(forms.company_id, company.id),
           eq(forms.client_id, client.id),
-          eq(forms.is_published, true),
+          eq(forms.is_published, true)
         ),
         with: {
           client: {
             columns: { id: true, name: true },
           },
         },
-      });
+      })
 
       if (!form) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Form not found or not published",
-        });
+        })
       }
 
       return {
@@ -768,7 +768,7 @@ export const formsRouter = createTRPCRouter({
         client: form.client,
         company_id: company.id,
         company_name: company.name,
-      };
+      }
     }),
 
   // Submit a form (public access)
@@ -788,19 +788,19 @@ export const formsRouter = createTRPCRouter({
         external_id: z.string().optional(),
         external_type: z.string().optional(),
         description: z.string().optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Find company and form
       const company = await ctx.db.query.companies.findFirst({
         where: (companies, { eq }) => eq(companies.slug, input.company_slug),
-      });
+      })
 
       if (!company) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Company not found",
-        });
+        })
       }
 
       // Find client by slug
@@ -808,15 +808,15 @@ export const formsRouter = createTRPCRouter({
         where: (clients, { eq, and }) =>
           and(
             eq(clients.slug, input.client_slug),
-            eq(clients.company_id, company.id),
+            eq(clients.company_id, company.id)
           ),
-      });
+      })
 
       if (!client) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Client not found",
-        });
+        })
       }
 
       const form = await ctx.db.query.forms.findFirst({
@@ -824,34 +824,34 @@ export const formsRouter = createTRPCRouter({
           eq(forms.slug, input.form_slug),
           eq(forms.company_id, company.id),
           eq(forms.client_id, client.id),
-          eq(forms.is_published, true),
+          eq(forms.is_published, true)
         ),
-      });
+      })
 
       if (!form) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Form not found or not published",
-        });
+        })
       }
 
-      const settings = form.settings as any;
+      const settings = form.settings as any
 
       // Check if authenticated
       const {
         data: { user },
-      } = await ctx.supabase.auth.getUser();
+      } = await ctx.supabase.auth.getUser()
 
-      let submitter_name = input.contact?.name || "Anonymous";
-      let submitter_email = input.contact?.email || "anonymous@example.com";
-      let portal_access_id: string | null = null;
-      let membership_id: string | null = null;
+      let submitter_name = input.contact?.name || "Anonymous"
+      let submitter_email = input.contact?.email || "anonymous@example.com"
+      let portal_access_id: string | null = null
+      let membership_id: string | null = null
 
       if (user) {
         // Check if user is a team member
         const teamMember = await ctx.db.query.users.findFirst({
           where: (users, { eq }) => eq(users.email, user.email!),
-        });
+        })
 
         if (teamMember) {
           const membership = await ctx.db.query.memberships.findFirst({
@@ -859,14 +859,14 @@ export const formsRouter = createTRPCRouter({
               and(
                 eq(memberships.user_id, teamMember.id),
                 eq(memberships.company_id, company.id),
-                eq(memberships.is_active, true),
+                eq(memberships.is_active, true)
               ),
-          });
+          })
 
           if (membership) {
-            submitter_name = `${teamMember.first_name} ${teamMember.last_name}`;
-            submitter_email = teamMember.email;
-            membership_id = membership.id;
+            submitter_name = `${teamMember.first_name} ${teamMember.last_name}`
+            submitter_email = teamMember.email
+            membership_id = membership.id
           }
         }
 
@@ -877,31 +877,31 @@ export const formsRouter = createTRPCRouter({
               and(
                 eq(customerPortalAccess.client_id, form.client_id!),
                 eq(customerPortalAccess.email, user.email!),
-                eq(customerPortalAccess.is_active, true),
+                eq(customerPortalAccess.is_active, true)
               ),
-          });
+          })
 
           if (access) {
-            submitter_name = access.name;
-            submitter_email = access.email;
-            portal_access_id = access.id;
+            submitter_name = access.name
+            submitter_email = access.email
+            portal_access_id = access.id
           }
         }
       } else if (settings.require_authentication) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "This form requires authentication",
-        });
+        })
       }
 
       // Validate required fields
-      const fields = form.fields as any[];
+      const fields = form.fields as any[]
       for (const field of fields) {
         if (field.required && !input.data[field.id]) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: `Field "${field.label}" is required`,
-          });
+          })
         }
       }
 
@@ -920,14 +920,14 @@ export const formsRouter = createTRPCRouter({
           external_id: input.external_id,
           external_type: input.external_type,
         })
-        .returning();
+        .returning()
 
       // Evaluate ticket rules
-      const rules = (form.ticket_rules as any[]) || [];
-      let createdTicket = null;
+      const rules = (form.ticket_rules as any[]) || []
+      let createdTicket = null
 
       for (const rule of rules) {
-        const fieldValue = input.data[rule.field_id];
+        const fieldValue = input.data[rule.field_id]
         if (evaluateRule(rule, fieldValue)) {
           createdTicket = await createTicketFromRule(
             ctx,
@@ -942,8 +942,8 @@ export const formsRouter = createTRPCRouter({
               data: input.data,
               description: input.description,
             },
-            { name: form.name, client_id: form.client_id },
-          );
+            { name: form.name, client_id: form.client_id }
+          )
 
           if (createdTicket) {
             // Update submission with ticket reference
@@ -954,9 +954,9 @@ export const formsRouter = createTRPCRouter({
                 ticket_created: true,
                 updated_at: new Date(),
               })
-              .where(eq(formSubmissions.id, submission.id));
+              .where(eq(formSubmissions.id, submission.id))
 
-            break; // Only create one ticket per submission
+            break // Only create one ticket per submission
           }
         }
       }
@@ -968,6 +968,6 @@ export const formsRouter = createTRPCRouter({
         ticket_id: createdTicket?.id,
         message:
           settings.confirmation_message || "Thank you for your submission!",
-      };
+      }
     }),
-});
+})

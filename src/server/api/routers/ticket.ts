@@ -1,8 +1,8 @@
-import { z } from "zod";
-import { createTRPCRouter, companyProcedure } from "~/server/api/trpc";
-import { tickets, ticketComments } from "~/db/schema";
-import { eq, and, or, ilike, count, gte, lte } from "drizzle-orm";
-import { TRPCError } from "@trpc/server";
+import { z } from "zod"
+import { createTRPCRouter, companyProcedure } from "~/server/api/trpc"
+import { tickets, ticketComments } from "~/db/schema"
+import { eq, and, or, ilike, count, gte, lte } from "drizzle-orm"
+import { TRPCError } from "@trpc/server"
 
 export const ticketRouter = createTRPCRouter({
   // Get paginated tickets with filters
@@ -23,30 +23,30 @@ export const ticketRouter = createTRPCRouter({
           .enum(["created_at", "updated_at", "priority"])
           .default("created_at"),
         sortOrder: z.enum(["asc", "desc"]).default("desc"),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
-      const offset = (input.page - 1) * input.limit;
+      const offset = (input.page - 1) * input.limit
 
       // Build where conditions
-      const whereConditions = [eq(tickets.company_id, ctx.company.id)];
+      const whereConditions = [eq(tickets.company_id, ctx.company.id)]
 
       if (input.status) {
-        whereConditions.push(eq(tickets.status, input.status));
+        whereConditions.push(eq(tickets.status, input.status))
       }
 
       if (input.priority) {
-        whereConditions.push(eq(tickets.priority, input.priority));
+        whereConditions.push(eq(tickets.priority, input.priority))
       }
 
       if (input.assignedToId) {
         whereConditions.push(
-          eq(tickets.assigned_to_membership_id, input.assignedToId),
-        );
+          eq(tickets.assigned_to_membership_id, input.assignedToId)
+        )
       }
 
       if (input.clientId) {
-        whereConditions.push(eq(tickets.client_id, input.clientId));
+        whereConditions.push(eq(tickets.client_id, input.clientId))
       }
 
       if (input.myTickets) {
@@ -54,25 +54,25 @@ export const ticketRouter = createTRPCRouter({
         whereConditions.push(
           or(
             eq(tickets.assigned_to_membership_id, ctx.membership.id),
-            eq(tickets.created_by_membership_id, ctx.membership.id),
-          )!,
-        );
+            eq(tickets.created_by_membership_id, ctx.membership.id)
+          )!
+        )
       }
 
       if (input.search) {
         whereConditions.push(
           or(
             ilike(tickets.subject, `%${input.search}%`),
-            ilike(tickets.description, `%${input.search}%`),
-          )!,
-        );
+            ilike(tickets.description, `%${input.search}%`)
+          )!
+        )
       }
 
       // Get total count
       const [{ total }] = await ctx.db
         .select({ total: count() })
         .from(tickets)
-        .where(and(...whereConditions));
+        .where(and(...whereConditions))
 
       // Get tickets with relations
       const ticketList = await ctx.db.query.tickets.findMany({
@@ -147,7 +147,7 @@ export const ticketRouter = createTRPCRouter({
             ? asc(tickets[input.sortBy])
             : desc(tickets[input.sortBy]),
         ],
-      });
+      })
 
       return {
         tickets: ticketList,
@@ -157,7 +157,7 @@ export const ticketRouter = createTRPCRouter({
           total,
           totalPages: Math.ceil(total / input.limit),
         },
-      };
+      }
     }),
 
   // Get single ticket with comments
@@ -165,7 +165,7 @@ export const ticketRouter = createTRPCRouter({
     .input(
       z.object({
         id: z.string().uuid(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       const ticket = await ctx.db.query.tickets.findFirst({
@@ -218,17 +218,17 @@ export const ticketRouter = createTRPCRouter({
             ],
           },
         },
-      });
+      })
 
       if (!ticket) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Ticket not found",
-        });
+        })
       }
 
       // Get form submission if ticket was created from a form
-      let formSubmission = null;
+      let formSubmission = null
       if (ticket.external_type === "form_submission" && ticket.external_id) {
         formSubmission = await ctx.db.query.formSubmissions.findFirst({
           where: (formSubmissions, { eq }) =>
@@ -253,13 +253,13 @@ export const ticketRouter = createTRPCRouter({
               },
             },
           },
-        });
+        })
       }
 
       return {
         ...ticket,
         formSubmission,
-      };
+      }
     }),
 
   // Create new ticket
@@ -275,7 +275,7 @@ export const ticketRouter = createTRPCRouter({
         customerEmail: z.string().email().optional(),
         customerName: z.string().optional(),
         tags: z.array(z.string()).default([]),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Get default SLA policy
@@ -283,9 +283,9 @@ export const ticketRouter = createTRPCRouter({
         where: (slaPolicies, { and, eq }) =>
           and(
             eq(slaPolicies.company_id, ctx.company.id),
-            eq(slaPolicies.is_default, true),
+            eq(slaPolicies.is_default, true)
           ),
-      });
+      })
 
       const [ticket] = await ctx.db
         .insert(tickets)
@@ -304,9 +304,9 @@ export const ticketRouter = createTRPCRouter({
           sla_policy_id: defaultSLA?.id,
           tags: input.tags,
         })
-        .returning();
+        .returning()
 
-      return ticket;
+      return ticket
     }),
 
   // Update ticket
@@ -323,64 +323,64 @@ export const ticketRouter = createTRPCRouter({
         assignedToId: z.string().uuid().optional(),
         assignedToCustomerPortalAccessId: z.string().uuid().optional(),
         tags: z.array(z.string()).optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Verify ticket belongs to company
       const existingTicket = await ctx.db.query.tickets.findFirst({
         where: (tickets, { and, eq }) =>
           and(eq(tickets.id, input.id), eq(tickets.company_id, ctx.company.id)),
-      });
+      })
 
       if (!existingTicket) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Ticket not found",
-        });
+        })
       }
 
-      const updateData: Record<string, any> = {};
+      const updateData: Record<string, any> = {}
 
-      if (input.subject) updateData.subject = input.subject;
-      if (input.description) updateData.description = input.description;
+      if (input.subject) updateData.subject = input.subject
+      if (input.description) updateData.description = input.description
       if (input.status) {
-        updateData.status = input.status;
+        updateData.status = input.status
 
         // Mark resolved timestamp
         if (
           input.status === "resolved" &&
           existingTicket.status !== "resolved"
         ) {
-          updateData.resolved_at = new Date();
+          updateData.resolved_at = new Date()
         }
       }
-      if (input.priority) updateData.priority = input.priority;
+      if (input.priority) updateData.priority = input.priority
       if (input.assignedToId !== undefined) {
-        updateData.assigned_to_membership_id = input.assignedToId;
+        updateData.assigned_to_membership_id = input.assignedToId
         // Clear customer portal access assignment if membership is assigned
-        updateData.assigned_to_customer_portal_access_id = null;
+        updateData.assigned_to_customer_portal_access_id = null
       }
       if (input.assignedToCustomerPortalAccessId !== undefined) {
         updateData.assigned_to_customer_portal_access_id =
-          input.assignedToCustomerPortalAccessId;
+          input.assignedToCustomerPortalAccessId
         // Clear membership assignment if customer portal access is assigned
-        updateData.assigned_to_membership_id = null;
+        updateData.assigned_to_membership_id = null
       }
-      if (input.tags) updateData.tags = input.tags;
+      if (input.tags) updateData.tags = input.tags
 
       if (Object.keys(updateData).length > 0) {
-        updateData.updated_at = new Date();
+        updateData.updated_at = new Date()
 
         const [updatedTicket] = await ctx.db
           .update(tickets)
           .set(updateData)
           .where(eq(tickets.id, input.id))
-          .returning();
+          .returning()
 
-        return updatedTicket;
+        return updatedTicket
       }
 
-      return existingTicket;
+      return existingTicket
     }),
 
   // Add comment to ticket
@@ -391,7 +391,7 @@ export const ticketRouter = createTRPCRouter({
         content: z.string().min(1),
         isInternal: z.boolean().default(false),
         attachments: z.array(z.string().url()).default([]),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Verify ticket exists and belongs to company
@@ -399,15 +399,15 @@ export const ticketRouter = createTRPCRouter({
         where: (tickets, { and, eq }) =>
           and(
             eq(tickets.id, input.ticketId),
-            eq(tickets.company_id, ctx.company.id),
+            eq(tickets.company_id, ctx.company.id)
           ),
-      });
+      })
 
       if (!ticket) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Ticket not found",
-        });
+        })
       }
 
       const [comment] = await ctx.db
@@ -420,7 +420,7 @@ export const ticketRouter = createTRPCRouter({
           is_internal: input.isInternal,
           attachments: input.attachments,
         })
-        .returning();
+        .returning()
 
       // Mark first response time if this is the first non-internal comment
       if (
@@ -434,10 +434,10 @@ export const ticketRouter = createTRPCRouter({
             first_response_at: new Date(),
             updated_at: new Date(),
           })
-          .where(eq(tickets.id, input.ticketId));
+          .where(eq(tickets.id, input.ticketId))
       }
 
-      return comment;
+      return comment
     }),
 
   // Get ticket metrics for dashboard
@@ -446,17 +446,17 @@ export const ticketRouter = createTRPCRouter({
       z.object({
         startDate: z.date().optional(),
         endDate: z.date().optional(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
-      const whereConditions = [eq(tickets.company_id, ctx.company.id)];
+      const whereConditions = [eq(tickets.company_id, ctx.company.id)]
 
       if (input.startDate) {
-        whereConditions.push(gte(tickets.created_at, input.startDate));
+        whereConditions.push(gte(tickets.created_at, input.startDate))
       }
 
       if (input.endDate) {
-        whereConditions.push(lte(tickets.created_at, input.endDate));
+        whereConditions.push(lte(tickets.created_at, input.endDate))
       }
 
       // Get status counts
@@ -467,7 +467,7 @@ export const ticketRouter = createTRPCRouter({
         })
         .from(tickets)
         .where(and(...whereConditions))
-        .groupBy(tickets.status);
+        .groupBy(tickets.status)
 
       // Get priority counts
       const priorityCounts = await ctx.db
@@ -477,11 +477,11 @@ export const ticketRouter = createTRPCRouter({
         })
         .from(tickets)
         .where(and(...whereConditions))
-        .groupBy(tickets.priority);
+        .groupBy(tickets.priority)
 
       return {
         statusCounts,
         priorityCounts,
-      };
+      }
     }),
-});
+})

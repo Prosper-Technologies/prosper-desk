@@ -1,13 +1,13 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Textarea } from "~/components/ui/textarea";
-import { Switch } from "~/components/ui/switch";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Textarea } from "~/components/ui/textarea"
+import { Switch } from "~/components/ui/switch"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,7 +15,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "~/components/ui/breadcrumb";
+} from "~/components/ui/breadcrumb"
 import {
   ArrowLeft,
   Building,
@@ -23,57 +23,57 @@ import {
   Shield,
   AlertCircle,
   Check,
-} from "lucide-react";
-import { api } from "~/trpc/react";
+} from "lucide-react"
+import { api } from "~/trpc/react"
 
 export default function AddClientPage() {
-  const { data: company } = api.company.getSettings.useQuery();
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [emailDomain, setEmailDomain] = useState("");
-  const [description, setDescription] = useState("");
-  const [logoUrl, setLogoUrl] = useState("");
-  const [portalEnabled, setPortalEnabled] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const { data: company } = api.company.getSettings.useQuery()
+  const [name, setName] = useState("")
+  const [slug, setSlug] = useState("")
+  const [emailDomain, setEmailDomain] = useState("")
+  const [description, setDescription] = useState("")
+  const [logoUrl, setLogoUrl] = useState("")
+  const [portalEnabled, setPortalEnabled] = useState(true)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
 
-  const router = useRouter();
+  const router = useRouter()
 
   const createClient = api.clients.create.useMutation({
     onSuccess: (client) => {
-      setSuccess(`${client.name} has been created successfully!`);
+      setSuccess(`${client.name} has been created successfully!`)
       setTimeout(() => {
-        router.push(`/settings/clients/${client.id}`);
-      }, 2000);
+        router.push(`/settings/clients/${client.id}`)
+      }, 2000)
     },
     onError: (err) => {
-      setError(err.message);
+      setError(err.message)
     },
-  });
+  })
 
   // Auto-generate slug from name
   const handleNameChange = (value: string) => {
-    setName(value);
+    setName(value)
     if (!slug || slug === generateSlug(name)) {
-      setSlug(generateSlug(value));
+      setSlug(generateSlug(value))
     }
-  };
+  }
 
   const generateSlug = (text: string) => {
     return text
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  };
+      .replace(/^-+|-+$/g, "")
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
+    e.preventDefault()
+    setError("")
+    setSuccess("")
 
     if (!name.trim() || !slug.trim()) {
-      setError("Name and slug are required");
-      return;
+      setError("Name and slug are required")
+      return
     }
 
     await createClient.mutateAsync({
@@ -83,8 +83,8 @@ export default function AddClientPage() {
       description: description.trim() || undefined,
       logo_url: logoUrl.trim() || undefined,
       portal_enabled: portalEnabled,
-    });
-  };
+    })
+  }
 
   if (success) {
     return (
@@ -124,7 +124,7 @@ export default function AddClientPage() {
           </Card>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -322,5 +322,5 @@ export default function AddClientPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }
