@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next"
 import { google } from "googleapis"
+import sanitizeHtml from "sanitize-html"
 import { db } from "~/db"
 import {
   gmailIntegration,
@@ -337,9 +338,9 @@ async function processGmailIntegration(integration: any) {
                 !text
               ) {
                 text +=
-                  Buffer.from(part.body.data, "base64")
-                    .toString("utf-8")
-                    .replace(/<[^>]*>/g, "") + "\n"
+                  sanitizeHtml(
+                    Buffer.from(part.body.data, "base64").toString("utf-8")
+                  ) + "\n"
               } else if (part.parts) {
                 text += extractTextFromParts(part.parts)
               }
