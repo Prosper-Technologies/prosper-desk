@@ -250,8 +250,7 @@ async function processGmailIntegration(integration: any) {
               ) {
                 text +=
                   sanitizeHtml(
-                    Buffer.from(part.body.data, "base64")
-                      .toString("utf-8")
+                    Buffer.from(part.body.data, "base64").toString("utf-8")
                   ) + "\n"
               } else if (part.parts) {
                 text += extractTextFromParts(part.parts)
