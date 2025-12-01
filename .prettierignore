@@ -9,7 +9,7 @@ dist
 build
 
 # Database
-supabase/migrations/**/*.sql
+supabase/migrations
 *.db
 
 # Environment files
