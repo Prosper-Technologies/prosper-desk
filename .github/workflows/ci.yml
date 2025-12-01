@@ -1,4 +1,6 @@
 name: Lint Supabase DB
+permissions:
+  contents: read
 
 on:
   pull_request:
