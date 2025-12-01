@@ -178,10 +178,14 @@ async function processGmailIntegration(integration: any) {
                 part.body?.data &&
                 !text
               ) {
-                text +=
-                  Buffer.from(part.body.data, "base64")
-                    .toString("utf-8")
-                    .replace(/<[^>]*>/g, "") + "\n"
+                let htmlText = Buffer.from(part.body.data, "base64").toString("utf-8");
+                // Remove all HTML tags reliably by repeated replace
+                let cleanedText;
+                do {
+                  cleanedText = htmlText;
+                  htmlText = htmlText.replace(/<[^>]*>/g, "");
+                } while (htmlText !== cleanedText);
+                text += htmlText + "\n";
               } else if (part.parts) {
                 text += extractTextFromParts(part.parts)
               }
