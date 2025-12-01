@@ -1,13 +1,13 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { Badge } from "~/components/ui/badge";
-import { Switch } from "~/components/ui/switch";
+import { useState } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
+import { Badge } from "~/components/ui/badge"
+import { Switch } from "~/components/ui/switch"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,65 +15,54 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "~/components/ui/breadcrumb";
-import { SidebarTrigger } from "~/components/ui/sidebar";
-import { TiptapEditor } from "~/components/ui/tiptap-editor";
-import {
-  ArrowLeft,
-  Save,
-  Eye,
-  Globe,
-  Lock,
-  Tag,
-  Loader,
-  X,
-} from "lucide-react";
-import Link from "next/link";
-import { api } from "~/trpc/react";
-import { toast } from "sonner";
+} from "~/components/ui/breadcrumb"
+import { SidebarTrigger } from "~/components/ui/sidebar"
+import { TiptapEditor } from "~/components/ui/tiptap-editor"
+import { ArrowLeft, Save, Eye, Globe, Lock, Tag, Loader, X } from "lucide-react"
+import Link from "next/link"
+import { api } from "~/trpc/react"
+import { toast } from "sonner"
 
 export default function EditArticlePage() {
-  const params = useParams();
-  const router = useRouter();
-  const slug = params?.slug as string;
+  const params = useParams()
+  const router = useRouter()
+  const slug = params?.slug as string
 
-  const { data: article, isLoading } = api.knowledgeBase.getBySlugInternal.useQuery(
-    { slug },
-    { enabled: !!slug }
-  );
+  const { data: article, isLoading } =
+    api.knowledgeBase.getBySlugInternal.useQuery({ slug }, { enabled: !!slug })
 
-  const [title, setTitle] = useState(article?.title || "");
-  const [articleSlug, setArticleSlug] = useState(article?.slug || "");
-  const [content, setContent] = useState(article?.content || "");
-  const [isPublished, setIsPublished] = useState(article?.is_published || false);
-  const [isPublic, setIsPublic] = useState(article?.is_public || true);
-  const [tags, setTags] = useState<string[]>(article?.tags || []);
-  const [newTag, setNewTag] = useState("");
+  const [title, setTitle] = useState(article?.title || "")
+  const [articleSlug, setArticleSlug] = useState(article?.slug || "")
+  const [content, setContent] = useState(article?.content || "")
+  const [isPublished, setIsPublished] = useState(article?.is_published || false)
+  const [isPublic, setIsPublic] = useState<boolean>(article?.is_public ?? true)
+  const [tags, setTags] = useState<string[]>((article?.tags as string[]) || [])
+  const [newTag, setNewTag] = useState("")
 
   const updateMutation = api.knowledgeBase.update.useMutation({
     onSuccess: () => {
-      toast.success("Article updated successfully");
-      router.push(`/knowledge/${articleSlug}`);
+      toast.success("Article updated successfully")
+      router.push(`/knowledge/${articleSlug}`)
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(error.message)
     },
-  });
+  })
 
   // Update local state when article data loads
   useState(() => {
     if (article) {
-      setTitle(article.title);
-      setArticleSlug(article.slug);
-      setContent(article.content);
-      setIsPublished(article.is_published);
-      setIsPublic(article.is_public);
-      setTags(article.tags || []);
+      setTitle(article.title)
+      setArticleSlug(article.slug)
+      setContent(article.content)
+      setIsPublished(article.is_published)
+      setIsPublic(article.is_public)
+      setTags((article.tags as string[]) || [])
     }
-  });
+  })
 
   const handleSave = () => {
-    if (!article) return;
+    if (!article) return
 
     updateMutation.mutate({
       id: article.id,
@@ -83,19 +72,19 @@ export default function EditArticlePage() {
       isPublished,
       isPublic,
       tags,
-    });
-  };
+    })
+  }
 
   const addTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags([...tags, newTag.trim()]);
-      setNewTag("");
+      setTags([...tags, newTag.trim()])
+      setNewTag("")
     }
-  };
+  }
 
   const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
+    setTags(tags.filter((tag) => tag !== tagToRemove))
+  }
 
   const generateSlugFromTitle = () => {
     const slug = title
@@ -103,9 +92,9 @@ export default function EditArticlePage() {
       .replace(/[^a-z0-9\s-]/g, "")
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-")
-      .trim();
-    setArticleSlug(slug);
-  };
+      .trim()
+    setArticleSlug(slug)
+  }
 
   if (isLoading) {
     return (
@@ -115,7 +104,7 @@ export default function EditArticlePage() {
           <p className="text-gray-600">Loading article...</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (!article) {
@@ -123,8 +112,8 @@ export default function EditArticlePage() {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <h2 className="text-lg font-bold">Article not found</h2>
-          <p className="text-gray-600 mb-4">
-            The article you're looking for doesn't exist.
+          <p className="mb-4 text-gray-600">
+            The article you&apos;re looking for doesn&apos;t exist.
           </p>
           <Button asChild>
             <Link href="/knowledge">
@@ -134,7 +123,7 @@ export default function EditArticlePage() {
           </Button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -151,11 +140,15 @@ export default function EditArticlePage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/knowledge">Knowledge Base</BreadcrumbLink>
+                <BreadcrumbLink href="/knowledge">
+                  Knowledge Base
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href={`/knowledge/${slug}`}>{article.title}</BreadcrumbLink>
+                <BreadcrumbLink href={`/knowledge/${slug}`}>
+                  {article.title}
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -166,7 +159,7 @@ export default function EditArticlePage() {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto space-y-6 p-4">
+      <div className="mx-auto max-w-4xl space-y-6 p-4">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="space-y-2">
@@ -188,9 +181,14 @@ export default function EditArticlePage() {
                 Preview
               </Link>
             </Button>
-            <Button 
+            <Button
               onClick={handleSave}
-              disabled={updateMutation.isPending || !title.trim() || !articleSlug.trim() || !content.trim()}
+              disabled={
+                updateMutation.isPending ||
+                !title.trim() ||
+                !articleSlug.trim() ||
+                !content.trim()
+              }
             >
               {updateMutation.isPending ? (
                 <Loader className="mr-2 h-4 w-4 animate-spin" />
@@ -321,5 +319,5 @@ export default function EditArticlePage() {
         </Card>
       </div>
     </div>
-  );
+  )
 }

@@ -12,16 +12,19 @@ A modern, multi-tenant helpdesk SaaS built with Next.js, tRPC, Drizzle ORM, and 
 ## Quick Start
 
 ### 1. Install Dependencies
+
 ```bash
 pnpm install
 ```
 
 ### 2. Setup Environment
+
 ```bash
 cp .env.example .env.local
 ```
 
 Fill in your `.env.local`:
+
 ```bash
 # Supabase (get from https://supabase.com/dashboard/project/_/settings/api)
 NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
@@ -36,6 +39,7 @@ NEXT_PUBLIC_APP_URL="http://localhost:4000"
 ```
 
 ### 3. Setup Local Supabase
+
 ```bash
 # Start Supabase locally
 supabase start
@@ -45,6 +49,7 @@ supabase db push --local
 ```
 
 ### 4. Start Development
+
 ```bash
 pnpm dev
 ```

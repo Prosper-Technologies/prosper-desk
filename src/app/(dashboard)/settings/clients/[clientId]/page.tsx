@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { useState } from "react"
+import Link from "next/link"
+import { useParams, useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Badge } from "~/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -14,8 +14,8 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "~/components/ui/breadcrumb";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+} from "~/components/ui/breadcrumb"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +25,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "~/components/ui/alert-dialog";
+} from "~/components/ui/alert-dialog"
 import {
   ArrowLeft,
   Globe,
@@ -38,92 +38,93 @@ import {
   Edit,
   Plus,
   AlertTriangle,
-  Loader2,
   Loader,
   Trash2,
-} from "lucide-react";
-import { api } from "~/trpc/react";
-import { formatRelativeTime } from "~/lib/utils";
-import { toast } from "sonner";
+} from "lucide-react"
+import { api } from "~/trpc/react"
+import { formatRelativeTime } from "~/lib/utils"
+import { toast } from "sonner"
 
 export default function ClientDetailsPage() {
-  const params = useParams();
-  const router = useRouter();
-  const clientId = params?.clientId as string;
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteFormDialogOpen, setDeleteFormDialogOpen] = useState(false);
-  const [formToDelete, setFormToDelete] = useState<{ id: string; name: string } | null>(null);
+  const params = useParams()
+  const router = useRouter()
+  const clientId = params?.clientId as string
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteFormDialogOpen, setDeleteFormDialogOpen] = useState(false)
+  const [formToDelete, setFormToDelete] = useState<{
+    id: string
+    name: string
+  } | null>(null)
 
   const { data: client, isLoading: clientLoading } =
     api.clients.getById.useQuery({
       id: clientId,
-    });
+    })
 
-  const { data: company } = api.company.getSettings.useQuery();
+  const { data: company } = api.company.getSettings.useQuery()
 
   const deleteMutation = api.clients.delete.useMutation({
     onSuccess: () => {
-      toast.success("Client deleted successfully");
-      router.push("/settings");
+      toast.success("Client deleted successfully")
+      router.push("/settings")
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to delete client");
+      toast.error(error.message || "Failed to delete client")
     },
-  });
+  })
 
   const { data: formsData, refetch: refetchForms } = api.forms.getAll.useQuery({
     client_id: clientId,
     page: 1,
     limit: 50,
-  });
+  })
 
   const deleteFormMutation = api.forms.delete.useMutation({
     onSuccess: () => {
-      toast.success("Form deleted successfully");
-      refetchForms();
-      setDeleteFormDialogOpen(false);
-      setFormToDelete(null);
+      toast.success("Form deleted successfully")
+      refetchForms()
+      setDeleteFormDialogOpen(false)
+      setFormToDelete(null)
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to delete form");
+      toast.error(error.message || "Failed to delete form")
     },
-  });
+  })
 
   const handleDeleteForm = (formId: string, formName: string) => {
-    setFormToDelete({ id: formId, name: formName });
-    setDeleteFormDialogOpen(true);
-  };
+    setFormToDelete({ id: formId, name: formName })
+    setDeleteFormDialogOpen(true)
+  }
 
   const confirmDeleteForm = () => {
     if (formToDelete) {
-      deleteFormMutation.mutate({ id: formToDelete.id });
+      deleteFormMutation.mutate({ id: formToDelete.id })
     }
-  };
+  }
 
   const openFormInNewTab = (formSlug: string) => {
-    if (!company?.slug || !client?.slug) return;
-    const url = `${window.location.origin}/forms/${company.slug}/${client.slug}/${formSlug}`;
-    window.open(url, "_blank");
-  };
+    if (!company?.slug || !client?.slug) return
+    const url = `${window.location.origin}/forms/${company.slug}/${client.slug}/${formSlug}`
+    window.open(url, "_blank")
+  }
 
   const { data: slaPolicies, isLoading: slaLoading } =
     api.sla.getByClient.useQuery({
       clientId: clientId,
-    });
+    })
 
   const { data: tickets } = api.ticket.getAll.useQuery({
     clientId: clientId,
     page: 1,
     limit: 10,
-  });
-
+  })
 
   if (clientLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader className="h-4 w-4 animate-spin" />
       </div>
-    );
+    )
   }
 
   if (!client) {
@@ -136,7 +137,7 @@ export default function ClientDetailsPage() {
           </p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -220,8 +221,8 @@ export default function ClientDetailsPage() {
             {client.portal_enabled && (
               <Button
                 onClick={() => {
-                  const portalUrl = `${window.location.origin}/portal/${client.company?.slug}/${client.slug}`;
-                  window.open(portalUrl, "_blank");
+                  const portalUrl = `${window.location.origin}/portal/${client.company?.slug}/${client.slug}`
+                  window.open(portalUrl, "_blank")
                 }}
               >
                 <Globe className="mr-2 h-4 w-4" />
@@ -273,7 +274,7 @@ export default function ClientDetailsPage() {
                       <p className="text-sm text-gray-600">Open Tickets</p>
                       <p className="text-lg font-bold">
                         {client.tickets.filter(
-                          (ticket) => ticket.status !== "closed",
+                          (ticket) => ticket.status !== "closed"
                         ).length || 0}
                       </p>
                     </div>
@@ -471,7 +472,7 @@ export default function ClientDetailsPage() {
                               <Target className="h-4 w-4" />
                               Resolution:{" "}
                               {Math.floor(
-                                sla.resolution_time_minutes / 60,
+                                sla.resolution_time_minutes / 60
                               )}h {sla.resolution_time_minutes % 60}m
                             </div>
                           </div>
@@ -546,8 +547,8 @@ export default function ClientDetailsPage() {
                     <Button
                       variant="outline"
                       onClick={() => {
-                        const portalUrl = `${window.location.origin}/portal/${client.company?.slug}/${client.slug}`;
-                        window.open(portalUrl, "_blank");
+                        const portalUrl = `${window.location.origin}/portal/${client.company?.slug}/${client.slug}`
+                        window.open(portalUrl, "_blank")
                       }}
                     >
                       <Globe className="mr-2 h-4 w-4" />
@@ -579,7 +580,7 @@ export default function ClientDetailsPage() {
             <Card>
               <CardContent className="p-6">
                 {!formsData?.forms || formsData.forms.length === 0 ? (
-                  <div className="text-center py-8">
+                  <div className="py-8 text-center">
                     <Activity className="mx-auto mb-4 h-12 w-12 text-gray-400" />
                     <h3 className="mb-2 text-lg font-medium">No forms yet</h3>
                     <p className="mb-4 text-gray-600">
@@ -609,12 +610,13 @@ export default function ClientDetailsPage() {
                             )}
                           </div>
                           {form.description && (
-                            <p className="text-sm text-gray-600 mt-1">
+                            <p className="mt-1 text-sm text-gray-600">
                               {form.description}
                             </p>
                           )}
-                          <p className="text-xs text-gray-500 mt-1">
-                            Created {formatRelativeTime(new Date(form.created_at))}
+                          <p className="mt-1 text-xs text-gray-500">
+                            Created{" "}
+                            {formatRelativeTime(new Date(form.created_at))}
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -666,8 +668,9 @@ export default function ClientDetailsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the client &quot;{client.name}&quot; and all associated data including tickets, forms, and portal access.
-              This action cannot be undone.
+              This will permanently delete the client &quot;{client.name}&quot;
+              and all associated data including tickets, forms, and portal
+              access. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -683,13 +686,16 @@ export default function ClientDetailsPage() {
       </AlertDialog>
 
       {/* Delete Form Confirmation Dialog */}
-      <AlertDialog open={deleteFormDialogOpen} onOpenChange={setDeleteFormDialogOpen}>
+      <AlertDialog
+        open={deleteFormDialogOpen}
+        onOpenChange={setDeleteFormDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Form?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the form &quot;{formToDelete?.name}&quot; and all its submissions.
-              This action cannot be undone.
+              This will permanently delete the form &quot;{formToDelete?.name}
+              &quot; and all its submissions. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -706,5 +712,5 @@ export default function ClientDetailsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+  )
 }

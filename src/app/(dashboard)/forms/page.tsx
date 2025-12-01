@@ -1,10 +1,19 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Plus, FileText, Eye, Users, Copy, ExternalLink, Trash2, EyeOff } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import {
+  Plus,
+  FileText,
+  Eye,
+  Users,
+  Copy,
+  ExternalLink,
+  Trash2,
+  EyeOff,
+} from "lucide-react"
+import { Button } from "~/components/ui/button"
+import { Badge } from "~/components/ui/badge"
 import {
   Table,
   TableBody,
@@ -12,7 +21,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "~/components/ui/table";
+} from "~/components/ui/table"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,26 +31,29 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "~/components/ui/alert-dialog";
+} from "~/components/ui/alert-dialog"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { api } from "~/trpc/react";
-import { formatRelativeTime } from "~/lib/utils";
-import { toast } from "sonner";
+} from "~/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { api } from "~/trpc/react"
+import { formatRelativeTime } from "~/lib/utils"
+import { toast } from "sonner"
 
 export default function FormsPage() {
-  const router = useRouter();
-  const [page, setPage] = useState(1);
-  const [clientFilter, setClientFilter] = useState<string>("");
-  const [publishedFilter, setPublishedFilter] = useState<string>("");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [formToDelete, setFormToDelete] = useState<{ id: string; name: string } | null>(null);
+  const router = useRouter()
+  const [page, setPage] = useState(1)
+  const [clientFilter, setClientFilter] = useState<string>("")
+  const [publishedFilter, setPublishedFilter] = useState<string>("")
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [formToDelete, setFormToDelete] = useState<{
+    id: string
+    name: string
+  } | null>(null)
 
   const { data, isLoading, refetch } = api.forms.getAll.useQuery({
     page,
@@ -49,72 +61,72 @@ export default function FormsPage() {
     client_id: clientFilter || undefined,
     is_published:
       publishedFilter === "" ? undefined : publishedFilter === "true",
-  });
+  })
 
   const { data: clients } = api.clients.getAll.useQuery({
     page: 1,
     limit: 50,
-  });
+  })
 
-  const { data: company } = api.company.getSettings.useQuery();
+  const { data: company } = api.company.getSettings.useQuery()
 
-  const forms = data?.forms || [];
-  const totalPages = data?.totalPages || 1;
+  const forms = data?.forms || []
+  const totalPages = data?.totalPages || 1
 
   const deleteMutation = api.forms.delete.useMutation({
     onSuccess: () => {
-      toast.success("Form deleted successfully");
-      refetch();
-      setDeleteDialogOpen(false);
-      setFormToDelete(null);
+      toast.success("Form deleted successfully")
+      refetch()
+      setDeleteDialogOpen(false)
+      setFormToDelete(null)
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to delete form");
+      toast.error(error.message || "Failed to delete form")
     },
-  });
+  })
 
   const publishMutation = api.forms.publish.useMutation({
     onSuccess: () => {
-      toast.success("Form updated successfully");
-      refetch();
+      toast.success("Form updated successfully")
+      refetch()
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to update form");
+      toast.error(error.message || "Failed to update form")
     },
-  });
+  })
 
   const copyFormUrl = (formSlug: string, clientSlug: string) => {
-    if (!company?.slug) return;
-    const url = `${window.location.origin}/forms/${company?.slug}/${clientSlug}/${formSlug}`;
-    navigator.clipboard.writeText(url);
+    if (!company?.slug) return
+    const url = `${window.location.origin}/forms/${company?.slug}/${clientSlug}/${formSlug}`
+    navigator.clipboard.writeText(url)
     toast.success("Link copied!", {
       description: "Form link has been copied to clipboard",
-    });
-  };
+    })
+  }
 
   const openFormInNewTab = (formSlug: string, clientSlug: string) => {
-    if (!company?.slug) return;
-    const url = `${window.location.origin}/forms/${company.slug}/${clientSlug}/${formSlug}`;
-    window.open(url, "_blank");
-  };
+    if (!company?.slug) return
+    const url = `${window.location.origin}/forms/${company.slug}/${clientSlug}/${formSlug}`
+    window.open(url, "_blank")
+  }
 
   const handleDeleteForm = (formId: string, formName: string) => {
-    setFormToDelete({ id: formId, name: formName });
-    setDeleteDialogOpen(true);
-  };
+    setFormToDelete({ id: formId, name: formName })
+    setDeleteDialogOpen(true)
+  }
 
   const confirmDelete = () => {
     if (formToDelete) {
-      deleteMutation.mutate({ id: formToDelete.id });
+      deleteMutation.mutate({ id: formToDelete.id })
     }
-  };
+  }
 
   const handleTogglePublish = (formId: string, currentStatus: boolean) => {
     publishMutation.mutate({
       id: formId,
       is_published: !currentStatus,
-    });
-  };
+    })
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -254,7 +266,7 @@ export default function FormsPage() {
                           className="h-auto p-0"
                           onClick={() =>
                             router.push(
-                              `/forms/${company?.slug}/${form.client?.slug}/${form.slug}/submissions`,
+                              `/forms/${company?.slug}/${form.client?.slug}/${form.slug}/submissions`
                             )
                           }
                         >
@@ -302,7 +314,10 @@ export default function FormsPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() =>
-                                  handleTogglePublish(form.id, form.is_published)
+                                  handleTogglePublish(
+                                    form.id,
+                                    form.is_published
+                                  )
                                 }
                                 title="Unpublish form"
                               >
@@ -325,8 +340,8 @@ export default function FormsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteForm(form.id, form.name);
+                              e.stopPropagation()
+                              handleDeleteForm(form.id, form.name)
                             }}
                             title="Delete form"
                             className="hover:bg-destructive/10"
@@ -379,8 +394,8 @@ export default function FormsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the form &quot;{formToDelete?.name}&quot; and all its submissions.
-              This action cannot be undone.
+              This will permanently delete the form &quot;{formToDelete?.name}
+              &quot; and all its submissions. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -397,5 +412,5 @@ export default function FormsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+  )
 }

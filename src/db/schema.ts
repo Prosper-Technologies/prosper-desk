@@ -9,34 +9,34 @@ import {
   unique,
   uuid,
   varchar,
-} from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+} from "drizzle-orm/pg-core"
+import { relations, sql } from "drizzle-orm"
 
 // Enums
 export const membershipRoleEnum = pgEnum("membership_role", [
   "owner",
   "admin",
   "agent",
-]);
+])
 export const ticketStatusEnum = pgEnum("ticket_status", [
   "open",
   "in_progress",
   "resolved",
   "closed",
-]);
+])
 export const ticketPriorityEnum = pgEnum("ticket_priority", [
   "low",
   "medium",
   "high",
   "urgent",
-]);
+])
 export const companySizeEnum = pgEnum("company_size", [
   "1-10",
   "11-50",
   "51-200",
   "201-1000",
   "1000+",
-]);
+])
 
 export const companies = pgTable("companies", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -48,7 +48,7 @@ export const companies = pgTable("companies", {
   settings: jsonb("settings").default("{}"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-}).enableRLS();
+}).enableRLS()
 
 // Users table - now global, not tied to a specific company
 export const users = pgTable("users", {
@@ -62,7 +62,7 @@ export const users = pgTable("users", {
   last_seen_at: timestamp("last_seen_at"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-}).enableRLS();
+}).enableRLS()
 
 // Memberships - junction table between users and companies with roles
 export const memberships = pgTable(
@@ -84,8 +84,8 @@ export const memberships = pgTable(
   (table) => ({
     // Unique constraint: one membership per user per company
     userCompanyUnique: unique().on(table.user_id, table.company_id),
-  }),
-).enableRLS();
+  })
+).enableRLS()
 
 // SLA Policies per client (client_id can be null for company defaults)
 export const slaPolicies = pgTable("sla_policies", {
@@ -103,7 +103,7 @@ export const slaPolicies = pgTable("sla_policies", {
   is_default: boolean("is_default").default(false).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-}).enableRLS();
+}).enableRLS()
 
 // Escalation Policies
 export const escalationPolicies = pgTable("escalation_policies", {
@@ -116,7 +116,7 @@ export const escalationPolicies = pgTable("escalation_policies", {
   is_active: boolean("is_active").default(true).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-}).enableRLS();
+}).enableRLS()
 
 // Clients (customer organizations that submit tickets)
 export const clients = pgTable("clients", {
@@ -136,7 +136,7 @@ export const clients = pgTable("clients", {
   portal_enabled: boolean("portal_enabled").default(true).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-}).enableRLS();
+}).enableRLS()
 
 // Tickets table (core entity) - now references membership instead of user directly
 export const tickets = pgTable(
@@ -153,13 +153,13 @@ export const tickets = pgTable(
     status: ticketStatusEnum("status").notNull().default("open"),
     priority: ticketPriorityEnum("priority").notNull().default("medium"),
     created_by_membership_id: uuid("created_by_membership_id").references(
-      () => memberships.id,
+      () => memberships.id
     ),
     assigned_to_membership_id: uuid("assigned_to_membership_id").references(
-      () => memberships.id,
+      () => memberships.id
     ),
     assigned_to_customer_portal_access_id: uuid(
-      "assigned_to_customer_portal_access_id",
+      "assigned_to_customer_portal_access_id"
     ).references(() => customerPortalAccess.id),
     sla_policy_id: uuid("sla_policy_id").references(() => slaPolicies.id),
     first_response_at: timestamp("first_response_at"),
@@ -167,7 +167,7 @@ export const tickets = pgTable(
     sla_response_breach: boolean("sla_response_breach").default(false),
     sla_resolution_breach: boolean("sla_resolution_breach").default(false),
     escalation_policy_id: uuid("escalation_policy_id").references(
-      () => escalationPolicies.id,
+      () => escalationPolicies.id
     ),
     escalation_level: integer("escalation_level").default(0),
     client_id: uuid("client_id").references(() => clients.id),
@@ -186,10 +186,10 @@ export const tickets = pgTable(
       table.external_id,
       table.external_type,
       table.company_id,
-      table.client_id,
+      table.client_id
     ),
-  }),
-).enableRLS();
+  })
+).enableRLS()
 
 export const ticketComments = pgTable("ticket_comments", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -201,12 +201,12 @@ export const ticketComments = pgTable("ticket_comments", {
     .notNull(),
   parent_comment_id: uuid("parent_comment_id").references(
     (): any => ticketComments.id,
-    { onDelete: "cascade" },
+    { onDelete: "cascade" }
   ), // For nested replies (one level only)
   // Polymorphic ownership: exactly one of these should be set
   membership_id: uuid("membership_id").references(() => memberships.id), // For staff comments
   customer_portal_access_id: uuid("customer_portal_access_id").references(
-    () => customerPortalAccess.id,
+    () => customerPortalAccess.id
   ), // For customer comments
   content: text("content").notNull(),
   is_internal: boolean("is_internal").default(false).notNull(), // Internal notes vs customer-visible
@@ -214,7 +214,7 @@ export const ticketComments = pgTable("ticket_comments", {
   attachments: jsonb("attachments").default("[]"), // Array of file URLs
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-}).enableRLS();
+}).enableRLS()
 
 export const knowledgeBase = pgTable("knowledge_base", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -233,7 +233,7 @@ export const knowledgeBase = pgTable("knowledge_base", {
   tags: jsonb("tags").default("[]"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-}).enableRLS();
+}).enableRLS()
 
 // Customer Portal Access (for external customers)
 export const customerPortalAccess = pgTable("customer_portal_access", {
@@ -250,7 +250,7 @@ export const customerPortalAccess = pgTable("customer_portal_access", {
   is_active: boolean("is_active").default(true).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-}).enableRLS();
+}).enableRLS()
 
 // Gmail integration settings
 export const gmailIntegration = pgTable("gmail_integration", {
@@ -272,11 +272,11 @@ export const gmailIntegration = pgTable("gmail_integration", {
     .notNull(), // How often to check for new emails
   auto_create_tickets: boolean("auto_create_tickets").default(true).notNull(),
   default_ticket_priority: ticketPriorityEnum(
-    "default_ticket_priority",
+    "default_ticket_priority"
   ).default("medium"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-}).enableRLS();
+}).enableRLS()
 
 // Email threads to track conversations
 export const emailThreads = pgTable("email_threads", {
@@ -293,7 +293,7 @@ export const emailThreads = pgTable("email_threads", {
   last_message_id: varchar("last_message_id", { length: 255 }),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-}).enableRLS();
+}).enableRLS()
 
 // API Keys for external API access
 export const apiKeys = pgTable("api_keys", {
@@ -310,7 +310,7 @@ export const apiKeys = pgTable("api_keys", {
   is_active: boolean("is_active").default(true).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-}).enableRLS();
+}).enableRLS()
 
 // Invitation codes for user invitations
 export const invitationCodes = pgTable("invitation_codes", {
@@ -330,7 +330,7 @@ export const invitationCodes = pgTable("invitation_codes", {
   used_at: timestamp("used_at"),
   expires_at: timestamp("expires_at").notNull(), // 7 days from creation
   created_at: timestamp("created_at").defaultNow().notNull(),
-}).enableRLS();
+}).enableRLS()
 
 // Forms table (custom forms for data collection)
 export const forms = pgTable(
@@ -372,8 +372,8 @@ export const forms = pgTable(
   (table) => ({
     // Unique constraint: one slug per client
     formSlugUnique: unique().on(table.company_id, table.client_id, table.slug),
-  }),
-).enableRLS();
+  })
+).enableRLS()
 
 // Form submissions table
 export const formSubmissions = pgTable("form_submissions", {
@@ -389,10 +389,10 @@ export const formSubmissions = pgTable("form_submissions", {
   submitted_by_email: varchar("submitted_by_email", { length: 255 }).notNull(),
   submitted_by_name: varchar("submitted_by_name", { length: 255 }).notNull(),
   submitted_by_customer_portal_access_id: uuid(
-    "submitted_by_customer_portal_access_id",
+    "submitted_by_customer_portal_access_id"
   ).references(() => customerPortalAccess.id),
   submitted_by_membership_id: uuid("submitted_by_membership_id").references(
-    () => memberships.id,
+    () => memberships.id
   ),
 
   // Response data
@@ -414,7 +414,7 @@ export const formSubmissions = pgTable("form_submissions", {
 
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
-}).enableRLS();
+}).enableRLS()
 
 // Relations
 export const companiesRelations = relations(companies, ({ many }) => ({
@@ -430,12 +430,12 @@ export const companiesRelations = relations(companies, ({ many }) => ({
   invitationCodes: many(invitationCodes),
   forms: many(forms),
   formSubmissions: many(formSubmissions),
-}));
+}))
 
 export const usersRelations = relations(users, ({ many }) => ({
   memberships: many(memberships),
   invitationCodes: many(invitationCodes),
-}));
+}))
 
 export const membershipsRelations = relations(memberships, ({ one, many }) => ({
   user: one(users, {
@@ -453,7 +453,7 @@ export const membershipsRelations = relations(memberships, ({ one, many }) => ({
   sentInvitations: many(invitationCodes),
   createdForms: many(forms),
   formSubmissions: many(formSubmissions),
-}));
+}))
 
 export const slaPoliciesRelations = relations(slaPolicies, ({ one, many }) => ({
   company: one(companies, {
@@ -465,7 +465,7 @@ export const slaPoliciesRelations = relations(slaPolicies, ({ one, many }) => ({
     references: [clients.id],
   }),
   tickets: many(tickets),
-}));
+}))
 
 export const escalationPoliciesRelations = relations(
   escalationPolicies,
@@ -475,8 +475,8 @@ export const escalationPoliciesRelations = relations(
       references: [companies.id],
     }),
     tickets: many(tickets),
-  }),
-);
+  })
+)
 
 export const ticketsRelations = relations(tickets, ({ one, many }) => ({
   company: one(companies, {
@@ -511,7 +511,7 @@ export const ticketsRelations = relations(tickets, ({ one, many }) => ({
   }),
   comments: many(ticketComments),
   formSubmissions: many(formSubmissions),
-}));
+}))
 
 export const ticketCommentsRelations = relations(
   ticketComments,
@@ -540,8 +540,8 @@ export const ticketCommentsRelations = relations(
     replies: many(ticketComments, {
       relationName: "commentReplies",
     }),
-  }),
-);
+  })
+)
 
 export const knowledgeBaseRelations = relations(knowledgeBase, ({ one }) => ({
   company: one(companies, {
@@ -552,7 +552,7 @@ export const knowledgeBaseRelations = relations(knowledgeBase, ({ one }) => ({
     fields: [knowledgeBase.author_membership_id],
     references: [memberships.id],
   }),
-}));
+}))
 
 export const clientsRelations = relations(clients, ({ one, many }) => ({
   company: one(companies, {
@@ -563,7 +563,7 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
   portalAccess: many(customerPortalAccess),
   slaPolicies: many(slaPolicies),
   forms: many(forms),
-}));
+}))
 
 export const customerPortalAccessRelations = relations(
   customerPortalAccess,
@@ -579,15 +579,15 @@ export const customerPortalAccessRelations = relations(
     ticketComments: many(ticketComments),
     assignedTickets: many(tickets),
     formSubmissions: many(formSubmissions),
-  }),
-);
+  })
+)
 
 export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
   company: one(companies, {
     fields: [apiKeys.company_id],
     references: [companies.id],
   }),
-}));
+}))
 
 export const gmailIntegrationRelations = relations(
   gmailIntegration,
@@ -596,8 +596,8 @@ export const gmailIntegrationRelations = relations(
       fields: [gmailIntegration.company_id],
       references: [companies.id],
     }),
-  }),
-);
+  })
+)
 
 export const emailThreadsRelations = relations(emailThreads, ({ one }) => ({
   company: one(companies, {
@@ -608,7 +608,7 @@ export const emailThreadsRelations = relations(emailThreads, ({ one }) => ({
     fields: [emailThreads.ticket_id],
     references: [tickets.id],
   }),
-}));
+}))
 
 export const invitationCodesRelations = relations(
   invitationCodes,
@@ -625,8 +625,8 @@ export const invitationCodesRelations = relations(
       fields: [invitationCodes.invited_by_membership_id],
       references: [memberships.id],
     }),
-  }),
-);
+  })
+)
 
 export const formsRelations = relations(forms, ({ one, many }) => ({
   company: one(companies, {
@@ -642,7 +642,7 @@ export const formsRelations = relations(forms, ({ one, many }) => ({
     references: [memberships.id],
   }),
   submissions: many(formSubmissions),
-}));
+}))
 
 export const formSubmissionsRelations = relations(
   formSubmissions,
@@ -667,5 +667,5 @@ export const formSubmissionsRelations = relations(
       fields: [formSubmissions.ticket_id],
       references: [tickets.id],
     }),
-  }),
-);
+  })
+)

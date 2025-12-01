@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Badge } from "~/components/ui/badge";
+import { useState } from "react"
+import Link from "next/link"
+import { useParams } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Badge } from "~/components/ui/badge"
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-} from "~/components/ui/dialog";
+} from "~/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,14 +22,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
+} from "~/components/ui/dropdown-menu"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -37,7 +30,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "~/components/ui/breadcrumb";
+} from "~/components/ui/breadcrumb"
 import {
   ArrowLeft,
   Users,
@@ -52,147 +45,135 @@ import {
   Check,
   Shield,
   RefreshCw,
-} from "lucide-react";
-import { api } from "~/trpc/react";
-import { formatDateTime } from "~/lib/utils";
+} from "lucide-react"
+import { api } from "~/trpc/react"
+import { formatDateTime } from "~/lib/utils"
 
 export default function ClientPortalAccessPage() {
-  const params = useParams();
-  const clientId = params?.clientId as string;
+  const params = useParams()
+  const clientId = params?.clientId as string
 
-  const [createAccessOpen, setCreateAccessOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [error, setError] = useState("");
+  const [createAccessOpen, setCreateAccessOpen] = useState(false)
+  const [email, setEmail] = useState("")
+  const [name, setName] = useState("")
+  const [error, setError] = useState("")
   const [generatedAccess, setGeneratedAccess] = useState<{
-    message: string;
-    email: string;
-    portalUrl?: string;
-  } | null>(null);
-  const [copiedUrl, setCopiedUrl] = useState(false);
+    message: string
+    email: string
+    portalUrl?: string
+  } | null>(null)
+  const [copiedUrl, setCopiedUrl] = useState(false)
 
   // Get client details
-  const { data: client } = api.clients.getById.useQuery({ id: clientId });
+  const { data: client } = api.clients.getById.useQuery({ id: clientId })
 
   // Get portal access list
   const { data: portalAccess, refetch } = api.clients.getPortalAccess.useQuery({
     clientId,
-  });
+  })
 
   // Generate portal access mutation
   const generateAccess = api.clients.generatePortalAccess.useMutation({
     onSuccess: (data) => {
-      setGeneratedAccess(data);
-      setError("");
-      refetch();
+      setGeneratedAccess(data)
+      setError("")
+      refetch()
     },
     onError: (err) => {
-      setError(err.message);
+      setError(err.message)
     },
-  });
+  })
 
   // Revoke access mutation
   const revokeAccess = api.clients.revokePortalAccess.useMutation({
     onSuccess: () => {
-      refetch();
+      refetch()
     },
     onError: (err) => {
-      setError(err.message);
+      setError(err.message)
     },
-  });
+  })
 
   // Delete access mutation
   const deleteAccess = api.clients.deletePortalAccess.useMutation({
     onSuccess: () => {
-      refetch();
+      refetch()
     },
     onError: (err) => {
-      setError(err.message);
+      setError(err.message)
     },
-  });
-
-  // Regenerate token mutation (reuses generatePortalAccess with existing user data)
-  const regenerateToken = api.clients.generatePortalAccess.useMutation({
-    onSuccess: (data) => {
-      setGeneratedAccess(data);
-      setError("");
-      refetch();
-    },
-    onError: (err) => {
-      setError(err.message);
-    },
-  });
+  })
 
   const handleGenerateAccess = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+    e.preventDefault()
+    setError("")
 
     if (!email.trim() || !name.trim()) {
-      setError("Email and name are required");
-      return;
+      setError("Email and name are required")
+      return
     }
 
     await generateAccess.mutateAsync({
       clientId,
       email: email.trim(),
       name: name.trim(),
-    });
-  };
+    })
+  }
 
   const handleCloseAccessModal = (open: boolean) => {
-    setCreateAccessOpen(open);
+    setCreateAccessOpen(open)
     if (!open) {
-      setGeneratedAccess(null);
-      setEmail("");
-      setName("");
-      setError("");
+      setGeneratedAccess(null)
+      setEmail("")
+      setName("")
+      setError("")
     }
-  };
+  }
 
   const handleOpenAccessModal = () => {
-    setCreateAccessOpen(true);
-  };
+    setCreateAccessOpen(true)
+  }
 
   const handleRevokeAccess = (accessId: string) => {
     if (
       confirm(
-        "Are you sure you want to revoke this access? The user will no longer be able to access the portal with their current link.",
+        "Are you sure you want to revoke this access? The user will no longer be able to access the portal with their current link."
       )
     ) {
-      revokeAccess.mutateAsync({ accessId });
+      revokeAccess.mutateAsync({ accessId })
     }
-  };
+  }
 
   const handleDeleteAccess = (accessId: string) => {
     if (
       confirm(
-        "Are you sure you want to permanently delete this access? This action cannot be undone and will completely remove the record from the database.",
+        "Are you sure you want to permanently delete this access? This action cannot be undone and will completely remove the record from the database."
       )
     ) {
-      deleteAccess.mutateAsync({ accessId });
+      deleteAccess.mutateAsync({ accessId })
     }
-  };
+  }
 
   const handleRegenerateToken = (access: any) => {
     if (
       confirm(
-        "Are you sure you want to send a new magic link? A fresh link will be sent to the customer's email.",
+        "Are you sure you want to send a new magic link? A fresh link will be sent to the customer's email."
       )
     ) {
       generateAccess.mutateAsync({
         clientId,
         email: access.email,
         name: access.name,
-      });
+      })
     }
-  };
+  }
 
   if (!client) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="h-4 w-4 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
       </div>
-    );
+    )
   }
 
   return (
@@ -383,13 +364,13 @@ export default function ClientPortalAccessPage() {
                                     variant="ghost"
                                     onClick={() => {
                                       navigator.clipboard.writeText(
-                                        generatedAccess.portalUrl!,
-                                      );
-                                      setCopiedUrl(true);
+                                        generatedAccess.portalUrl!
+                                      )
+                                      setCopiedUrl(true)
                                       setTimeout(
                                         () => setCopiedUrl(false),
-                                        2000,
-                                      );
+                                        2000
+                                      )
                                     }}
                                   >
                                     {copiedUrl ? (
@@ -554,8 +535,8 @@ export default function ClientPortalAccessPage() {
                             <>
                               <DropdownMenuItem
                                 onClick={() => {
-                                  const portalUrl = `${window.location.origin}/portal/${client.company?.slug}/${client.slug}`;
-                                  window.open(portalUrl, "_blank");
+                                  const portalUrl = `${window.location.origin}/portal/${client.company?.slug}/${client.slug}`
+                                  window.open(portalUrl, "_blank")
                                 }}
                               >
                                 <ExternalLink className="mr-2 h-4 w-4" />
@@ -613,5 +594,5 @@ export default function ClientPortalAccessPage() {
         </Card>
       </div>
     </div>
-  );
+  )
 }

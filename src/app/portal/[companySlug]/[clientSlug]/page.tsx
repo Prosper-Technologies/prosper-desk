@@ -1,52 +1,48 @@
-"use client";
+"use client"
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Textarea } from "~/components/ui/textarea";
-import { Badge } from "~/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import React, { useState, useEffect, useMemo, useCallback } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Textarea } from "~/components/ui/textarea"
+import { Badge } from "~/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
+} from "~/components/ui/select"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "~/components/ui/dialog";
+} from "~/components/ui/dialog"
 import {
   LifeBuoy,
   Plus,
-  Clock,
   MessageCircle,
   CheckCircle,
-  User,
   Activity,
-  ChevronDown,
-  ChevronRight,
   Edit2,
   X,
   Save,
   FileText,
   ExternalLink,
-} from "lucide-react";
-import { Label } from "~/components/ui/label";
-import { useSearchParams } from "next/navigation";
+} from "lucide-react"
+import { Label } from "~/components/ui/label"
+import { useSearchParams } from "next/navigation"
 import {
   useReactTable,
   getCoreRowModel,
   flexRender,
   type ColumnDef,
-} from "@tanstack/react-table";
-import { api } from "~/trpc/react";
+} from "@tanstack/react-table"
+import { api } from "~/trpc/react"
 import {
   formatRelativeTime,
   getStatusColor,
@@ -54,19 +50,19 @@ import {
   getInitials,
   cn,
   parseTextForLinks,
-} from "~/lib/utils";
-import { createClient } from "~/utils/supabase/client";
-import { Input } from "~/components/ui/input";
-import { toast } from "sonner";
+} from "~/lib/utils"
+import { createClient } from "~/utils/supabase/client"
+import { Input } from "~/components/ui/input"
+import { toast } from "sonner"
 
 // Component to render text with clickable links
 const TextWithLinks = ({ text }: { text: string }) => {
-  const parts = parseTextForLinks(text);
+  const parts = parseTextForLinks(text)
 
   return (
     <>
       {parts.map((part, index) => {
-        if (part.type === 'link') {
+        if (part.type === "link") {
           return (
             <a
               key={index}
@@ -77,152 +73,152 @@ const TextWithLinks = ({ text }: { text: string }) => {
             >
               {part.content}
             </a>
-          );
+          )
         }
-        return <span key={index}>{part.content}</span>;
+        return <span key={index}>{part.content}</span>
       })}
     </>
-  );
-};
+  )
+}
 
-type AssigneeType = "team" | "customer";
+type AssigneeType = "team" | "customer"
 
 interface UnifiedAssignee {
-  id: string;
-  name: string;
-  type: AssigneeType;
-  clientName?: string;
+  id: string
+  name: string
+  type: AssigneeType
+  clientName?: string
 }
 
 interface PortalPageProps {
   params: {
-    companySlug: string;
-    clientSlug: string;
-  };
+    companySlug: string
+    clientSlug: string
+  }
 }
 
 type Ticket = {
-  id: string;
-  subject: string;
-  description: string;
-  status: string;
-  priority: string;
-  external_id: string | null;
-  external_type: string | null;
-  customer_email: string | null;
-  customer_name: string | null;
-  created_at: string | Date;
-  updated_at: string | Date;
+  id: string
+  subject: string
+  description: string
+  status: string
+  priority: string
+  external_id: string | null
+  external_type: string | null
+  customer_email: string | null
+  customer_name: string | null
+  created_at: string | Date
+  updated_at: string | Date
   assignedToMembership?: {
     user: {
-      first_name: string;
-      last_name: string;
-      avatar_url: string | null;
-    };
-  };
+      first_name: string
+      last_name: string
+      avatar_url: string | null
+    }
+  }
   assignedToCustomerPortalAccess?: {
-    id: string;
-    name: string;
-    email: string;
-  };
+    id: string
+    name: string
+    email: string
+  }
   comments?: Array<{
-    id: string;
-    content: string;
-    created_at: string | Date;
+    id: string
+    content: string
+    created_at: string | Date
     membership?: {
       user: {
-        first_name: string;
-        last_name: string;
-        avatar_url: string | null;
-      };
-    };
+        first_name: string
+        last_name: string
+        avatar_url: string | null
+      }
+    }
     customerPortalAccess?: {
-      name: string;
-      email: string;
-    };
-  }>;
-};
+      name: string
+      email: string
+    }
+  }>
+}
 
 export default function CustomerPortalPage({ params }: PortalPageProps) {
-  const router = useRouter();
-  const supabase = createClient();
-  const searchParams = useSearchParams();
-  const ticketId = searchParams?.get("ticket") || null;
+  const router = useRouter()
+  const supabase = createClient()
+  const searchParams = useSearchParams()
+  const ticketId = searchParams?.get("ticket") || null
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [customerData, setCustomerData] = useState<any>(null);
-  const [createTicketOpen, setCreateTicketOpen] = useState(false);
-  const [subject, setSubject] = useState("");
-  const [description, setDescription] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [customerData, setCustomerData] = useState<any>(null)
+  const [createTicketOpen, setCreateTicketOpen] = useState(false)
+  const [subject, setSubject] = useState("")
+  const [description, setDescription] = useState("")
   const [priority, setPriority] = useState<
     "low" | "medium" | "high" | "urgent"
-  >("medium");
-  const [isLoading, setIsLoading] = useState(true);
-  const [sessionChecked, setSessionChecked] = useState(false);
+  >("medium")
+  const [isLoading, setIsLoading] = useState(true)
+  const [sessionChecked, setSessionChecked] = useState(false)
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [priorityFilter, setPriorityFilter] = useState<string>("all");
-  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [priorityFilter, setPriorityFilter] = useState<string>("all")
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all")
 
   // Pagination state
-  const [page, setPage] = useState(1);
-  const [allLoadedTickets, setAllLoadedTickets] = useState<Ticket[]>([]);
+  const [page, setPage] = useState(1)
+  const [allLoadedTickets, setAllLoadedTickets] = useState<Ticket[]>([])
 
   // Modal ticket edit state
-  const [isEditing, setIsEditing] = useState(false);
-  const [editSubject, setEditSubject] = useState("");
-  const [editDescription, setEditDescription] = useState("");
+  const [isEditing, setIsEditing] = useState(false)
+  const [editSubject, setEditSubject] = useState("")
+  const [editDescription, setEditDescription] = useState("")
   const [editPriority, setEditPriority] = useState<
     "low" | "medium" | "high" | "urgent"
-  >("medium");
-  const [editAssignee, setEditAssignee] = useState<string | null>(null);
-  const [newCommentContent, setNewCommentContent] = useState("");
+  >("medium")
+  const [editAssignee, setEditAssignee] = useState<string | null>(null)
+  const [newCommentContent, setNewCommentContent] = useState("")
 
   // Verify session on mount
   const verifySession = api.customerPortal.verifyToken.useMutation({
     onSuccess: (data) => {
-      setIsAuthenticated(true);
-      setCustomerData(data);
-      setIsLoading(false);
+      setIsAuthenticated(true)
+      setCustomerData(data)
+      setIsLoading(false)
     },
     onError: async (error) => {
-      setIsLoading(false);
+      setIsLoading(false)
       // If the error is because the user doesn't have portal access,
       // sign them out so they can log in with the correct account
       if (error.message.includes("don't have access")) {
-        await supabase.auth.signOut();
+        await supabase.auth.signOut()
       }
       // Stay on the same page - it will show the login form
-      setIsAuthenticated(false);
+      setIsAuthenticated(false)
     },
-  });
+  })
 
   useEffect(() => {
-    if (sessionChecked) return;
+    if (sessionChecked) return
 
     const checkSession = async () => {
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await supabase.auth.getSession()
 
       if (!session) {
-        setIsLoading(false);
-        setSessionChecked(true);
+        setIsLoading(false)
+        setSessionChecked(true)
         // Stay on the same page - it will show the login form
-        return;
+        return
       }
 
-      setSessionChecked(true);
+      setSessionChecked(true)
       verifySession.mutate({
         companySlug: params.companySlug,
         clientSlug: params.clientSlug,
-      });
-    };
+      })
+    }
 
-    checkSession();
+    checkSession()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.companySlug, params.clientSlug]);
+  }, [params.companySlug, params.clientSlug])
 
   // Get customer tickets
   const {
@@ -239,46 +235,46 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
     },
     {
       enabled: isAuthenticated,
-    },
-  );
+    }
+  )
 
   // Helper function to reset and refetch tickets list
   const resetAndRefetchTickets = () => {
-    setAllLoadedTickets([]);
-    setPage(1);
-    void refetchTickets();
-  };
+    setAllLoadedTickets([])
+    setPage(1)
+    void refetchTickets()
+  }
 
   // Resolve ticket mutation
   const resolveTicket = api.customerPortal.resolveTicket.useMutation({
     onSuccess: () => {
-      resetAndRefetchTickets();
-      toast.success("Ticket resolved successfully");
+      resetAndRefetchTickets()
+      toast.success("Ticket resolved successfully")
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to resolve ticket");
+      toast.error(error.message || "Failed to resolve ticket")
     },
-  });
+  })
 
   // Accumulate tickets as pages load and update existing ones
   useEffect(() => {
     if (ticketsData && ticketsData.length > 0) {
       setAllLoadedTickets((prev) => {
         // Create a map of existing tickets for efficient lookup
-        const existingTicketsMap = new Map(prev.map((t) => [t.id, t]));
+        const existingTicketsMap = new Map(prev.map((t) => [t.id, t]))
 
         // Update or add tickets from new data
         ticketsData.forEach((ticket: any) => {
-          existingTicketsMap.set(ticket.id, ticket as Ticket);
-        });
+          existingTicketsMap.set(ticket.id, ticket as Ticket)
+        })
 
         // Convert back to array, maintaining order
-        return Array.from(existingTicketsMap.values());
-      });
+        return Array.from(existingTicketsMap.values())
+      })
     }
-  }, [ticketsData]);
+  }, [ticketsData])
 
-  const allTickets = allLoadedTickets;
+  const allTickets = allLoadedTickets
 
   // Get SLA metrics
   const { data: slaMetrics } = api.customerPortal.getSLAMetrics.useQuery(
@@ -288,8 +284,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
     },
     {
       enabled: isAuthenticated,
-    },
-  );
+    }
+  )
 
   // Get forms
   const { data: forms } = api.customerPortal.getForms.useQuery(
@@ -299,8 +295,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
     },
     {
       enabled: isAuthenticated,
-    },
-  );
+    }
+  )
 
   // Get ticket detail for modal
   const { data: selectedTicket, refetch: refetchTicket } =
@@ -312,8 +308,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
       },
       {
         enabled: isAuthenticated && !!ticketId,
-      },
-    );
+      }
+    )
 
   // Get team members for assignment
   const { data: teamMembers } = api.customerPortal.getTeamMembers.useQuery(
@@ -323,8 +319,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
     },
     {
       enabled: isAuthenticated,
-    },
-  );
+    }
+  )
 
   // Get customer portal accesses for assignment
   const { data: customerAccesses } =
@@ -335,8 +331,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
       },
       {
         enabled: isAuthenticated,
-      },
-    );
+      }
+    )
 
   // Merge team members and customer accesses into unified assignee list
   const unifiedAssignees = useMemo<UnifiedAssignee[]>(() => {
@@ -346,7 +342,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
         ? `${member.user.first_name} ${member.user.last_name}`
         : "Unknown",
       type: "team" as const,
-    }));
+    }))
 
     const customers: UnifiedAssignee[] = (customerAccesses || []).map(
       (access) => ({
@@ -354,103 +350,105 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
         name: access.name,
         type: "customer" as const,
         clientName: access.client.name,
-      }),
-    );
+      })
+    )
 
-    return [...team, ...customers];
-  }, [teamMembers, customerAccesses]);
+    return [...team, ...customers]
+  }, [teamMembers, customerAccesses])
 
   // Mutations for ticket modal
   const updateTicket = api.customerPortal.updateTicket.useMutation({
     onSuccess: () => {
-      void refetchTicket();
-      resetAndRefetchTickets();
-      setIsEditing(false);
-      toast.success("Ticket updated successfully");
+      void refetchTicket()
+      resetAndRefetchTickets()
+      setIsEditing(false)
+      toast.success("Ticket updated successfully")
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to update ticket");
+      toast.error(error.message || "Failed to update ticket")
     },
-  });
+  })
 
   const resolveTicketMutation = api.customerPortal.resolveTicket.useMutation({
     onSuccess: () => {
-      void refetchTicket();
-      resetAndRefetchTickets();
-      toast.success("Ticket resolved successfully");
+      void refetchTicket()
+      resetAndRefetchTickets()
+      toast.success("Ticket resolved successfully")
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to resolve ticket");
+      toast.error(error.message || "Failed to resolve ticket")
     },
-  });
+  })
 
   const addComment = api.customerPortal.addComment.useMutation({
     onSuccess: () => {
-      void refetchTicket();
-      resetAndRefetchTickets();
-      setNewCommentContent("");
-      toast.success("Comment added successfully");
+      void refetchTicket()
+      resetAndRefetchTickets()
+      setNewCommentContent("")
+      toast.success("Comment added successfully")
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to add comment");
+      toast.error(error.message || "Failed to add comment")
     },
-  });
+  })
 
   // Modal handlers
   const handleCloseModal = () => {
-    router.push(`/portal/${params.companySlug}/${params.clientSlug}`);
-    setIsEditing(false);
-  };
+    router.push(`/portal/${params.companySlug}/${params.clientSlug}`)
+    setIsEditing(false)
+  }
 
   const handleStartEdit = () => {
     if (selectedTicket) {
-      setEditSubject(selectedTicket.subject);
-      setEditDescription(selectedTicket.description);
-      setEditPriority(selectedTicket.priority);
+      setEditSubject(selectedTicket.subject)
+      setEditDescription(selectedTicket.description)
+      setEditPriority(selectedTicket.priority)
 
       // Set assignment value based on type with proper prefixes
       if (selectedTicket.assigned_to_membership_id) {
-        setEditAssignee(`membership-${selectedTicket.assigned_to_membership_id}`);
+        setEditAssignee(
+          `membership-${selectedTicket.assigned_to_membership_id}`
+        )
       } else if (selectedTicket.assigned_to_customer_portal_access_id) {
         setEditAssignee(
-          `customer-${selectedTicket.assigned_to_customer_portal_access_id}`,
-        );
+          `customer-${selectedTicket.assigned_to_customer_portal_access_id}`
+        )
       } else {
-        setEditAssignee(null);
+        setEditAssignee(null)
       }
 
-      setIsEditing(true);
+      setIsEditing(true)
     }
-  };
+  }
 
   const handleCancelEdit = () => {
-    setIsEditing(false);
-  };
+    setIsEditing(false)
+  }
 
   const handleSaveEdit = () => {
-    if (!selectedTicket) return;
+    if (!selectedTicket) return
 
     // Determine current assignment value with prefix
     const currentAssignment = selectedTicket.assigned_to_membership_id
       ? `membership-${selectedTicket.assigned_to_membership_id}`
       : selectedTicket.assigned_to_customer_portal_access_id
         ? `customer-${selectedTicket.assigned_to_customer_portal_access_id}`
-        : null;
+        : null
 
     // Parse assignment value from dropdown
-    let assignedToMembershipId: string | null | undefined = undefined;
-    let assignedToCustomerPortalAccessId: string | null | undefined = undefined;
+    let assignedToMembershipId: string | null | undefined = undefined
+    let assignedToCustomerPortalAccessId: string | null | undefined = undefined
 
     if (editAssignee !== currentAssignment) {
       if (editAssignee === null || editAssignee === "unassigned") {
-        assignedToMembershipId = null;
-        assignedToCustomerPortalAccessId = null;
+        assignedToMembershipId = null
+        assignedToCustomerPortalAccessId = null
       } else if (editAssignee?.startsWith("membership-")) {
-        assignedToMembershipId = editAssignee.replace("membership-", "");
-        assignedToCustomerPortalAccessId = null;
+        assignedToMembershipId = editAssignee.replace("membership-", "")
+        assignedToCustomerPortalAccessId = null
       } else if (editAssignee?.startsWith("customer-")) {
-        assignedToCustomerPortalAccessId = editAssignee.replace("customer-", "");
-        assignedToMembershipId = null;
+        assignedToCustomerPortalAccessId = editAssignee.replace("customer-", "")
+        assignedToMembershipId = null
       }
     }
 
@@ -467,45 +465,44 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
         editPriority !== selectedTicket.priority ? editPriority : undefined,
       assigned_to_membership_id: assignedToMembershipId,
       assigned_to_customer_portal_access_id: assignedToCustomerPortalAccessId,
-    });
-  };
+    })
+  }
 
   const handleResolve = () => {
-    if (!selectedTicket) return;
+    if (!selectedTicket) return
 
     resolveTicketMutation.mutate({
       companySlug: params.companySlug,
       clientSlug: params.clientSlug,
       ticketId: selectedTicket.id,
-    });
-  };
+    })
+  }
 
   const handleAddComment = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTicket || !newCommentContent.trim()) return;
+    e.preventDefault()
+    if (!selectedTicket || !newCommentContent.trim()) return
 
     addComment.mutate({
       companySlug: params.companySlug,
       clientSlug: params.clientSlug,
       ticketId: selectedTicket.id,
       content: newCommentContent,
-    });
-  };
+    })
+  }
 
   // Filter tickets
   const filteredTickets = useMemo(() => {
     return allTickets.filter((ticket: Ticket) => {
-      if (statusFilter !== "all" && ticket.status !== statusFilter)
-        return false;
+      if (statusFilter !== "all" && ticket.status !== statusFilter) return false
       if (priorityFilter !== "all" && ticket.priority !== priorityFilter)
-        return false;
+        return false
       if (assigneeFilter !== "all") {
         if (
           assigneeFilter === "unassigned" &&
           ticket.assignedToMembership !== undefined &&
           ticket.assignedToMembership !== null
         )
-          return false;
+          return false
         if (
           assigneeFilter !== "unassigned" &&
           (!ticket.assignedToMembership ||
@@ -514,42 +511,42 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
               ticket.assignedToMembership.user.last_name !==
               assigneeFilter)
         )
-          return false;
+          return false
       }
-      return true;
-    });
-  }, [allTickets, statusFilter, priorityFilter, assigneeFilter]);
+      return true
+    })
+  }, [allTickets, statusFilter, priorityFilter, assigneeFilter])
 
   // Get unique assignees
   const assignees = useMemo(() => {
-    const uniqueAssignees = new Map<string, string>();
+    const uniqueAssignees = new Map<string, string>()
     allTickets.forEach((ticket: Ticket) => {
       if (ticket.assignedToMembership?.user) {
-        const name = `${ticket.assignedToMembership.user.first_name} ${ticket.assignedToMembership.user.last_name}`;
-        uniqueAssignees.set(name, name);
+        const name = `${ticket.assignedToMembership.user.first_name} ${ticket.assignedToMembership.user.last_name}`
+        uniqueAssignees.set(name, name)
       }
-    });
-    return Array.from(uniqueAssignees.values());
-  }, [allTickets]);
+    })
+    return Array.from(uniqueAssignees.values())
+  }, [allTickets])
 
   // Create ticket mutation
   const createTicket = api.customerPortal.createTicket.useMutation({
     onSuccess: () => {
-      setCreateTicketOpen(false);
-      setSubject("");
-      setDescription("");
-      setPriority("medium");
-      resetAndRefetchTickets();
-      toast.success("Ticket created successfully");
+      setCreateTicketOpen(false)
+      setSubject("")
+      setDescription("")
+      setPriority("medium")
+      resetAndRefetchTickets()
+      toast.success("Ticket created successfully")
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to create ticket");
+      toast.error(error.message || "Failed to create ticket")
     },
-  });
+  })
 
   const handleCreateTicket = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!subject.trim() || !description.trim()) return;
+    e.preventDefault()
+    if (!subject.trim() || !description.trim()) return
 
     await createTicket.mutateAsync({
       companySlug: params.companySlug,
@@ -557,13 +554,15 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
       subject: subject.trim(),
       description: description.trim(),
       priority,
-    });
-  };
+    })
+  }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push(`/portal/${params.companySlug}/${params.clientSlug}/request-access`);
-  };
+    await supabase.auth.signOut()
+    router.push(
+      `/portal/${params.companySlug}/${params.clientSlug}/request-access`
+    )
+  }
 
   // Table columns definition
   const columns = useMemo<ColumnDef<Ticket>[]>(
@@ -586,11 +585,11 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
         accessorKey: "customer",
         header: "Created By",
         cell: ({ row }) => {
-          const customerName = row.original.customer_name;
-          const customerEmail = row.original.customer_email;
+          const customerName = row.original.customer_name
+          const customerEmail = row.original.customer_email
 
           if (!customerName && !customerEmail) {
-            return <span className="text-sm text-gray-500">Unknown</span>;
+            return <span className="text-sm text-gray-500">Unknown</span>
           }
 
           return (
@@ -611,7 +610,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                 )}
               </div>
             </div>
-          );
+          )
         },
         size: 200,
       },
@@ -622,7 +621,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
           <div
             className={cn(
               getStatusColor(row.original.status as any),
-              "w-fit rounded-sm px-2 py-1 text-xs font-medium",
+              "w-fit rounded-sm px-2 py-1 text-xs font-medium"
             )}
           >
             {row.original.status.replace("_", " ")}
@@ -644,11 +643,11 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
         accessorKey: "assignee",
         header: "Assignee",
         cell: ({ row }) => {
-          const assignee = row.original.assignedToMembership?.user;
-          const customerAccess = row.original.assignedToCustomerPortalAccess;
+          const assignee = row.original.assignedToMembership?.user
+          const customerAccess = row.original.assignedToCustomerPortalAccess
 
           if (!assignee && !customerAccess) {
-            return <span className="text-sm text-gray-500">Unassigned</span>;
+            return <span className="text-sm text-gray-500">Unassigned</span>
           }
 
           if (customerAccess) {
@@ -664,7 +663,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                   Customer
                 </Badge>
               </div>
-            );
+            )
           }
 
           return (
@@ -672,7 +671,9 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
               <Avatar className="h-6 w-6">
                 <AvatarImage src={assignee!.avatar_url || ""} />
                 <AvatarFallback className="text-xs">
-                  {getInitials(`${assignee!.first_name} ${assignee!.last_name}`)}
+                  {getInitials(
+                    `${assignee!.first_name} ${assignee!.last_name}`
+                  )}
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm">
@@ -682,7 +683,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                 Team
               </Badge>
             </div>
-          );
+          )
         },
         size: 180,
       },
@@ -701,9 +702,9 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
         id: "actions",
         header: "",
         cell: ({ row }) => {
-          const ticket = row.original;
+          const ticket = row.original
           const canResolve =
-            ticket.status !== "resolved" && ticket.status !== "closed";
+            ticket.status !== "resolved" && ticket.status !== "closed"
 
           return (
             canResolve && (
@@ -711,37 +712,37 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                 size="sm"
                 variant="outline"
                 onClick={(e) => {
-                  e.stopPropagation();
+                  e.stopPropagation()
                   resolveTicket.mutate({
                     companySlug: params.companySlug,
                     clientSlug: params.clientSlug,
                     ticketId: ticket.id,
-                  });
+                  })
                 }}
                 disabled={resolveTicket.isPending}
               >
                 <CheckCircle className="h-4 w-4" />
               </Button>
             )
-          );
+          )
         },
         size: 80,
       },
     ],
-    [params.companySlug, params.clientSlug, resolveTicket],
-  );
+    [params.companySlug, params.clientSlug, resolveTicket]
+  )
 
   const table = useReactTable({
     data: filteredTickets,
     columns,
     getCoreRowModel: getCoreRowModel(),
-  });
+  })
 
   // Scroll handler for infinite loading
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
-      const target = e.currentTarget;
-      const { scrollTop, scrollHeight, clientHeight } = target;
+      const target = e.currentTarget
+      const { scrollTop, scrollHeight, clientHeight } = target
 
       // Load more when 200px from bottom
       if (
@@ -750,11 +751,11 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
         ticketsData.length === 20 &&
         !isFetching
       ) {
-        setPage((prev) => prev + 1);
+        setPage((prev) => prev + 1)
       }
     },
-    [ticketsData, isFetching],
-  );
+    [ticketsData, isFetching]
+  )
 
   // Show loading during session verification
   if (
@@ -769,17 +770,17 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
           <p className="text-gray-600">Loading portal...</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (!isAuthenticated) {
     // Redirect to request access page
     if (typeof window !== "undefined") {
       router.push(
-        `/portal/${params.companySlug}/${params.clientSlug}/request-access`,
-      );
+        `/portal/${params.companySlug}/${params.clientSlug}/request-access`
+      )
     }
-    return null;
+    return null
   }
 
   return (
@@ -909,7 +910,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-8">
           {/* Stats Cards */}
-          {(slaMetrics && slaMetrics.totalTickets > 0) || (forms && forms.length > 0) ? (
+          {(slaMetrics && slaMetrics.totalTickets > 0) ||
+          (forms && forms.length > 0) ? (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               {slaMetrics && slaMetrics.totalTickets > 0 && (
                 <>
@@ -952,8 +954,10 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
               )}
 
               {forms && forms.length > 0 && (
-                <Link href={`/portal/${params.companySlug}/${params.clientSlug}/forms`}>
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                <Link
+                  href={`/portal/${params.companySlug}/${params.clientSlug}/forms`}
+                >
+                  <Card className="cursor-pointer transition-shadow hover:shadow-md">
                     <CardContent className="p-4">
                       <div className="flex items-center">
                         <div className="rounded-lg bg-purple-100 p-1.5">
@@ -1095,7 +1099,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                                 ? null
                                 : flexRender(
                                     header.column.columnDef.header,
-                                    header.getContext(),
+                                    header.getContext()
                                   )}
                             </th>
                           ))}
@@ -1109,8 +1113,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                           className="cursor-pointer transition-colors hover:bg-blue-50"
                           onClick={() => {
                             router.push(
-                              `/portal/${params.companySlug}/${params.clientSlug}?ticket=${row.original.id}`,
-                            );
+                              `/portal/${params.companySlug}/${params.clientSlug}?ticket=${row.original.id}`
+                            )
                           }}
                         >
                           {row.getVisibleCells().map((cell) => (
@@ -1121,7 +1125,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                             >
                               {flexRender(
                                 cell.column.columnDef.cell,
-                                cell.getContext(),
+                                cell.getContext()
                               )}
                             </td>
                           ))}
@@ -1274,7 +1278,9 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                                       : "text-purple-600"
                                   }`}
                                 >
-                                  {assignee.type === "team" ? "Team" : "Customer"}
+                                  {assignee.type === "team"
+                                    ? "Team"
+                                    : "Customer"}
                                 </span>
                               </div>
                             </SelectItem>
@@ -1315,16 +1321,19 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                       </h4>
                     </div>
                     <div className="flex items-center gap-3">
-                      {(selectedTicket.formSubmission.external_id || selectedTicket.formSubmission.external_type) && (
-                        <div className="text-right text-xs text-muted-foreground space-y-0.5">
+                      {(selectedTicket.formSubmission.external_id ||
+                        selectedTicket.formSubmission.external_type) && (
+                        <div className="space-y-0.5 text-right text-xs text-muted-foreground">
                           {selectedTicket.formSubmission.external_id && (
                             <p>
-                              <span className="font-medium">Ref:</span> {selectedTicket.formSubmission.external_id}
+                              <span className="font-medium">Ref:</span>{" "}
+                              {selectedTicket.formSubmission.external_id}
                             </p>
                           )}
                           {selectedTicket.formSubmission.external_type && (
                             <p>
-                              <span className="font-medium">Type:</span> {selectedTicket.formSubmission.external_type}
+                              <span className="font-medium">Type:</span>{" "}
+                              {selectedTicket.formSubmission.external_type}
                             </p>
                           )}
                         </div>
@@ -1335,8 +1344,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                         className="h-auto p-0 text-xs text-primary hover:bg-transparent"
                         onClick={() => {
                           router.push(
-                            `/portal/${params.companySlug}/${params.clientSlug}/forms?submissionId=${selectedTicket.external_id}`,
-                          );
+                            `/portal/${params.companySlug}/${params.clientSlug}/forms?submissionId=${selectedTicket.external_id}`
+                          )
                         }}
                       >
                         <ExternalLink className="mr-1 h-3 w-3" />
@@ -1345,19 +1354,21 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                     </div>
                   </div>
                   {selectedTicket.formSubmission.description && (
-                    <div className="text-sm text-gray-700 whitespace-pre-wrap border-l-2 border-muted pl-3">
-                      <TextWithLinks text={selectedTicket.formSubmission.description} />
+                    <div className="whitespace-pre-wrap border-l-2 border-muted pl-3 text-sm text-gray-700">
+                      <TextWithLinks
+                        text={selectedTicket.formSubmission.description}
+                      />
                     </div>
                   )}
                   <div className="space-y-2">
-                    {selectedTicket.formSubmission.form?.fields &&
-                      (selectedTicket.formSubmission.form.fields as any[]).map(
-                        (field: any) => {
-                          const value =
-                            (selectedTicket.formSubmission.data as any)?.[
-                              field.id
-                            ];
-                          if (!value) return null;
+                    {selectedTicket.formSubmission?.form?.fields
+                      ? (
+                          selectedTicket.formSubmission.form.fields as any[]
+                        ).map((field: any) => {
+                          const value = (
+                            selectedTicket.formSubmission?.data as any
+                          )?.[field.id]
+                          if (!value) return null
                           return (
                             <div
                               key={field.id}
@@ -1372,9 +1383,9 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                                   : String(value)}
                               </p>
                             </div>
-                          );
-                        },
-                      )}
+                          )
+                        })
+                      : null}
                   </div>
                 </div>
               )}
@@ -1392,13 +1403,13 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                     <AvatarFallback className="text-xs">
                       {selectedTicket.created_by?.user
                         ? getInitials(
-                            `${selectedTicket.created_by.user.first_name} ${selectedTicket.created_by.user.last_name}`,
+                            `${selectedTicket.created_by.user.first_name} ${selectedTicket.created_by.user.last_name}`
                           )
                         : selectedTicket.customer_name
                           ? getInitials(selectedTicket.customer_name)
                           : selectedTicket.customer_email
-                            ?.charAt(0)
-                            .toUpperCase()}
+                              ?.charAt(0)
+                              .toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex items-center gap-2">
@@ -1432,11 +1443,13 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                     <div className="flex items-center gap-2">
                       <Avatar className="h-6 w-6">
                         <AvatarImage
-                          src={selectedTicket.assigned_to.user?.avatar_url || ""}
+                          src={
+                            selectedTicket.assigned_to.user?.avatar_url || ""
+                          }
                         />
                         <AvatarFallback className="text-xs">
                           {getInitials(
-                            `${selectedTicket.assigned_to.user?.first_name} ${selectedTicket.assigned_to.user?.last_name}`,
+                            `${selectedTicket.assigned_to.user?.first_name} ${selectedTicket.assigned_to.user?.last_name}`
                           )}
                         </AvatarFallback>
                       </Avatar>
@@ -1454,7 +1467,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                         <AvatarFallback className="text-xs">
                           {getInitials(
                             selectedTicket.assigned_to_customer_portal_access!
-                              .name,
+                              .name
                           )}
                         </AvatarFallback>
                       </Avatar>
@@ -1489,9 +1502,9 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                 selectedTicket.comments.length > 0 ? (
                   <div className="space-y-3">
                     {selectedTicket.comments.map((comment: any) => {
-                      const isCustomer = !!comment.customerPortalAccess;
-                      const customerName = comment.customerPortalAccess?.name;
-                      const customerEmail = comment.customerPortalAccess?.email;
+                      const isCustomer = !!comment.customerPortalAccess
+                      const customerName = comment.customerPortalAccess?.name
+                      const customerEmail = comment.customerPortalAccess?.email
 
                       return (
                         <div
@@ -1511,7 +1524,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                                   : customerEmail?.charAt(0).toUpperCase()
                                 : comment.membership?.user
                                   ? getInitials(
-                                      `${comment.membership.user.first_name} ${comment.membership.user.last_name}`,
+                                      `${comment.membership.user.first_name} ${comment.membership.user.last_name}`
                                     )
                                   : "?"}
                             </AvatarFallback>
@@ -1539,7 +1552,7 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                             </p>
                           </div>
                         </div>
-                      );
+                      )
                     })}
                   </div>
                 ) : (
@@ -1576,5 +1589,5 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
         </Dialog>
       )}
     </div>
-  );
+  )
 }

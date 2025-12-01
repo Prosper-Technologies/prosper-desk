@@ -1,13 +1,11 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Badge } from "~/components/ui/badge";
+import { useState } from "react"
+
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
 import {
-  LifeBuoy,
   Search,
   BookOpen,
   Eye,
@@ -16,31 +14,36 @@ import {
   ArrowLeft,
   Loader,
   FileText,
-} from "lucide-react";
-import Link from "next/link";
-import { api } from "~/trpc/react";
-import { formatRelativeTime } from "~/lib/utils";
+} from "lucide-react"
+import Link from "next/link"
+import { api } from "~/trpc/react"
+import { formatRelativeTime } from "~/lib/utils"
 
 interface KnowledgePortalPageProps {
   params: {
-    companySlug: string;
-    clientSlug: string;
-  };
+    companySlug: string
+    clientSlug: string
+  }
 }
 
-export default function KnowledgePortalPage({ params }: KnowledgePortalPageProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+export default function KnowledgePortalPage({
+  params,
+}: KnowledgePortalPageProps) {
+  const [searchTerm, setSearchTerm] = useState("")
 
-  const { data: articles, isLoading } = api.knowledgeBase.getPublished.useQuery({
-    companySlug: params.companySlug,
-    page: 1,
-    limit: 50,
-    search: searchTerm || undefined,
-  });
+  const { data: articles, isLoading } = api.knowledgeBase.getPublished.useQuery(
+    {
+      companySlug: params.companySlug,
+      page: 1,
+      limit: 50,
+      search: searchTerm || undefined,
+    }
+  )
 
-  const filteredArticles = articles?.filter((article) =>
-    article.title.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredArticles =
+    articles?.filter((article) =>
+      article.title.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || []
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -81,7 +84,8 @@ export default function KnowledgePortalPage({ params }: KnowledgePortalPageProps
                     Welcome to our Knowledge Base
                   </h2>
                   <p className="text-sm text-gray-600">
-                    Browse articles and guides to help you get the most out of our service.
+                    Browse articles and guides to help you get the most out of
+                    our service.
                   </p>
                 </div>
                 <BookOpen className="h-6 w-6 text-primary" />
@@ -119,7 +123,9 @@ export default function KnowledgePortalPage({ params }: KnowledgePortalPageProps
                   <CardContent className="py-12 text-center">
                     <BookOpen className="mx-auto mb-4 h-6 w-6 text-gray-400" />
                     <h3 className="mb-2 text-lg font-medium text-gray-900">
-                      {searchTerm ? "No articles found" : "No articles available"}
+                      {searchTerm
+                        ? "No articles found"
+                        : "No articles available"}
                     </h3>
                     <p className="text-gray-600">
                       {searchTerm
@@ -147,7 +153,10 @@ export default function KnowledgePortalPage({ params }: KnowledgePortalPageProps
                   </CardHeader>
                   <CardContent className="pt-0">
                     <p className="mb-4 line-clamp-3 text-sm text-gray-600">
-                      {article.content.replace(/<[^>]*>/g, "").substring(0, 200)}...
+                      {article.content
+                        .replace(/<[^>]*>/g, "")
+                        .substring(0, 200)}
+                      ...
                     </p>
 
                     <div className="mb-4 flex items-center justify-between text-xs text-gray-500">
@@ -158,8 +167,12 @@ export default function KnowledgePortalPage({ params }: KnowledgePortalPageProps
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {Math.ceil(
-                          article.content.replace(/<[^>]*>/g, "").split(/\s+/).filter(Boolean).length / 200
-                        )} min read
+                          article.content
+                            .replace(/<[^>]*>/g, "")
+                            .split(/\s+/)
+                            .filter(Boolean).length / 200
+                        )}{" "}
+                        min read
                       </div>
                     </div>
 
@@ -169,7 +182,9 @@ export default function KnowledgePortalPage({ params }: KnowledgePortalPageProps
                         Updated {formatRelativeTime(article.updated_at)}
                       </div>
                       <Button asChild variant="ghost" size="sm">
-                        <Link href={`/portal/${params.companySlug}/${params.clientSlug}/knowledge/${article.slug}`}>
+                        <Link
+                          href={`/portal/${params.companySlug}/${params.clientSlug}/knowledge/${article.slug}`}
+                        >
                           <FileText className="mr-1 h-3 w-3" />
                           Read
                         </Link>
@@ -183,5 +198,5 @@ export default function KnowledgePortalPage({ params }: KnowledgePortalPageProps
         </div>
       </main>
     </div>
-  );
+  )
 }

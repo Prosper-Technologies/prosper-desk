@@ -1,6 +1,6 @@
-import { Resend } from 'resend';
+import { Resend } from "resend"
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY || "")
 
 export const emailService = {
   async sendInvitation({
@@ -10,17 +10,17 @@ export const emailService = {
     invitationCode,
     companySlug,
   }: {
-    to: string;
-    companyName: string;
-    inviterName: string;
-    invitationCode: string;
-    companySlug: string;
+    to: string
+    companyName: string
+    inviterName: string
+    invitationCode: string
+    companySlug: string
   }) {
     try {
-      const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/invite/${companySlug}`;
+      const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/invite/${companySlug}`
 
       const { data, error } = await resend.emails.send({
-        from: process.env.FROM_EMAIL || 'onboarding@resend.dev',
+        from: process.env.FROM_EMAIL || "onboarding@resend.dev",
         to,
         subject: `You've been invited to join ${companyName}`,
         html: `
@@ -61,17 +61,17 @@ export const emailService = {
             </p>
           </div>
         `,
-      });
+      })
 
       if (error) {
-        console.error('Email sending failed:', error);
-        throw error;
+        console.error("Email sending failed:", error)
+        throw error
       }
 
-      return { success: true, data };
+      return { success: true, data }
     } catch (error) {
-      console.error('Email service error:', error);
-      throw error;
+      console.error("Email service error:", error)
+      throw error
     }
   },
 
@@ -80,13 +80,13 @@ export const emailService = {
     firstName,
     companyName,
   }: {
-    to: string;
-    firstName: string;
-    companyName: string;
+    to: string
+    firstName: string
+    companyName: string
   }) {
     try {
       const { data, error } = await resend.emails.send({
-        from: process.env.FROM_EMAIL || 'onboarding@resend.dev',
+        from: process.env.FROM_EMAIL || "onboarding@resend.dev",
         to,
         subject: `Welcome to ${companyName}!`,
         html: `
@@ -106,26 +106,26 @@ export const emailService = {
             <p>Best regards,<br>The ${companyName} Team</p>
           </div>
         `,
-      });
+      })
 
       if (error) {
-        console.error('Welcome email failed:', error);
-        throw error;
+        console.error("Welcome email failed:", error)
+        throw error
       }
 
-      return { success: true, data };
+      return { success: true, data }
     } catch (error) {
-      console.error('Welcome email service error:', error);
-      throw error;
+      console.error("Welcome email service error:", error)
+      throw error
     }
   },
 
   async sendTest({
     to,
-    fromDomain = 'useblueos.com',
+    fromDomain = "useblueos.com",
   }: {
-    to: string;
-    fromDomain?: string;
+    to: string
+    fromDomain?: string
   }) {
     try {
       const { data, error } = await resend.emails.send({
@@ -156,17 +156,17 @@ export const emailService = {
             </p>
           </div>
         `,
-      });
+      })
 
       if (error) {
-        console.error('Test email sending failed:', error);
-        throw error;
+        console.error("Test email sending failed:", error)
+        throw error
       }
 
-      return { success: true, data };
+      return { success: true, data }
     } catch (error) {
-      console.error('Test email service error:', error);
-      throw error;
+      console.error("Test email service error:", error)
+      throw error
     }
   },
 
@@ -177,15 +177,15 @@ export const emailService = {
     clientName,
     magicLink,
   }: {
-    to: string;
-    customerName: string;
-    companyName: string;
-    clientName: string;
-    magicLink: string;
+    to: string
+    customerName: string
+    companyName: string
+    clientName: string
+    magicLink: string
   }) {
     try {
       const { data, error } = await resend.emails.send({
-        from: process.env.FROM_EMAIL || 'noreply@resend.dev',
+        from: process.env.FROM_EMAIL || "noreply@resend.dev",
         to,
         subject: `Access Your ${companyName} Support Portal`,
         html: `
@@ -221,17 +221,17 @@ export const emailService = {
             </p>
           </div>
         `,
-      });
+      })
 
       if (error) {
-        console.error('Magic link email failed:', error);
-        throw error;
+        console.error("Magic link email failed:", error)
+        throw error
       }
 
-      return { success: true, data };
+      return { success: true, data }
     } catch (error) {
-      console.error('Magic link email service error:', error);
-      throw error;
+      console.error("Magic link email service error:", error)
+      throw error
     }
   },
-};
+}

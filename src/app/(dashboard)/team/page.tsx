@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Badge } from "~/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { useState } from "react"
+import Link from "next/link"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Badge } from "~/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,8 +14,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
-import { DashboardHeader } from "~/components/layout/dashboard-header";
+} from "~/components/ui/dropdown-menu"
+import { DashboardHeader } from "~/components/layout/dashboard-header"
 import {
   Users,
   Search,
@@ -27,84 +27,84 @@ import {
   UserX,
   Shield,
   User,
-} from "lucide-react";
-import { api } from "~/trpc/react";
+} from "lucide-react"
+import { api } from "~/trpc/react"
 
 const getRoleColor = (role: string) => {
   switch (role) {
     case "admin":
-      return "bg-red-100 text-red-800 border-red-200";
+      return "bg-red-100 text-red-800 border-red-200"
     case "agent":
-      return "bg-blue-100 text-blue-800 border-blue-200";
+      return "bg-blue-100 text-blue-800 border-blue-200"
     case "owner":
-      return "bg-green-100 text-green-800 border-green-200";
+      return "bg-green-100 text-green-800 border-green-200"
     default:
-      return "bg-gray-100 text-gray-800 border-gray-200";
+      return "bg-gray-100 text-gray-800 border-gray-200"
   }
-};
+}
 
 const getInitials = (firstName: string, lastName: string) => {
-  return `${firstName[0]}${lastName[0]}`.toUpperCase();
-};
+  return `${firstName[0]}${lastName[0]}`.toUpperCase()
+}
 
 const formatLastSeen = (date: Date) => {
-  const now = new Date();
+  const now = new Date()
   const diffInHours = Math.floor(
-    (now.getTime() - date.getTime()) / (1000 * 60 * 60),
-  );
+    (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+  )
 
   if (diffInHours < 1) {
-    return "Active now";
+    return "Active now"
   } else if (diffInHours < 24) {
-    return `${diffInHours}h ago`;
+    return `${diffInHours}h ago`
   } else {
-    const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays}d ago`;
+    const diffInDays = Math.floor(diffInHours / 24)
+    return `${diffInDays}d ago`
   }
-};
+}
 
 export default function TeamPage() {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState<
     "all" | "admin" | "agent" | "owner"
-  >("all");
+  >("all")
 
   const { data: members, refetch } = api.user.getAll.useQuery(undefined, {
     staleTime: 2 * 60 * 1000, // 2 minutes
     cacheTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
-  });
+  })
 
   const filteredMembers = members?.filter((member) => {
     const matchesSearch =
       member.user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.user.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      member.user.email.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesRole = roleFilter === "all" || member.role === roleFilter;
+    const matchesRole = roleFilter === "all" || member.role === roleFilter
 
-    return matchesSearch && matchesRole;
-  });
+    return matchesSearch && matchesRole
+  })
 
   const deactivateMember = api.user.deactivate.useMutation({
     onSuccess: () => {
-      refetch();
+      refetch()
     },
-  });
+  })
 
   const updateMember = api.user.update.useMutation({
     onSuccess: () => {
-      refetch();
+      refetch()
     },
-  });
+  })
 
   const handleDeactivate = (memberId: string) => {
-    deactivateMember.mutate({ id: memberId });
-  };
+    deactivateMember.mutate({ id: memberId })
+  }
 
   const handleReactivate = (memberId: string) => {
-    updateMember.mutate({ id: memberId, isActive: true });
-  };
+    updateMember.mutate({ id: memberId, isActive: true })
+  }
 
   return (
     <div>
@@ -241,7 +241,7 @@ export default function TeamPage() {
                       <AvatarFallback>
                         {getInitials(
                           member.user.first_name,
-                          member.user.last_name,
+                          member.user.last_name
                         )}
                       </AvatarFallback>
                     </Avatar>
@@ -353,5 +353,5 @@ export default function TeamPage() {
         </Card>
       </div>
     </div>
-  );
+  )
 }

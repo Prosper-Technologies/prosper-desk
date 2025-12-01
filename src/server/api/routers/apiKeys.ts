@@ -1,12 +1,9 @@
-import { z } from "zod";
-import {
-  createTRPCRouter,
-  companyProcedure,
-} from "~/server/api/trpc";
-import { apiKeys } from "~/db/schema";
-import { eq, and, desc } from "drizzle-orm";
-import { TRPCError } from "@trpc/server";
-import { generateApiKey } from "~/lib/auth-api";
+import { z } from "zod"
+import { createTRPCRouter, companyProcedure } from "~/server/api/trpc"
+import { apiKeys } from "~/db/schema"
+import { eq, and, desc } from "drizzle-orm"
+import { TRPCError } from "@trpc/server"
+import { generateApiKey } from "~/lib/auth-api"
 
 export const apiKeysRouter = createTRPCRouter({
   // Get all API keys for the company
@@ -24,9 +21,9 @@ export const apiKeysRouter = createTRPCRouter({
         is_active: true,
         created_at: true,
       },
-    });
+    })
 
-    return keys;
+    return keys
   }),
 
   // Create new API key
@@ -36,15 +33,15 @@ export const apiKeysRouter = createTRPCRouter({
         name: z.string().min(1, "Name is required"),
         permissions: z.array(z.string()).default([]),
         expires_at: z.date().optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       const { key, id } = await generateApiKey(
         ctx.company.id,
         input.name,
         input.permissions,
-        input.expires_at,
-      );
+        input.expires_at
+      )
 
       // Return the full key only once (on creation)
       const apiKeyRecord = await ctx.db.query.apiKeys.findFirst({
@@ -58,12 +55,12 @@ export const apiKeysRouter = createTRPCRouter({
           is_active: true,
           created_at: true,
         },
-      });
+      })
 
       return {
         ...apiKeyRecord,
         key, // Full key only shown on creation
-      };
+      }
     }),
 
   // Update API key (name, permissions, expiration)
@@ -75,33 +72,34 @@ export const apiKeysRouter = createTRPCRouter({
         permissions: z.array(z.string()).optional(),
         expires_at: z.date().optional(),
         is_active: z.boolean().optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Verify the API key belongs to the company
       const existingKey = await ctx.db.query.apiKeys.findFirst({
         where: and(
           eq(apiKeys.id, input.id),
-          eq(apiKeys.company_id, ctx.company.id),
+          eq(apiKeys.company_id, ctx.company.id)
         ),
-      });
+      })
 
       if (!existingKey) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "API key not found",
-        });
+        })
       }
 
-      const updateData: Record<string, any> = {};
-      
-      if (input.name) updateData.name = input.name;
-      if (input.permissions) updateData.permissions = input.permissions;
-      if (input.expires_at !== undefined) updateData.expires_at = input.expires_at;
-      if (input.is_active !== undefined) updateData.is_active = input.is_active;
+      const updateData: Record<string, any> = {}
+
+      if (input.name) updateData.name = input.name
+      if (input.permissions) updateData.permissions = input.permissions
+      if (input.expires_at !== undefined)
+        updateData.expires_at = input.expires_at
+      if (input.is_active !== undefined) updateData.is_active = input.is_active
 
       if (Object.keys(updateData).length > 0) {
-        updateData.updated_at = new Date();
+        updateData.updated_at = new Date()
 
         const [updatedKey] = await ctx.db
           .update(apiKeys)
@@ -117,9 +115,9 @@ export const apiKeysRouter = createTRPCRouter({
             is_active: apiKeys.is_active,
             created_at: apiKeys.created_at,
             updated_at: apiKeys.updated_at,
-          });
+          })
 
-        return updatedKey;
+        return updatedKey
       }
 
       return {
@@ -132,7 +130,7 @@ export const apiKeysRouter = createTRPCRouter({
         is_active: existingKey.is_active,
         created_at: existingKey.created_at,
         updated_at: existingKey.updated_at,
-      };
+      }
     }),
 
   // Delete API key
@@ -140,28 +138,26 @@ export const apiKeysRouter = createTRPCRouter({
     .input(
       z.object({
         id: z.string().uuid(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Verify the API key belongs to the company
       const existingKey = await ctx.db.query.apiKeys.findFirst({
         where: and(
           eq(apiKeys.id, input.id),
-          eq(apiKeys.company_id, ctx.company.id),
+          eq(apiKeys.company_id, ctx.company.id)
         ),
-      });
+      })
 
       if (!existingKey) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "API key not found",
-        });
+        })
       }
 
-      await ctx.db
-        .delete(apiKeys)
-        .where(eq(apiKeys.id, input.id));
+      await ctx.db.delete(apiKeys).where(eq(apiKeys.id, input.id))
 
-      return { success: true };
+      return { success: true }
     }),
-});
+})

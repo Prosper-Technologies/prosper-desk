@@ -1,11 +1,11 @@
-"use client";
+"use client"
 
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
-import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
-import { Button } from "./button";
+import { useEditor, EditorContent } from "@tiptap/react"
+import StarterKit from "@tiptap/starter-kit"
+import Placeholder from "@tiptap/extension-placeholder"
+import Link from "@tiptap/extension-link"
+import Image from "@tiptap/extension-image"
+import { Button } from "./button"
 import {
   Bold,
   Italic,
@@ -22,15 +22,15 @@ import {
   Heading1,
   Heading2,
   Heading3,
-} from "lucide-react";
-import { cn } from "~/lib/utils";
+} from "lucide-react"
+import { cn } from "~/lib/utils"
 
 interface TiptapEditorProps {
-  content?: string;
-  onChange?: (content: string) => void;
-  placeholder?: string;
-  className?: string;
-  editable?: boolean;
+  content?: string
+  onChange?: (content: string) => void
+  placeholder?: string
+  className?: string
+  editable?: boolean
 }
 
 export function TiptapEditor({
@@ -54,44 +54,44 @@ export function TiptapEditor({
     ],
     content,
     onUpdate: ({ editor }) => {
-      onChange?.(editor.getHTML());
+      onChange?.(editor.getHTML())
     },
     editable,
-  });
+  })
 
   if (!editor) {
-    return null;
+    return null
   }
 
   const addImage = () => {
-    const url = window.prompt("Enter image URL:");
+    const url = window.prompt("Enter image URL:")
     if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
+      editor.chain().focus().setImage({ src: url }).run()
     }
-  };
+  }
 
   const addLink = () => {
-    const previousUrl = editor.getAttributes("link").href;
-    const url = window.prompt("Enter URL:", previousUrl);
+    const previousUrl = editor.getAttributes("link").href
+    const url = window.prompt("Enter URL:", previousUrl)
 
     if (url === null) {
-      return;
+      return
     }
 
     if (url === "") {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
+      editor.chain().focus().extendMarkRange("link").unsetLink().run()
+      return
     }
 
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
-  };
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run()
+  }
 
   if (!editable) {
     return (
       <div className={cn("prose prose-sm max-w-none", className)}>
         <EditorContent editor={editor} />
       </div>
-    );
+    )
   }
 
   return (
@@ -244,5 +244,5 @@ export function TiptapEditor({
         <EditorContent editor={editor} />
       </div>
     </div>
-  );
+  )
 }

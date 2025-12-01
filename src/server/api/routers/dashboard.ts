@@ -1,17 +1,7 @@
-import { z } from "zod";
-import { createTRPCRouter, companyProcedure } from "~/server/api/trpc";
-import { tickets, users, memberships } from "~/db/schema";
-import {
-  eq,
-  and,
-  gte,
-  lte,
-  count,
-  isNotNull,
-  desc,
-  or,
-  sql,
-} from "drizzle-orm";
+import { z } from "zod"
+import { createTRPCRouter, companyProcedure } from "~/server/api/trpc"
+import { tickets, users, memberships } from "~/db/schema"
+import { eq, and, gte, lte, count, isNotNull, desc, or, sql } from "drizzle-orm"
 
 export const dashboardRouter = createTRPCRouter({
   // Get dashboard metrics
@@ -21,28 +11,28 @@ export const dashboardRouter = createTRPCRouter({
         startDate: z.date().optional(),
         endDate: z.date().optional(),
         clientId: z.string().uuid().optional(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
-      const whereConditions = [eq(tickets.company_id, ctx.company.id)];
+      const whereConditions = [eq(tickets.company_id, ctx.company.id)]
 
       if (input.startDate) {
-        whereConditions.push(gte(tickets.created_at, input.startDate));
+        whereConditions.push(gte(tickets.created_at, input.startDate))
       }
 
       if (input.endDate) {
-        whereConditions.push(lte(tickets.created_at, input.endDate));
+        whereConditions.push(lte(tickets.created_at, input.endDate))
       }
 
       if (input.clientId) {
-        whereConditions.push(eq(tickets.client_id, input.clientId));
+        whereConditions.push(eq(tickets.client_id, input.clientId))
       }
 
       // Total tickets
       const [{ totalTickets }] = await ctx.db
         .select({ totalTickets: count() })
         .from(tickets)
-        .where(and(...whereConditions));
+        .where(and(...whereConditions))
 
       // Tickets by status
       const ticketsByStatus = await ctx.db
@@ -52,7 +42,7 @@ export const dashboardRouter = createTRPCRouter({
         })
         .from(tickets)
         .where(and(...whereConditions))
-        .groupBy(tickets.status);
+        .groupBy(tickets.status)
 
       // Tickets by priority
       const ticketsByPriority = await ctx.db
@@ -62,7 +52,7 @@ export const dashboardRouter = createTRPCRouter({
         })
         .from(tickets)
         .where(and(...whereConditions))
-        .groupBy(tickets.priority);
+        .groupBy(tickets.priority)
 
       // SLA compliance metrics
       const slaMetrics = await ctx.db
@@ -79,7 +69,7 @@ export const dashboardRouter = createTRPCRouter({
           `,
         })
         .from(tickets)
-        .where(and(...whereConditions, isNotNull(tickets.sla_policy_id)));
+        .where(and(...whereConditions, isNotNull(tickets.sla_policy_id)))
 
       // Recent tickets
       const recentTickets = await ctx.db.query.tickets.findMany({
@@ -112,7 +102,7 @@ export const dashboardRouter = createTRPCRouter({
         },
         orderBy: (tickets, { desc }) => [desc(tickets.created_at)],
         limit: 10,
-      });
+      })
 
       // Top performing agents (by resolved tickets)
       const topAgents = await ctx.db
@@ -123,21 +113,21 @@ export const dashboardRouter = createTRPCRouter({
         .from(tickets)
         .innerJoin(
           memberships,
-          eq(tickets.assigned_to_membership_id, memberships.id),
+          eq(tickets.assigned_to_membership_id, memberships.id)
         )
         .where(
           and(
             ...whereConditions,
             eq(tickets.status, "resolved"),
-            isNotNull(tickets.assigned_to_membership_id),
-          ),
+            isNotNull(tickets.assigned_to_membership_id)
+          )
         )
         .groupBy(tickets.assigned_to_membership_id)
         .orderBy(desc(count()))
-        .limit(5);
+        .limit(5)
 
       // Get agent details for top performers
-      const agentIds = topAgents.map((a) => a.agentId!).filter(Boolean);
+      const agentIds = topAgents.map((a) => a.agentId!).filter(Boolean)
       const agentDetails =
         agentIds.length > 0
           ? await ctx.db.query.users.findMany({
@@ -149,12 +139,12 @@ export const dashboardRouter = createTRPCRouter({
                 avatar_url: true,
               },
             })
-          : [];
+          : []
 
       const topAgentsWithDetails = topAgents.map((agent) => ({
         ...agent,
         agent: agentDetails.find((a) => a.id === agent.agentId),
-      }));
+      }))
 
       return {
         totalTickets,
@@ -168,7 +158,7 @@ export const dashboardRouter = createTRPCRouter({
         },
         recentTickets,
         topAgents: topAgentsWithDetails,
-      };
+      }
     }),
 
   // Get ticket trends over time
@@ -176,11 +166,11 @@ export const dashboardRouter = createTRPCRouter({
     .input(
       z.object({
         days: z.number().min(7).max(90).default(30),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - input.days);
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - input.days)
 
       // Get daily ticket counts
       const dailyTickets = await ctx.db
@@ -192,32 +182,32 @@ export const dashboardRouter = createTRPCRouter({
         .where(
           and(
             eq(tickets.company_id, ctx.company.id),
-            gte(tickets.created_at, startDate),
-          ),
+            gte(tickets.created_at, startDate)
+          )
         )
         .groupBy(tickets.created_at)
-        .orderBy(tickets.created_at);
+        .orderBy(tickets.created_at)
 
       // Process data to fill missing dates
-      const trendData: { date: string; count: number }[] = [];
-      const currentDate = new Date(startDate);
-      const endDate = new Date();
+      const trendData: { date: string; count: number }[] = []
+      const currentDate = new Date(startDate)
+      const endDate = new Date()
 
       while (currentDate <= endDate) {
-        const dateStr = currentDate.toISOString().split("T")[0];
+        const dateStr = currentDate.toISOString().split("T")[0]
         const dayData = dailyTickets.find(
-          (d) => d.date?.toISOString().split("T")[0] === dateStr,
-        );
+          (d) => d.date?.toISOString().split("T")[0] === dateStr
+        )
 
         trendData.push({
           date: dateStr!,
           count: dayData?.count || 0,
-        });
+        })
 
-        currentDate.setDate(currentDate.getDate() + 1);
+        currentDate.setDate(currentDate.getDate() + 1)
       }
 
-      return trendData;
+      return trendData
     }),
 
   // Get agent workload distribution
@@ -240,15 +230,15 @@ export const dashboardRouter = createTRPCRouter({
         tickets,
         and(
           eq(tickets.assigned_to_membership_id, memberships.id),
-          eq(tickets.company_id, ctx.company.id),
-        ),
+          eq(tickets.company_id, ctx.company.id)
+        )
       )
       .where(
         and(
           eq(memberships.company_id, ctx.company.id),
           eq(memberships.is_active, true),
-          or(eq(memberships.role, "admin"), eq(memberships.role, "agent")),
-        ),
+          or(eq(memberships.role, "admin"), eq(memberships.role, "agent"))
+        )
       )
       .groupBy(
         memberships.id,
@@ -256,10 +246,10 @@ export const dashboardRouter = createTRPCRouter({
         users.first_name,
         users.last_name,
         users.avatar_url,
-        memberships.role,
+        memberships.role
       )
-      .orderBy(desc(count(tickets.id)));
+      .orderBy(desc(count(tickets.id)))
 
-    return agentWorkload;
+    return agentWorkload
   }),
-});
+})

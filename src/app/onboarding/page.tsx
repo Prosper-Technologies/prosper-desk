@@ -1,104 +1,104 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "~/utils/supabase/client";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { createClient } from "~/utils/supabase/client"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
+} from "~/components/ui/select"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "~/components/ui/card";
-import { api } from "~/trpc/react";
-import { slugify } from "~/lib/utils";
+} from "~/components/ui/card"
+import { api } from "~/trpc/react"
+import { slugify } from "~/lib/utils"
 
-const supabase = createClient();
+const supabase = createClient()
 
 const STEPS = {
   PROFILE: 1,
   COMPANY: 2,
   COMPLETE: 3,
-} as const;
+} as const
 
-type StepType = typeof STEPS[keyof typeof STEPS];
+type StepType = (typeof STEPS)[keyof typeof STEPS]
 
 export default function OnboardingPage() {
-  const [currentStep, setCurrentStep] = useState<StepType>(STEPS.PROFILE);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [user, setUser] = useState<any>(null);
-  const router = useRouter();
+  const [currentStep, setCurrentStep] = useState<StepType>(STEPS.PROFILE)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [user, setUser] = useState<any>(null)
+  const router = useRouter()
 
   // Profile form data
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
 
   // Company form data
-  const [companyName, setCompanyName] = useState("");
-  const [companySlug, setCompanySlug] = useState("");
+  const [companyName, setCompanyName] = useState("")
+  const [companySlug, setCompanySlug] = useState("")
   const [companySize, setCompanySize] = useState<
     "1-10" | "11-50" | "51-200" | "201-1000" | "1000+" | ""
-  >("");
+  >("")
 
-  const completeOnboarding = api.auth.completeOnboarding.useMutation();
+  const completeOnboarding = api.auth.completeOnboarding.useMutation()
 
   useEffect(() => {
     // Check if user is authenticated
     const getUser = async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await supabase.auth.getUser()
       if (!user) {
-        router.push("/login");
-        return;
+        router.push("/login")
+        return
       }
-      setUser(user);
-    };
-    getUser();
-  }, [router]);
+      setUser(user)
+    }
+    getUser()
+  }, [router])
 
   useEffect(() => {
     // Auto-generate slug from company name
     if (companyName) {
-      setCompanySlug(slugify(companyName));
+      setCompanySlug(slugify(companyName))
     }
-  }, [companyName]);
+  }, [companyName])
 
   const handleProfileSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (!firstName.trim() || !lastName.trim()) {
-      setError("Please fill in all required fields");
-      return;
+      setError("Please fill in all required fields")
+      return
     }
-    setError("");
-    setCurrentStep(STEPS.COMPANY);
-  };
+    setError("")
+    setCurrentStep(STEPS.COMPANY)
+  }
 
   const handleCompanySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     if (!companyName.trim() || !companySlug.trim() || !companySize) {
-      setError("Please fill in all required fields");
-      return;
+      setError("Please fill in all required fields")
+      return
     }
 
     if (!user) {
-      setError("User not found");
-      return;
+      setError("User not found")
+      return
     }
 
-    setIsLoading(true);
-    setError("");
+    setIsLoading(true)
+    setError("")
 
     try {
       await completeOnboarding.mutateAsync({
@@ -109,26 +109,26 @@ export default function OnboardingPage() {
         companySize,
         authUserId: user.id,
         email: user.email!,
-      });
+      })
 
-      setCurrentStep(STEPS.COMPLETE);
+      setCurrentStep(STEPS.COMPLETE)
     } catch (err: any) {
-      setError(err.message || "An error occurred during onboarding");
+      setError(err.message || "An error occurred during onboarding")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleComplete = () => {
-    router.push("/dashboard");
-  };
+    router.push("/dashboard")
+  }
 
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">Loading...</div>
       </div>
-    );
+    )
   }
 
   return (
@@ -138,9 +138,9 @@ export default function OnboardingPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             {Array.from({ length: 3 }, (_, i) => {
-              const stepNumber = i + 1;
-              const isActive = stepNumber === currentStep;
-              const isCompleted = stepNumber < currentStep;
+              const stepNumber = i + 1
+              const isActive = stepNumber === currentStep
+              const isCompleted = stepNumber < currentStep
 
               return (
                 <div
@@ -155,7 +155,7 @@ export default function OnboardingPage() {
                 >
                   {isCompleted ? "✓" : stepNumber}
                 </div>
-              );
+              )
             })}
           </div>
           <div className="mt-2 flex justify-between text-xs text-gray-500">
@@ -237,7 +237,9 @@ export default function OnboardingPage() {
                     Company URL *
                   </label>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-500">desk.getprosperapp.com/</span>
+                    <span className="text-sm text-gray-500">
+                      desk.getprosperapp.com/
+                    </span>
                     <Input
                       id="companySlug"
                       type="text"
@@ -328,5 +330,5 @@ export default function OnboardingPage() {
         )}
       </div>
     </div>
-  );
+  )
 }

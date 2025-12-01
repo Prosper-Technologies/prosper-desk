@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { Plus, Search, Eye } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Badge } from "~/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
+import { Plus, Search, Eye } from "lucide-react"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Badge } from "~/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import {
   Table,
   TableBody,
@@ -14,45 +14,45 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "~/components/ui/table";
+} from "~/components/ui/table"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
+} from "~/components/ui/select"
 
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { api } from "~/trpc/react";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { api } from "~/trpc/react"
 import {
   formatRelativeTime,
   getStatusColor,
   getPriorityColor,
   getInitials,
-} from "~/lib/utils";
-import CreateTicketDialog from "~/components/tickets/create-ticket-dialog";
-import TicketDetailDialog from "~/components/tickets/ticket-detail-dialog";
+} from "~/lib/utils"
+import CreateTicketDialog from "~/components/tickets/create-ticket-dialog"
+import TicketDetailDialog from "~/components/tickets/ticket-detail-dialog"
 
 export default function TicketsPage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const [priorityFilter, setPriorityFilter] = useState<string>("");
-  const [clientFilter, setClientFilter] = useState<string>("");
-  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [myTickets, setMyTickets] = useState(false);
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("")
+  const [priorityFilter, setPriorityFilter] = useState<string>("")
+  const [clientFilter, setClientFilter] = useState<string>("")
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [myTickets, setMyTickets] = useState(false)
 
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()
 
   // Check URL parameters for filters
   useEffect(() => {
-    const filterParam = searchParams?.get("filter");
+    const filterParam = searchParams?.get("filter")
     if (filterParam === "my") {
-      setMyTickets(true);
+      setMyTickets(true)
     }
-  }, [searchParams]);
+  }, [searchParams])
 
   const { data, isLoading, refetch } = api.ticket.getAll.useQuery({
     page,
@@ -62,36 +62,36 @@ export default function TicketsPage() {
     priority: (priorityFilter as any) || undefined,
     clientId: clientFilter || undefined,
     myTickets,
-  });
+  })
 
   const { data: clients } = api.clients.getAll.useQuery({
     page: 1,
     limit: 50,
-  });
+  })
 
-  const { data: agents } = api.user.getAgents.useQuery();
-  const { data: customerAccesses } = api.clients.getAllPortalAccess.useQuery();
+  const { data: agents } = api.user.getAgents.useQuery()
+  const { data: customerAccesses } = api.clients.getAllPortalAccess.useQuery()
 
-  const tickets = data?.tickets || [];
-  const pagination = data?.pagination;
+  const tickets = data?.tickets || []
+  const pagination = data?.pagination
 
   const handleSearchChange = (value: string) => {
-    setSearch(value);
-    setPage(1); // Reset to first page when searching
-  };
+    setSearch(value)
+    setPage(1) // Reset to first page when searching
+  }
 
   const handleFilterChange = () => {
-    setPage(1); // Reset to first page when filtering
-  };
+    setPage(1) // Reset to first page when filtering
+  }
 
   const handleTicketCreated = () => {
-    setCreateDialogOpen(false);
-    refetch();
-  };
+    setCreateDialogOpen(false)
+    refetch()
+  }
 
   const handleTicketUpdated = () => {
-    refetch();
-  };
+    refetch()
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -143,8 +143,8 @@ export default function TicketsPage() {
               <Select
                 value={clientFilter}
                 onValueChange={(value) => {
-                  setClientFilter(value === "all" ? "" : value);
-                  handleFilterChange();
+                  setClientFilter(value === "all" ? "" : value)
+                  handleFilterChange()
                 }}
               >
                 <SelectTrigger className="w-full sm:w-48">
@@ -163,8 +163,8 @@ export default function TicketsPage() {
             <Select
               value={statusFilter}
               onValueChange={(value) => {
-                setStatusFilter(value === "all" ? "" : value);
-                handleFilterChange();
+                setStatusFilter(value === "all" ? "" : value)
+                handleFilterChange()
               }}
             >
               <SelectTrigger className="w-full sm:w-40">
@@ -181,8 +181,8 @@ export default function TicketsPage() {
             <Select
               value={priorityFilter}
               onValueChange={(value) => {
-                setPriorityFilter(value === "all" ? "" : value);
-                handleFilterChange();
+                setPriorityFilter(value === "all" ? "" : value)
+                handleFilterChange()
               }}
             >
               <SelectTrigger className="w-full sm:w-40">
@@ -296,7 +296,7 @@ export default function TicketsPage() {
                               />
                               <AvatarFallback className="text-xs">
                                 {getInitials(
-                                  `${ticket.assignedToMembership.user.first_name} ${ticket.assignedToMembership.user.last_name}`,
+                                  `${ticket.assignedToMembership.user.first_name} ${ticket.assignedToMembership.user.last_name}`
                                 )}
                               </AvatarFallback>
                             </Avatar>
@@ -309,7 +309,9 @@ export default function TicketsPage() {
                           <div className="flex items-center space-x-2">
                             <Avatar className="h-6 w-6">
                               <AvatarFallback className="text-xs">
-                                {getInitials(ticket.assignedToCustomerPortalAccess.name)}
+                                {getInitials(
+                                  ticket.assignedToCustomerPortalAccess.name
+                                )}
                               </AvatarFallback>
                             </Avatar>
                             <span className="text-sm">
@@ -336,8 +338,8 @@ export default function TicketsPage() {
                           variant="ghost"
                           size="icon"
                           onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedTicketId(ticket.id);
+                            e.stopPropagation()
+                            setSelectedTicketId(ticket.id)
                           }}
                         >
                           <Eye className="h-4 w-4" />
@@ -396,5 +398,5 @@ export default function TicketsPage() {
         />
       )}
     </div>
-  );
+  )
 }

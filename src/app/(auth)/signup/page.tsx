@@ -1,46 +1,46 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { createClient } from "~/utils/supabase/client";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
+import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { createClient } from "~/utils/supabase/client"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "~/components/ui/card";
+} from "~/components/ui/card"
 
-const supabase = createClient();
+const supabase = createClient()
 
 export default function SignupPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const router = useRouter();
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [message, setMessage] = useState("")
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
-    setMessage("");
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+    setMessage("")
 
     if (password !== confirmPassword) {
-      setError("Passwords don't match");
-      setIsLoading(false);
-      return;
+      setError("Passwords don't match")
+      setIsLoading(false)
+      return
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters");
-      setIsLoading(false);
-      return;
+      setError("Password must be at least 6 characters")
+      setIsLoading(false)
+      return
     }
 
     try {
@@ -50,48 +50,28 @@ export default function SignupPage() {
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
         },
-      });
+      })
 
       if (error) {
-        setError(error.message);
-        return;
+        setError(error.message)
+        return
       }
 
       if (data.user) {
         if (data.user.email_confirmed_at) {
           // User is immediately confirmed, redirect to onboarding
-          router.push("/onboarding");
+          router.push("/onboarding")
         } else {
           // User needs to confirm email
-          setMessage("Please check your email for a confirmation link.");
+          setMessage("Please check your email for a confirmation link.")
         }
       }
     } catch (err) {
-      setError("An unexpected error occurred");
+      setError("An unexpected error occurred")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
-
-  const handleGoogleSignup = async () => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-      }
-    } catch (err) {
-      setError("An unexpected error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
@@ -216,5 +196,5 @@ export default function SignupPage() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

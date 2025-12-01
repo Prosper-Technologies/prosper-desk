@@ -1,33 +1,33 @@
-"use client";
+"use client"
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react"
 
 interface CompanyContextType {
-  currentCompanyId: string | null;
-  setCurrentCompanyId: (companyId: string | null) => void;
+  currentCompanyId: string | null
+  setCurrentCompanyId: (companyId: string | null) => void
 }
 
-const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
+const CompanyContext = createContext<CompanyContextType | undefined>(undefined)
 
 export function CompanyProvider({ children }: { children: React.ReactNode }) {
-  const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null);
+  const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null)
 
   // Persist company selection in localStorage
   useEffect(() => {
-    const stored = localStorage.getItem("currentCompanyId");
+    const stored = localStorage.getItem("currentCompanyId")
     if (stored) {
-      setCurrentCompanyId(stored);
+      setCurrentCompanyId(stored)
     }
-  }, []);
+  }, [])
 
   const handleSetCurrentCompanyId = (companyId: string | null) => {
-    setCurrentCompanyId(companyId);
+    setCurrentCompanyId(companyId)
     if (companyId) {
-      localStorage.setItem("currentCompanyId", companyId);
+      localStorage.setItem("currentCompanyId", companyId)
     } else {
-      localStorage.removeItem("currentCompanyId");
+      localStorage.removeItem("currentCompanyId")
     }
-  };
+  }
 
   return (
     <CompanyContext.Provider
@@ -38,13 +38,13 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
     >
       {children}
     </CompanyContext.Provider>
-  );
+  )
 }
 
 export function useCompany() {
-  const context = useContext(CompanyContext);
+  const context = useContext(CompanyContext)
   if (context === undefined) {
-    throw new Error("useCompany must be used within a CompanyProvider");
+    throw new Error("useCompany must be used within a CompanyProvider")
   }
-  return context;
+  return context
 }

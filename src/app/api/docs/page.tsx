@@ -1,5 +1,5 @@
-import SwaggerUIWrapper from "~/components/swagger-ui";
-import { spec } from "~/lib/openapi-schema";
+import SwaggerUIWrapper from "~/components/swagger-ui"
+import { spec } from "~/lib/openapi-schema"
 
 export default function ApiDocsPage() {
   return (
@@ -9,8 +9,8 @@ export default function ApiDocsPage() {
         <div className="text-center">
           <h1 className="text-3xl font-bold">API Documentation</h1>
           <p className="mt-2 text-muted-foreground">
-            Interactive documentation for Prosper Desk's REST API. Test endpoints
-            directly from your browser.
+            Interactive documentation for Prosper Desk&apos;s REST API. Test
+            endpoints directly from your browser.
           </p>
         </div>
 
@@ -20,5 +20,5 @@ export default function ApiDocsPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

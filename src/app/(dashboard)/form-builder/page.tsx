@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Plus, FileText, Eye, Users, Copy, ExternalLink } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Plus, FileText, Eye, Users, Copy, ExternalLink } from "lucide-react"
+import { Button } from "~/components/ui/button"
+import { Badge } from "~/components/ui/badge"
 import {
   Table,
   TableBody,
@@ -12,57 +12,57 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "~/components/ui/table";
+} from "~/components/ui/table"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { api } from "~/trpc/react";
-import { formatRelativeTime } from "~/lib/utils";
-import { toast } from "sonner";
+} from "~/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { api } from "~/trpc/react"
+import { formatRelativeTime } from "~/lib/utils"
+import { toast } from "sonner"
 
 export default function FormsPage() {
-  const router = useRouter();
-  const [page, setPage] = useState(1);
-  const [clientFilter, setClientFilter] = useState<string>("");
-  const [publishedFilter, setPublishedFilter] = useState<string>("");
+  const router = useRouter()
+  const [page, setPage] = useState(1)
+  const [clientFilter, setClientFilter] = useState<string>("")
+  const [publishedFilter, setPublishedFilter] = useState<string>("")
 
-  const { data, isLoading, refetch } = api.forms.getAll.useQuery({
+  const { data, isLoading } = api.forms.getAll.useQuery({
     page,
     limit: 25,
     client_id: clientFilter || undefined,
     is_published:
       publishedFilter === "" ? undefined : publishedFilter === "true",
-  });
+  })
 
   const { data: clients } = api.clients.getAll.useQuery({
     page: 1,
     limit: 50,
-  });
+  })
 
-  const { data: company } = api.company.getSettings.useQuery();
+  const { data: company } = api.company.getSettings.useQuery()
 
-  const forms = data?.forms || [];
-  const totalPages = data?.totalPages || 1;
+  const forms = data?.forms || []
+  const totalPages = data?.totalPages || 1
 
   const copyFormUrl = (formSlug: string, clientSlug: string) => {
-    if (!company?.slug) return;
-    const url = `${window.location.origin}/forms/${company?.slug}/${clientSlug}/${formSlug}`;
-    navigator.clipboard.writeText(url);
+    if (!company?.slug) return
+    const url = `${window.location.origin}/forms/${company?.slug}/${clientSlug}/${formSlug}`
+    navigator.clipboard.writeText(url)
     toast.success("Link copied!", {
       description: "Form link has been copied to clipboard",
-    });
-  };
+    })
+  }
 
   const openFormInNewTab = (formSlug: string, clientSlug: string) => {
-    if (!company?.slug) return;
-    const url = `${window.location.origin}/forms/${company?.slug}/${clientSlug}/${formSlug}`;
-    window.open(url, "_blank");
-  };
+    if (!company?.slug) return
+    const url = `${window.location.origin}/forms/${company?.slug}/${clientSlug}/${formSlug}`
+    window.open(url, "_blank")
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -284,5 +284,5 @@ export default function FormsPage() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

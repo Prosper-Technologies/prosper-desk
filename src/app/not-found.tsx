@@ -1,54 +1,55 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { Button } from "~/components/ui/button";
-import { Card, CardContent } from "~/components/ui/card";
-import {
-  Home,
-  ArrowLeft,
-  FileQuestion,
-  Search
-} from "lucide-react";
+import Link from "next/link"
+import { Button } from "~/components/ui/button"
+import { Card, CardContent } from "~/components/ui/card"
+import { Home, ArrowLeft, FileQuestion, Search } from "lucide-react"
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-md">
         <CardContent className="pt-6 text-center">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
             <FileQuestion className="h-4 w-4 text-blue-600" />
           </div>
 
-          <h1 className="text-lg font-bold text-gray-900 mb-2">
+          <h1 className="mb-2 text-lg font-bold text-gray-900">
             Page Not Found
           </h1>
 
-          <p className="text-gray-600 mb-6">
-            Sorry, we couldn't find the page you're looking for. The page might have been moved, deleted, or you might have mistyped the URL.
+          <p className="mb-6 text-gray-600">
+            Sorry, we couldn&apos;t find the page you&apos;re looking for. The
+            page might have been moved, deleted, or you might have mistyped the
+            URL.
           </p>
 
           <div className="space-y-3">
             <Button asChild className="w-full">
               <Link href="/dashboard">
-                <Home className="h-4 w-4 mr-2" />
+                <Home className="mr-2 h-4 w-4" />
                 Go to Dashboard
               </Link>
             </Button>
 
-            <Button variant="outline" onClick={() => window.history.back()} className="w-full">
-              <ArrowLeft className="h-4 w-4 mr-2" />
+            <Button
+              variant="outline"
+              onClick={() => window.history.back()}
+              className="w-full"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
               Go Back
             </Button>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-sm text-gray-500 mb-3">
-              Need help finding what you're looking for?
+          <div className="mt-6 border-t border-gray-200 pt-6">
+            <p className="mb-3 text-sm text-gray-500">
+              Need help finding what you&apos;re looking for?
             </p>
-            <div className="flex gap-2 justify-center">
+            <div className="flex justify-center gap-2">
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/knowledge">
-                  <Search className="h-4 w-4 mr-2" />
+                  <Search className="mr-2 h-4 w-4" />
                   Search Help
                 </Link>
               </Button>
@@ -57,5 +58,5 @@ export default function NotFound() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

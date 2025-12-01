@@ -1,5 +1,5 @@
-import { ReactNode } from "react";
-import { SidebarTrigger } from "~/components/ui/sidebar";
+import { ReactNode } from "react"
+import { SidebarTrigger } from "~/components/ui/sidebar"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -7,18 +7,18 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "~/components/ui/breadcrumb";
+} from "~/components/ui/breadcrumb"
 
 interface BreadcrumbItem {
-  label: string;
-  href?: string;
+  label: string
+  href?: string
 }
 
 interface DashboardHeaderProps {
-  breadcrumbs: BreadcrumbItem[];
-  showSidebarTrigger?: boolean;
-  className?: string;
-  children?: ReactNode;
+  breadcrumbs: BreadcrumbItem[]
+  showSidebarTrigger?: boolean
+  className?: string
+  children?: ReactNode
 }
 
 export function DashboardHeader({
@@ -27,14 +27,15 @@ export function DashboardHeader({
   className = "",
   children,
 }: DashboardHeaderProps) {
-  const baseClassName = "flex h-16 shrink-0 items-center gap-2";
-  const defaultBorder = "border-b";
-  const defaultPadding = "px-4";
+  const baseClassName = "flex h-16 shrink-0 items-center gap-2"
+  const defaultBorder = "border-b"
+  const defaultPadding = "px-4"
   const backgroundStyle = showSidebarTrigger
     ? "bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60"
-    : "";
+    : ""
 
-  const headerClassName = `${baseClassName} ${defaultBorder} ${defaultPadding} ${backgroundStyle} ${className}`.trim();
+  const headerClassName =
+    `${baseClassName} ${defaultBorder} ${defaultPadding} ${backgroundStyle} ${className}`.trim()
 
   return (
     <header className={headerClassName}>
@@ -44,7 +45,7 @@ export function DashboardHeader({
           <div className="h-6 w-px bg-gray-200" />
         </div>
       )}
-      
+
       <Breadcrumb>
         <BreadcrumbList>
           {breadcrumbs.map((breadcrumb, index) => (
@@ -63,8 +64,8 @@ export function DashboardHeader({
           ))}
         </BreadcrumbList>
       </Breadcrumb>
-      
+
       {children}
     </header>
-  );
+  )
 }

@@ -1,29 +1,29 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
-import { Plus, Trash2, Save, Eye, ArrowLeft, Settings2, EyeOff } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { Textarea } from "~/components/ui/textarea";
+import { useState, useEffect } from "react"
+import { useRouter, useParams, useSearchParams } from "next/navigation"
+import { Plus, Trash2, ArrowLeft, EyeOff, Save } from "lucide-react"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
+import { Textarea } from "~/components/ui/textarea"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "~/components/ui/card";
+} from "~/components/ui/card"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
-import { Switch } from "~/components/ui/switch";
-import { Badge } from "~/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+} from "~/components/ui/select"
+import { Switch } from "~/components/ui/switch"
+import { Badge } from "~/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,9 +33,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "~/components/ui/alert-dialog";
-import { api } from "~/trpc/react";
-import { toast } from "sonner";
+} from "~/components/ui/alert-dialog"
+import { api } from "~/trpc/react"
+import { toast } from "sonner"
 
 type FieldType =
   | "text"
@@ -46,121 +46,120 @@ type FieldType =
   | "select"
   | "radio"
   | "checkbox"
-  | "rating";
+  | "rating"
 
 interface FormField {
-  id: string;
-  type: FieldType;
-  label: string;
-  description?: string;
-  placeholder?: string;
-  required: boolean;
-  options?: { label: string; value: string }[];
-  min?: number;
-  max?: number;
-  order: number;
+  id: string
+  type: FieldType
+  label: string
+  description?: string
+  placeholder?: string
+  required: boolean
+  options?: { label: string; value: string }[]
+  min?: number
+  max?: number
+  order: number
 }
 
 interface TicketRule {
-  id: string;
-  name: string;
-  field_id: string;
-  operator: "eq" | "neq" | "lt" | "lte" | "gt" | "gte" | "contains";
-  value: string | number;
-  create_ticket: boolean;
-  ticket_subject?: string;
-  ticket_priority?: "low" | "medium" | "high" | "urgent";
+  id: string
+  name: string
+  field_id: string
+  operator: "eq" | "neq" | "lt" | "lte" | "gt" | "gte" | "contains"
+  value: string | number
+  create_ticket: boolean
+  ticket_subject?: string
+  ticket_priority?: "low" | "medium" | "high" | "urgent"
 }
 
 export default function FormBuilderPage() {
-  const router = useRouter();
-  const params = useParams();
-  const searchParams = useSearchParams();
-  const formId = params?.formId as string;
-  const isNew = formId === "new";
-  const clientIdFromUrl = searchParams?.get("clientId");
+  const router = useRouter()
+  const params = useParams()
+  const searchParams = useSearchParams()
+  const formId = params?.formId as string
+  const isNew = formId === "new"
+  const clientIdFromUrl = searchParams?.get("clientId")
 
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [description, setDescription] = useState("");
-  const [clientId, setClientId] = useState<string>("");
-  const [fields, setFields] = useState<FormField[]>([]);
-  const [ticketRules, setTicketRules] = useState<TicketRule[]>([]);
-  const [isPublished, setIsPublished] = useState(false);
-  const [allowMultipleSubmissions, setAllowMultipleSubmissions] =
-    useState(true);
-  const [collectContactInfo, setCollectContactInfo] = useState(true);
+  const [name, setName] = useState("")
+  const [slug, setSlug] = useState("")
+  const [description, setDescription] = useState("")
+  const [clientId, setClientId] = useState<string>("")
+  const [fields, setFields] = useState<FormField[]>([])
+  const [ticketRules, setTicketRules] = useState<TicketRule[]>([])
+  const [isPublished, setIsPublished] = useState(false)
+  const [allowMultipleSubmissions, setAllowMultipleSubmissions] = useState(true)
+  const [collectContactInfo, setCollectContactInfo] = useState(true)
   const [confirmationMessage, setConfirmationMessage] = useState(
-    "Thank you for your submission!",
-  );
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    "Thank you for your submission!"
+  )
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const { data: form, isLoading } = api.forms.getById.useQuery(
     { id: formId },
-    { enabled: !isNew },
-  );
+    { enabled: !isNew }
+  )
 
   const { data: clients } = api.clients.getAll.useQuery({
     page: 1,
     limit: 50,
-  });
+  })
 
   const createMutation = api.forms.create.useMutation({
     onSuccess: () => {
-      toast.success("Form created successfully");
-      router.push("/form-builder");
+      toast.success("Form created successfully")
+      router.push("/form-builder")
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(error.message)
     },
-  });
+  })
 
   const updateMutation = api.forms.update.useMutation({
     onSuccess: () => {
-      toast.success("Form updated successfully");
+      toast.success("Form updated successfully")
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(error.message)
     },
-  });
+  })
 
   const publishMutation = api.forms.publish.useMutation({
     onSuccess: () => {
       toast.success(
-        `Form ${isPublished ? "unpublished" : "published"} successfully`,
-      );
-      setIsPublished(!isPublished);
+        `Form ${isPublished ? "unpublished" : "published"} successfully`
+      )
+      setIsPublished(!isPublished)
     },
-  });
+  })
 
   const deleteMutation = api.forms.delete.useMutation({
     onSuccess: () => {
-      toast.success("Form deleted successfully");
-      router.push("/form-builder");
+      toast.success("Form deleted successfully")
+      router.push("/form-builder")
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to delete form");
+      toast.error(error.message || "Failed to delete form")
     },
-  });
+  })
 
   useEffect(() => {
     if (form) {
-      setName(form.name);
-      setSlug(form.slug);
-      setDescription(form.description || "");
-      setClientId(form.client_id || "");
-      setFields((form.fields as FormField[]) || []);
-      setTicketRules((form.ticket_rules as TicketRule[]) || []);
-      setIsPublished(form.is_published);
+      setName(form.name)
+      setSlug(form.slug)
+      setDescription(form.description || "")
+      setClientId(form.client_id || "")
+      setFields((form.fields as FormField[]) || [])
+      setTicketRules((form.ticket_rules as TicketRule[]) || [])
+      setIsPublished(form.is_published)
 
-      const settings = form.settings as any;
-      setAllowMultipleSubmissions(settings?.allow_multiple_submissions ?? true);
-      setCollectContactInfo(settings?.collect_contact_info ?? true);
+      const settings = form.settings as any
+      setAllowMultipleSubmissions(settings?.allow_multiple_submissions ?? true)
+      setCollectContactInfo(settings?.collect_contact_info ?? true)
       setConfirmationMessage(
-        settings?.confirmation_message || "Thank you for your submission!",
-      );
+        settings?.confirmation_message || "Thank you for your submission!"
+      )
     }
-  }, [form]);
+  }, [form])
 
   // Auto-generate slug from name
   useEffect(() => {
@@ -168,17 +167,17 @@ export default function FormBuilderPage() {
       const generatedSlug = name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
-      setSlug(generatedSlug);
+        .replace(/^-|-$/g, "")
+      setSlug(generatedSlug)
     }
-  }, [name, slug]);
+  }, [name, slug])
 
   // Set clientId from URL parameter when creating new form
   useEffect(() => {
     if (isNew && clientIdFromUrl && !clientId) {
-      setClientId(clientIdFromUrl);
+      setClientId(clientIdFromUrl)
     }
-  }, [isNew, clientIdFromUrl, clientId]);
+  }, [isNew, clientIdFromUrl, clientId])
 
   const addField = () => {
     const newField: FormField = {
@@ -187,22 +186,22 @@ export default function FormBuilderPage() {
       label: `Field ${fields.length + 1}`,
       required: false,
       order: fields.length,
-    };
-    setFields([...fields, newField]);
-  };
+    }
+    setFields([...fields, newField])
+  }
 
   const updateField = (id: string, updates: Partial<FormField>) => {
-    setFields(fields.map((f) => (f.id === id ? { ...f, ...updates } : f)));
-  };
+    setFields(fields.map((f) => (f.id === id ? { ...f, ...updates } : f)))
+  }
 
   const removeField = (id: string) => {
-    setFields(fields.filter((f) => f.id !== id));
-  };
+    setFields(fields.filter((f) => f.id !== id))
+  }
 
   const addTicketRule = () => {
     if (fields.length === 0) {
-      toast.error("Please add at least one field before creating rules");
-      return;
+      toast.error("Please add at least one field before creating rules")
+      return
     }
 
     const newRule: TicketRule = {
@@ -213,34 +212,34 @@ export default function FormBuilderPage() {
       value: "",
       create_ticket: true,
       ticket_priority: "medium",
-    };
-    setTicketRules([...ticketRules, newRule]);
-  };
+    }
+    setTicketRules([...ticketRules, newRule])
+  }
 
   const updateTicketRule = (id: string, updates: Partial<TicketRule>) => {
     setTicketRules(
-      ticketRules.map((r) => (r.id === id ? { ...r, ...updates } : r)),
-    );
-  };
+      ticketRules.map((r) => (r.id === id ? { ...r, ...updates } : r))
+    )
+  }
 
   const removeTicketRule = (id: string) => {
-    setTicketRules(ticketRules.filter((r) => r.id !== id));
-  };
+    setTicketRules(ticketRules.filter((r) => r.id !== id))
+  }
 
   const handleSave = () => {
     if (!name || !slug) {
-      toast.error("Name and slug are required");
-      return;
+      toast.error("Name and slug are required")
+      return
     }
 
     if (!clientId) {
-      toast.error("Please select a client");
-      return;
+      toast.error("Please select a client")
+      return
     }
 
     if (fields.length === 0) {
-      toast.error("Please add at least one field");
-      return;
+      toast.error("Please add at least one field")
+      return
     }
 
     if (isNew) {
@@ -256,8 +255,8 @@ export default function FormBuilderPage() {
           collect_contact_info: collectContactInfo,
           confirmation_message: confirmationMessage,
         },
-      };
-      createMutation.mutate(formData);
+      }
+      createMutation.mutate(formData)
     } else {
       // For update, client_id is optional
       const formData = {
@@ -272,29 +271,29 @@ export default function FormBuilderPage() {
           confirmation_message: confirmationMessage,
         },
         ticket_rules: ticketRules,
-      };
-      updateMutation.mutate({ id: formId, ...formData });
+      }
+      updateMutation.mutate({ id: formId, ...formData })
     }
-  };
+  }
 
   const handlePublish = () => {
-    publishMutation.mutate({ id: formId, is_published: !isPublished });
-  };
+    publishMutation.mutate({ id: formId, is_published: !isPublished })
+  }
 
   const handleDelete = () => {
-    setDeleteDialogOpen(true);
-  };
+    setDeleteDialogOpen(true)
+  }
 
   const confirmDelete = () => {
-    deleteMutation.mutate({ id: formId });
-  };
+    deleteMutation.mutate({ id: formId })
+  }
 
   if (!isNew && isLoading) {
     return (
       <div className="p-6">
         <div className="py-8 text-center">Loading form...</div>
       </div>
-    );
+    )
   }
 
   return (
@@ -447,7 +446,7 @@ export default function FormBuilderPage() {
             <CardContent className="space-y-4">
               {fields.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground">
-                  No fields yet. Click "Add Field" to get started.
+                  No fields yet. Click &quot;Add Field&quot; to get started.
                 </div>
               ) : (
                 fields.map((field, index) => (
@@ -548,8 +547,8 @@ export default function FormBuilderPage() {
                                   value: label
                                     .toLowerCase()
                                     .replace(/\s+/g, "-"),
-                                }));
-                              updateField(field.id, { options });
+                                }))
+                              updateField(field.id, { options })
                             }}
                             placeholder="Option 1&#10;Option 2&#10;Option 3"
                           />
@@ -804,8 +803,8 @@ export default function FormBuilderPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the form &quot;{name}&quot; and all its submissions.
-              This action cannot be undone.
+              This will permanently delete the form &quot;{name}&quot; and all
+              its submissions. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -820,5 +819,5 @@ export default function FormBuilderPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+  )
 }

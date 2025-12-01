@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { useState, useMemo } from "react";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Textarea } from "~/components/ui/textarea";
+import { useState, useMemo } from "react"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Textarea } from "~/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -11,49 +11,49 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-} from "~/components/ui/dialog";
+} from "~/components/ui/dialog"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
-import { api } from "~/trpc/react";
+} from "~/components/ui/select"
+import { api } from "~/trpc/react"
 
-type AssigneeType = "team" | "customer";
+type AssigneeType = "team" | "customer"
 
 interface UnifiedAssignee {
-  id: string;
-  name: string;
-  type: AssigneeType;
-  clientName?: string;
+  id: string
+  name: string
+  type: AssigneeType
+  clientName?: string
 }
 
 interface CreateTicketDialogProps {
-  children: React.ReactNode;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onTicketCreated: () => void;
+  children: React.ReactNode
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onTicketCreated: () => void
   agents: Array<{
-    id: string;
+    id: string
     user: {
-      id: string;
-      first_name: string;
-      last_name: string;
-      email: string;
-    };
-  }>;
+      id: string
+      first_name: string
+      last_name: string
+      email: string
+    }
+  }>
   customerAccesses: Array<{
-    id: string;
-    name: string;
-    email: string;
+    id: string
+    name: string
+    email: string
     client: {
-      id: string;
-      name: string;
-      slug: string;
-    };
-  }>;
+      id: string
+      name: string
+      slug: string
+    }
+  }>
 }
 
 export default function CreateTicketDialog({
@@ -64,15 +64,15 @@ export default function CreateTicketDialog({
   agents,
   customerAccesses,
 }: CreateTicketDialogProps) {
-  const [subject, setSubject] = useState("");
-  const [description, setDescription] = useState("");
+  const [subject, setSubject] = useState("")
+  const [description, setDescription] = useState("")
   const [priority, setPriority] = useState<
     "low" | "medium" | "high" | "urgent"
-  >("medium");
-  const [assignedToId, setAssignedToId] = useState<string>("unassigned");
-  const [clientId, setClientId] = useState<string>("none");
-  const [customerEmail, setCustomerEmail] = useState("");
-  const [customerName, setCustomerName] = useState("");
+  >("medium")
+  const [assignedToId, setAssignedToId] = useState<string>("unassigned")
+  const [clientId, setClientId] = useState<string>("none")
+  const [customerEmail, setCustomerEmail] = useState("")
+  const [customerName, setCustomerName] = useState("")
 
   // Merge agents and customer accesses into unified assignee list
   const unifiedAssignees = useMemo<UnifiedAssignee[]>(() => {
@@ -80,59 +80,59 @@ export default function CreateTicketDialog({
       id: `membership-${agent.id}`,
       name: `${agent.user.first_name} ${agent.user.last_name}`,
       type: "team" as const,
-    }));
+    }))
 
     const customers: UnifiedAssignee[] = customerAccesses.map((access) => ({
       id: `customer-${access.id}`,
       name: access.name,
       type: "customer" as const,
       clientName: access.client.name,
-    }));
+    }))
 
-    return [...teamMembers, ...customers];
-  }, [agents, customerAccesses]);
+    return [...teamMembers, ...customers]
+  }, [agents, customerAccesses])
 
   const createTicket = api.ticket.create.useMutation({
     onSuccess: () => {
-      onTicketCreated();
-      resetForm();
+      onTicketCreated()
+      resetForm()
     },
-  });
+  })
 
   const { data: clients } = api.clients.getAll.useQuery({
     page: 1,
     limit: 50,
-  });
+  })
 
   const resetForm = () => {
-    setSubject("");
-    setDescription("");
-    setPriority("medium");
-    setAssignedToId("unassigned");
-    setClientId("none");
-    setCustomerEmail("");
-    setCustomerName("");
-  };
+    setSubject("")
+    setDescription("")
+    setPriority("medium")
+    setAssignedToId("unassigned")
+    setClientId("none")
+    setCustomerEmail("")
+    setCustomerName("")
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     if (!subject.trim() || !description.trim()) {
-      return;
+      return
     }
 
     // Parse assignment value
-    let parsedAssignedToId: string | undefined = undefined;
-    let parsedAssignedToCustomerPortalAccessId: string | undefined = undefined;
+    let parsedAssignedToId: string | undefined = undefined
+    let parsedAssignedToCustomerPortalAccessId: string | undefined = undefined
 
     if (assignedToId !== "unassigned") {
       if (assignedToId.startsWith("membership-")) {
-        parsedAssignedToId = assignedToId.replace("membership-", "");
+        parsedAssignedToId = assignedToId.replace("membership-", "")
       } else if (assignedToId.startsWith("customer-")) {
         parsedAssignedToCustomerPortalAccessId = assignedToId.replace(
           "customer-",
-          "",
-        );
+          ""
+        )
       }
     }
 
@@ -145,8 +145,8 @@ export default function CreateTicketDialog({
       clientId: clientId === "none" ? undefined : clientId,
       customerEmail: customerEmail || undefined,
       customerName: customerName || undefined,
-    });
-  };
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -320,5 +320,5 @@ export default function CreateTicketDialog({
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

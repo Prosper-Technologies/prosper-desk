@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Download, ExternalLink, Plus } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
+import { useState } from "react"
+import { useRouter, useParams } from "next/navigation"
+import { ArrowLeft, Download, ExternalLink, Plus } from "lucide-react"
+import { Button } from "~/components/ui/button"
+import { Badge } from "~/components/ui/badge"
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "~/components/ui/table";
+} from "~/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -20,99 +20,106 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "~/components/ui/dialog";
-import { Label } from "~/components/ui/label";
-import { Input } from "~/components/ui/input";
+} from "~/components/ui/dialog"
+import { Label } from "~/components/ui/label"
+import { Input } from "~/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { api } from "~/trpc/react";
-import { formatRelativeTime } from "~/lib/utils";
-import { toast } from "sonner";
+} from "~/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { api } from "~/trpc/react"
+import { formatRelativeTime } from "~/lib/utils"
+import { toast } from "sonner"
 
 export default function FormSubmissionsPage() {
-  const router = useRouter();
-  const params = useParams();
-  const formId = params?.formId as string;
+  const router = useRouter()
+  const params = useParams()
+  const formId = params?.formId as string
 
-  const [page, setPage] = useState(1);
-  const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
-  const [createTicketDialogOpen, setCreateTicketDialogOpen] = useState(false);
-  const [ticketSubject, setTicketSubject] = useState("");
-  const [ticketPriority, setTicketPriority] = useState<"low" | "medium" | "high" | "urgent">("medium");
+  const [page, setPage] = useState(1)
+  const [selectedSubmission, setSelectedSubmission] = useState<any>(null)
+  const [createTicketDialogOpen, setCreateTicketDialogOpen] = useState(false)
+  const [ticketSubject, setTicketSubject] = useState("")
+  const [ticketPriority, setTicketPriority] = useState<
+    "low" | "medium" | "high" | "urgent"
+  >("medium")
 
-  const { data: form } = api.forms.getById.useQuery({ id: formId });
+  const { data: form } = api.forms.getById.useQuery({ id: formId })
 
   const { data, isLoading, refetch } = api.forms.getSubmissions.useQuery({
     form_id: formId,
     page,
     limit: 25,
-  });
+  })
 
-  const { data: exportData } = api.forms.exportSubmissions.useQuery(
-    { form_id: formId },
-    { enabled: false }
-  );
+  const createTicketMutation = api.forms.createTicketFromSubmission.useMutation(
+    {
+      onSuccess: () => {
+        toast.success("Ticket created successfully")
+        setCreateTicketDialogOpen(false)
+        setSelectedSubmission(null)
+        refetch()
+      },
+      onError: (error) => {
+        toast.error(error.message)
+      },
+    }
+  )
 
-  const createTicketMutation = api.forms.createTicketFromSubmission.useMutation({
-    onSuccess: () => {
-      toast.success("Ticket created successfully");
-      setCreateTicketDialogOpen(false);
-      setSelectedSubmission(null);
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const submissions = data?.submissions || [];
-  const totalPages = data?.totalPages || 1;
+  const submissions = data?.submissions || []
+  const totalPages = data?.totalPages || 1
 
   const handleExportCSV = async () => {
-    const result = await api.forms.exportSubmissions.useQuery({ form_id: formId });
+    const result = await api.forms.exportSubmissions.useQuery({
+      form_id: formId,
+    })
     if (result.data) {
-      const blob = new Blob([result.data.csv], { type: "text/csv" });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = result.data.filename;
-      a.click();
-      window.URL.revokeObjectURL(url);
+      const blob = new Blob([result.data.csv], { type: "text/csv" })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = result.data.filename
+      a.click()
+      window.URL.revokeObjectURL(url)
     }
-  };
+  }
 
   const handleCreateTicket = () => {
-    if (!selectedSubmission) return;
+    if (!selectedSubmission) return
 
     createTicketMutation.mutate({
       submission_id: selectedSubmission.id,
       subject: ticketSubject,
       priority: ticketPriority,
-    });
-  };
+    })
+  }
 
   const openCreateTicketDialog = (submission: any) => {
-    setSelectedSubmission(submission);
-    setTicketSubject(`Form submission from ${submission.submitted_by_name}`);
-    setCreateTicketDialogOpen(true);
-  };
+    setSelectedSubmission(submission)
+    setTicketSubject(`Form submission from ${submission.submitted_by_name}`)
+    setCreateTicketDialogOpen(true)
+  }
 
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/form-builder")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/form-builder")}
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Form Submissions</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Form Submissions
+            </h1>
             <p className="text-muted-foreground">{form?.name}</p>
           </div>
         </div>
@@ -129,11 +136,11 @@ export default function FormSubmissionsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="py-8 text-center text-muted-foreground">
               Loading submissions...
             </div>
           ) : submissions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="py-8 text-center text-muted-foreground">
               No submissions yet
             </div>
           ) : (
@@ -162,7 +169,7 @@ export default function FormSubmissionsPage() {
                         {submission.ticket ? (
                           <Button
                             variant="link"
-                            className="p-0 h-auto"
+                            className="h-auto p-0"
                             onClick={() =>
                               router.push(`/tickets?id=${submission.ticket.id}`)
                             }
@@ -202,7 +209,7 @@ export default function FormSubmissionsPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
+                <div className="mt-4 flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">
                     Page {page} of {totalPages}
                   </div>
@@ -218,7 +225,9 @@ export default function FormSubmissionsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      onClick={() =>
+                        setPage((p) => Math.min(totalPages, p + 1))
+                      }
                       disabled={page === totalPages}
                     >
                       Next
@@ -249,34 +258,40 @@ export default function FormSubmissionsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Email</Label>
-                    <div className="text-sm">{selectedSubmission.submitted_by_email}</div>
+                    <div className="text-sm">
+                      {selectedSubmission.submitted_by_email}
+                    </div>
                   </div>
                   <div>
                     <Label>Submitted At</Label>
                     <div className="text-sm">
-                      {new Date(selectedSubmission.submitted_at).toLocaleString()}
+                      {new Date(
+                        selectedSubmission.submitted_at
+                      ).toLocaleString()}
                     </div>
                   </div>
                 </div>
 
                 <div className="border-t pt-4">
-                  <h4 className="font-semibold mb-4">Form Responses</h4>
+                  <h4 className="mb-4 font-semibold">Form Responses</h4>
                   <div className="space-y-3">
-                    {Object.entries(selectedSubmission.data as Record<string, any>).map(
-                      ([fieldId, value]) => {
-                        const field = (form?.fields as any[])?.find(
-                          (f) => f.id === fieldId
-                        );
-                        return (
-                          <div key={fieldId} className="space-y-1">
-                            <Label>{field?.label || fieldId}</Label>
-                            <div className="text-sm bg-muted p-2 rounded">
-                              {Array.isArray(value) ? value.join(", ") : String(value)}
-                            </div>
+                    {Object.entries(
+                      selectedSubmission.data as Record<string, any>
+                    ).map(([fieldId, value]) => {
+                      const field = (form?.fields as any[])?.find(
+                        (f) => f.id === fieldId
+                      )
+                      return (
+                        <div key={fieldId} className="space-y-1">
+                          <Label>{field?.label || fieldId}</Label>
+                          <div className="rounded bg-muted p-2 text-sm">
+                            {Array.isArray(value)
+                              ? value.join(", ")
+                              : String(value)}
                           </div>
-                        );
-                      }
-                    )}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
 
@@ -285,9 +300,11 @@ export default function FormSubmissionsPage() {
                     <Label>Linked Ticket</Label>
                     <Button
                       variant="link"
-                      className="p-0 h-auto"
+                      className="h-auto p-0"
                       onClick={() =>
-                        router.push(`/tickets?id=${selectedSubmission.ticket.id}`)
+                        router.push(
+                          `/tickets?id=${selectedSubmission.ticket.id}`
+                        )
                       }
                     >
                       <ExternalLink className="mr-2 h-4 w-4" />
@@ -300,7 +317,9 @@ export default function FormSubmissionsPage() {
           </div>
           <DialogFooter>
             {selectedSubmission && !selectedSubmission.ticket && (
-              <Button onClick={() => openCreateTicketDialog(selectedSubmission)}>
+              <Button
+                onClick={() => openCreateTicketDialog(selectedSubmission)}
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Create Ticket
               </Button>
@@ -310,7 +329,10 @@ export default function FormSubmissionsPage() {
       </Dialog>
 
       {/* Create Ticket Dialog */}
-      <Dialog open={createTicketDialogOpen} onOpenChange={setCreateTicketDialogOpen}>
+      <Dialog
+        open={createTicketDialogOpen}
+        onOpenChange={setCreateTicketDialogOpen}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Ticket from Submission</DialogTitle>
@@ -331,7 +353,10 @@ export default function FormSubmissionsPage() {
 
             <div className="space-y-2">
               <Label htmlFor="ticket-priority">Priority</Label>
-              <Select value={ticketPriority} onValueChange={(value: any) => setTicketPriority(value)}>
+              <Select
+                value={ticketPriority}
+                onValueChange={(value: any) => setTicketPriority(value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -361,5 +386,5 @@ export default function FormSubmissionsPage() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

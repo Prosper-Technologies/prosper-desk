@@ -1,35 +1,29 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "~/components/ui/card";
-import { Alert, AlertDescription } from "~/components/ui/alert";
-import { Eye, EyeOff, CheckCircle, XCircle, Loader2 } from "lucide-react";
-import { api } from "~/trpc/react";
+} from "~/components/ui/card"
+import { Alert, AlertDescription } from "~/components/ui/alert"
+import { Eye, EyeOff, CheckCircle, XCircle, Loader2 } from "lucide-react"
+import { api } from "~/trpc/react"
 
-interface InvitePageProps {
-  params: {
-    companySlug: string;
-  };
-}
-
-export default function InvitePage({ params }: InvitePageProps) {
-  const router = useRouter();
-  const [step, setStep] = useState<"code" | "password">("code");
-  const [invitationCode, setInvitationCode] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [invitation, setInvitation] = useState<any>(null);
+export default function InvitePage() {
+  const router = useRouter()
+  const [step, setStep] = useState<"code" | "password">("code")
+  const [invitationCode, setInvitationCode] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [invitation, setInvitation] = useState<any>(null)
 
   // Validate invitation code
   const validateCodeQuery = api.user.validateInvitationCode.useQuery(
@@ -38,46 +32,46 @@ export default function InvitePage({ params }: InvitePageProps) {
       enabled: false, // Don't auto-run, we'll trigger manually
       onSuccess: (data) => {
         if (data.isValid && data.invitation) {
-          setInvitation(data.invitation);
-          setStep("password");
+          setInvitation(data.invitation)
+          setStep("password")
         }
       },
-    },
-  );
+    }
+  )
 
   // Accept invitation
   const acceptInvitationMutation = api.user.acceptInvitation.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Redirect to login or dashboard
-      router.push("/dashboard");
+      router.push("/dashboard")
     },
-  });
+  })
 
   const handleCodeSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (invitationCode.length === 6) {
-      validateCodeQuery.refetch();
+      validateCodeQuery.refetch()
     }
-  };
+  }
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (password === confirmPassword && password.length >= 8) {
       acceptInvitationMutation.mutate({
         code: invitationCode,
         password,
-      });
+      })
     }
-  };
+  }
 
   const formatInvitationCode = (value: string) => {
     // Only allow numbers and limit to 6 digits
-    const cleaned = value.replace(/\D/g, "").slice(0, 6);
-    return cleaned;
-  };
+    const cleaned = value.replace(/\D/g, "").slice(0, 6)
+    return cleaned
+  }
 
-  const isCodeValid = invitationCode.length === 6;
-  const isPasswordValid = password.length >= 8 && password === confirmPassword;
+  const isCodeValid = invitationCode.length === 6
+  const isPasswordValid = password.length >= 8 && password === confirmPassword
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
@@ -268,5 +262,5 @@ export default function InvitePage({ params }: InvitePageProps) {
         </div>
       </div>
     </div>
-  );
+  )
 }

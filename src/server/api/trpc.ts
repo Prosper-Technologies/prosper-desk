@@ -1,10 +1,10 @@
-import { initTRPC, TRPCError } from "@trpc/server";
-import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
-import { createServerClient } from "@supabase/ssr";
-import superjson from "superjson";
-import { ZodError } from "zod";
-import { db } from "~/db";
-import { env } from "~/env";
+import { initTRPC, TRPCError } from "@trpc/server"
+import { type CreateNextContextOptions } from "@trpc/server/adapters/next"
+import { createServerClient } from "@supabase/ssr"
+import superjson from "superjson"
+import { ZodError } from "zod"
+import { db } from "~/db"
+import { env } from "~/env"
 
 /**
  * 1. CONTEXT
@@ -19,92 +19,91 @@ import { env } from "~/env";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: CreateNextContextOptions) => {
-  const { req, res } = opts;
+  const { req, res } = opts
 
   // Create a cookie store that works with the request/response
   const cookieStore = {
     get(name: string) {
       // Try Next.js RequestCookies object first (newer API routes)
       if (req.cookies && typeof (req.cookies as any).get === "function") {
-        const cookie = (req.cookies as any).get(name);
-        return cookie?.value;
+        const cookie = (req.cookies as any).get(name)
+        return cookie?.value
       }
 
       // Fallback to standard req.cookies object (older API routes)
       if (req.cookies && typeof req.cookies === "object" && req.cookies[name]) {
-        return req.cookies[name];
+        return req.cookies[name]
       }
 
       // Final fallback to parsing cookie header manually
-      const cookie = req.headers.cookie;
-      if (!cookie) return undefined;
+      const cookie = req.headers.cookie
+      if (!cookie) return undefined
 
-      const match = cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-      return match ? decodeURIComponent(match[2]) : undefined;
+      const match = cookie.match(new RegExp(`(^| )${name}=([^;]+)`))
+      return match ? decodeURIComponent(match[2]) : undefined
     },
     set(name: string, value: string, options: any = {}) {
-      if (!res) return;
+      if (!res) return
 
-      let cookieString = `${name}=${encodeURIComponent(value)}; Path=/`;
+      let cookieString = `${name}=${encodeURIComponent(value)}; Path=/`
 
       if (options.maxAge) {
-        cookieString += `; Max-Age=${options.maxAge}`;
+        cookieString += `; Max-Age=${options.maxAge}`
       }
       if (options.httpOnly) {
-        cookieString += `; HttpOnly`;
+        cookieString += `; HttpOnly`
       }
       if (options.secure) {
-        cookieString += `; Secure`;
+        cookieString += `; Secure`
       }
       if (options.sameSite) {
-        cookieString += `; SameSite=${options.sameSite}`;
+        cookieString += `; SameSite=${options.sameSite}`
       }
 
       // Get existing Set-Cookie headers
-      const existingCookies = res.getHeader("Set-Cookie");
+      const existingCookies = res.getHeader("Set-Cookie")
       const cookieArray = Array.isArray(existingCookies)
         ? existingCookies
         : existingCookies
-        ? [existingCookies as string]
-        : [];
+          ? [existingCookies as string]
+          : []
 
-      res.setHeader("Set-Cookie", [...cookieArray, cookieString]);
+      res.setHeader("Set-Cookie", [...cookieArray, cookieString])
     },
     remove(name: string, options: any = {}) {
-      if (!res) return;
+      if (!res) return
 
-      let cookieString =
-        `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+      let cookieString = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
 
       if (options.httpOnly) {
-        cookieString += `; HttpOnly`;
+        cookieString += `; HttpOnly`
       }
       if (options.secure) {
-        cookieString += `; Secure`;
+        cookieString += `; Secure`
       }
       if (options.sameSite) {
-        cookieString += `; SameSite=${options.sameSite}`;
+        cookieString += `; SameSite=${options.sameSite}`
       }
 
       // Get existing Set-Cookie headers
-      const existingCookies = res.getHeader("Set-Cookie");
+      const existingCookies = res.getHeader("Set-Cookie")
       const cookieArray = Array.isArray(existingCookies)
         ? existingCookies
         : existingCookies
-        ? [existingCookies as string]
-        : [];
+          ? [existingCookies as string]
+          : []
 
-      res.setHeader("Set-Cookie", [...cookieArray, cookieString]);
+      res.setHeader("Set-Cookie", [...cookieArray, cookieString])
     },
-  };
+  }
 
   const supabase = createServerClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: cookieStore,
-    },
-  );
+    }
+  )
 
   const supabaseAdmin = createServerClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
@@ -115,30 +114,30 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
         persistSession: false,
       },
       cookies: cookieStore,
-    },
-  );
+    }
+  )
 
   // Get session from Supabase using getUser() for security
-  let session = null;
+  let session = null
   try {
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser()
     if (error) {
-      console.error("❌ Auth error:", error);
+      console.error("❌ Auth error:", error)
     } else if (user) {
       // Get the session after verifying the user
       const {
         data: { session: authSession },
         error: sessionError,
-      } = await supabase.auth.getSession();
+      } = await supabase.auth.getSession()
       if (!sessionError && authSession) {
-        session = authSession;
+        session = authSession
       }
     }
   } catch (error) {
-    console.error("❌ Auth catch error:", error);
+    console.error("❌ Auth catch error:", error)
   }
 
   return {
@@ -148,8 +147,8 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
     supabaseAdmin,
     req,
     res,
-  };
-};
+  }
+}
 
 /**
  * 2. INITIALIZATION
@@ -165,20 +164,19 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
       ...shape,
       data: {
         ...shape.data,
-        zodError: error.cause instanceof ZodError
-          ? error.cause.flatten()
-          : null,
+        zodError:
+          error.cause instanceof ZodError ? error.cause.flatten() : null,
       },
-    };
+    }
   },
-});
+})
 
 /**
  * Create a server-side caller.
  *
  * @see https://trpc.io/docs/server/server-side-calls
  */
-export const createCallerFactory = t.createCallerFactory;
+export const createCallerFactory = t.createCallerFactory
 
 /**
  * 3. ROUTER & PROCEDURE (THE IMPORTANT BIT)
@@ -192,7 +190,7 @@ export const createCallerFactory = t.createCallerFactory;
  *
  * @see https://trpc.io/docs/router
  */
-export const createTRPCRouter = t.router;
+export const createTRPCRouter = t.router
 
 /**
  * Public (unauthenticated) procedure
@@ -201,7 +199,7 @@ export const createTRPCRouter = t.router;
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-export const publicProcedure = t.procedure;
+export const publicProcedure = t.procedure
 
 /**
  * Protected (authenticated) procedure
@@ -213,7 +211,7 @@ export const publicProcedure = t.procedure;
  */
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   if (!ctx.session?.user) {
-    throw new TRPCError({ code: "UNAUTHORIZED" });
+    throw new TRPCError({ code: "UNAUTHORIZED" })
   }
 
   return next({
@@ -222,8 +220,8 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       // infers the `session` as non-nullable
       session: { ...ctx.session, user: ctx.session.user },
     },
-  });
-});
+  })
+})
 
 /**
  * Admin procedure
@@ -239,17 +237,17 @@ export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
         where: (memberships, { and, eq, or }) =>
           and(
             eq(memberships.is_active, true),
-            or(eq(memberships.role, "admin"), eq(memberships.role, "owner")),
+            or(eq(memberships.role, "admin"), eq(memberships.role, "owner"))
           ),
         with: {
           company: true,
         },
       },
     },
-  });
+  })
 
   if (!user || !user.memberships.length) {
-    throw new TRPCError({ code: "FORBIDDEN" });
+    throw new TRPCError({ code: "FORBIDDEN" })
   }
 
   return next({
@@ -257,8 +255,8 @@ export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
       ...ctx,
       user,
     },
-  });
-});
+  })
+})
 
 /**
  * Company context procedure
@@ -278,32 +276,32 @@ export const companyProcedure = protectedProcedure.use(
           },
         },
       },
-    });
+    })
 
     if (!user?.memberships?.length) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: "User not associated with any company",
-      });
+      })
     }
 
     // Check for company selection via header
-    const companyId = ctx.req?.headers?.["x-company-id"] as string;
-    let membership = user.memberships[0]; // Default to first membership
+    const companyId = ctx.req?.headers?.["x-company-id"] as string
+    let membership = user.memberships[0] // Default to first membership
 
     if (companyId) {
       // Find the specific membership for the requested company
       const requestedMembership = user.memberships.find(
-        (m) => m.company.id === companyId,
-      );
+        (m) => m.company.id === companyId
+      )
 
       if (requestedMembership) {
-        membership = requestedMembership;
+        membership = requestedMembership
       } else {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "User not authorized for this company",
-        });
+        })
       }
     }
 
@@ -314,9 +312,9 @@ export const companyProcedure = protectedProcedure.use(
         membership,
         company: membership.company,
       },
-    });
-  },
-);
+    })
+  }
+)
 
 /**
  * Admin company context procedure
@@ -330,11 +328,11 @@ export const adminCompanyProcedure = companyProcedure.use(
       throw new TRPCError({
         code: "FORBIDDEN",
         message: "Admin access required",
-      });
+      })
     }
 
     return next({
       ctx,
-    });
-  },
-);
+    })
+  }
+)

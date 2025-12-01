@@ -1,8 +1,8 @@
-import { z } from "zod";
-import { createTRPCRouter, companyProcedure } from "~/server/api/trpc";
-import { clients, customerPortalAccess } from "~/db/schema";
-import { eq, and } from "drizzle-orm";
-import { TRPCError } from "@trpc/server";
+import { z } from "zod"
+import { createTRPCRouter, companyProcedure } from "~/server/api/trpc"
+import { clients, customerPortalAccess } from "~/db/schema"
+import { eq, and } from "drizzle-orm"
+import { TRPCError } from "@trpc/server"
 
 export const clientRouter = createTRPCRouter({
   // Get all clients for a company
@@ -12,12 +12,12 @@ export const clientRouter = createTRPCRouter({
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(50).default(25),
         search: z.string().optional(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
-      const offset = (input.page - 1) * input.limit;
+      const offset = (input.page - 1) * input.limit
 
-      const whereConditions = [eq(clients.company_id, ctx.company.id)];
+      const whereConditions = [eq(clients.company_id, ctx.company.id)]
 
       if (input.search) {
         // Add search condition (would need to implement proper search)
@@ -37,13 +37,13 @@ export const clientRouter = createTRPCRouter({
         limit: input.limit,
         offset,
         orderBy: (clients, { desc }) => [desc(clients.created_at)],
-      });
+      })
 
       // Count total clients
       const totalClients = await ctx.db.query.clients.findMany({
         where: and(...whereConditions),
         columns: { id: true },
-      });
+      })
 
       return {
         clients: clientsList.map((client) => ({
@@ -57,7 +57,7 @@ export const clientRouter = createTRPCRouter({
           total: totalClients.length,
           totalPages: Math.ceil(totalClients.length / input.limit),
         },
-      };
+      }
     }),
 
   // Get client by ID
@@ -67,7 +67,7 @@ export const clientRouter = createTRPCRouter({
       const client = await ctx.db.query.clients.findFirst({
         where: and(
           eq(clients.id, input.id),
-          eq(clients.company_id, ctx.company.id),
+          eq(clients.company_id, ctx.company.id)
         ),
         with: {
           company: true,
@@ -90,16 +90,16 @@ export const clientRouter = createTRPCRouter({
             limit: 10, // Recent tickets
           },
         },
-      });
+      })
 
       if (!client) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Client not found",
-        });
+        })
       }
 
-      return client;
+      return client
     }),
 
   // Create new client
@@ -113,28 +113,28 @@ export const clientRouter = createTRPCRouter({
           .max(100)
           .regex(
             /^[a-z0-9-]+$/,
-            "Slug must contain only lowercase letters, numbers, and hyphens",
+            "Slug must contain only lowercase letters, numbers, and hyphens"
           ),
         email_domains: z.array(z.string()).optional(),
         description: z.string().optional(),
         logo_url: z.string().url().optional(),
         portal_enabled: z.boolean().default(true),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Check if slug is unique within the company
       const existingClient = await ctx.db.query.clients.findFirst({
         where: and(
           eq(clients.company_id, ctx.company.id),
-          eq(clients.slug, input.slug),
+          eq(clients.slug, input.slug)
         ),
-      });
+      })
 
       if (existingClient) {
         throw new TRPCError({
           code: "CONFLICT",
           message: "A client with this slug already exists",
-        });
+        })
       }
 
       const [newClient] = await ctx.db
@@ -148,9 +148,9 @@ export const clientRouter = createTRPCRouter({
           logo_url: input.logo_url,
           portal_enabled: input.portal_enabled,
         })
-        .returning();
+        .returning()
 
-      return newClient;
+      return newClient
     }),
 
   // Update client
@@ -170,21 +170,21 @@ export const clientRouter = createTRPCRouter({
         logo_url: z.string().url().optional(),
         portal_enabled: z.boolean().optional(),
         is_active: z.boolean().optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, ...updateData } = input;
+      const { id, ...updateData } = input
 
       // Verify client belongs to company
       const existingClient = await ctx.db.query.clients.findFirst({
         where: and(eq(clients.id, id), eq(clients.company_id, ctx.company.id)),
-      });
+      })
 
       if (!existingClient) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Client not found",
-        });
+        })
       }
 
       // If updating slug, check uniqueness
@@ -192,15 +192,15 @@ export const clientRouter = createTRPCRouter({
         const slugExists = await ctx.db.query.clients.findFirst({
           where: and(
             eq(clients.company_id, ctx.company.id),
-            eq(clients.slug, input.slug),
+            eq(clients.slug, input.slug)
           ),
-        });
+        })
 
         if (slugExists) {
           throw new TRPCError({
             code: "CONFLICT",
             message: "A client with this slug already exists",
-          });
+          })
         }
       }
 
@@ -208,9 +208,9 @@ export const clientRouter = createTRPCRouter({
         .update(clients)
         .set({ ...updateData, updated_at: new Date() })
         .where(eq(clients.id, id))
-        .returning();
+        .returning()
 
-      return updatedClient;
+      return updatedClient
     }),
 
   // Delete client
@@ -221,20 +221,20 @@ export const clientRouter = createTRPCRouter({
       const existingClient = await ctx.db.query.clients.findFirst({
         where: and(
           eq(clients.id, input.id),
-          eq(clients.company_id, ctx.company.id),
+          eq(clients.company_id, ctx.company.id)
         ),
-      });
+      })
 
       if (!existingClient) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Client not found",
-        });
+        })
       }
 
-      await ctx.db.delete(clients).where(eq(clients.id, input.id));
+      await ctx.db.delete(clients).where(eq(clients.id, input.id))
 
-      return { success: true };
+      return { success: true }
     }),
 
   // Generate portal access for a customer (sends magic link email)
@@ -244,53 +244,53 @@ export const clientRouter = createTRPCRouter({
         clientId: z.string().uuid(),
         email: z.string().email(),
         name: z.string().min(1),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // Verify client belongs to company
       const client = await ctx.db.query.clients.findFirst({
         where: and(
           eq(clients.id, input.clientId),
-          eq(clients.company_id, ctx.company.id),
+          eq(clients.company_id, ctx.company.id)
         ),
-      });
+      })
 
       if (!client) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Client not found",
-        });
+        })
       }
 
       if (!client.portal_enabled) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Portal access is disabled for this client",
-        });
+        })
       }
 
       // Validate email domain if client has restrictions
       const cleanedEmailDomains = client.email_domains.filter(
-        (domain) => domain && domain.length > 0,
-      );
+        (domain) => domain && domain.length > 0
+      )
 
       if (cleanedEmailDomains.length > 0) {
-        const emailDomain = input.email.split("@")[1];
+        const emailDomain = input.email.split("@")[1]
         if (!cleanedEmailDomains.includes(emailDomain)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: `Email must be from one of these domains: ${client.email_domains.join(", ")}`,
-          });
+          })
         }
       }
 
       // Check if access already exists for this email and client
-      let existingAccess = await ctx.db.query.customerPortalAccess.findFirst({
+      const existingAccess = await ctx.db.query.customerPortalAccess.findFirst({
         where: and(
           eq(customerPortalAccess.client_id, input.clientId),
-          eq(customerPortalAccess.email, input.email),
+          eq(customerPortalAccess.email, input.email)
         ),
-      });
+      })
 
       if (existingAccess) {
         // Update existing access
@@ -301,7 +301,7 @@ export const clientRouter = createTRPCRouter({
             is_active: true,
             updated_at: new Date(),
           })
-          .where(eq(customerPortalAccess.id, existingAccess.id));
+          .where(eq(customerPortalAccess.id, existingAccess.id))
       } else {
         // Create new access record
         await ctx.db.insert(customerPortalAccess).values({
@@ -309,11 +309,11 @@ export const clientRouter = createTRPCRouter({
           client_id: input.clientId,
           email: input.email,
           name: input.name,
-        });
+        })
       }
 
       // Customer will request their own magic link via the portal
-      const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL}/portal/${ctx.company.slug}/${client.slug}`;
+      const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL}/portal/${ctx.company.slug}/${client.slug}`
 
       return {
         message: existingAccess
@@ -321,7 +321,7 @@ export const clientRouter = createTRPCRouter({
           : `Portal access granted to ${input.email}. Share this link: ${portalUrl}`,
         email: input.email,
         portalUrl,
-      };
+      }
     }),
 
   // Get all portal accesses for a company
@@ -329,7 +329,7 @@ export const clientRouter = createTRPCRouter({
     const portalAccesses = await ctx.db.query.customerPortalAccess.findMany({
       where: and(
         eq(customerPortalAccess.company_id, ctx.company.id),
-        eq(customerPortalAccess.is_active, true),
+        eq(customerPortalAccess.is_active, true)
       ),
       with: {
         client: {
@@ -337,9 +337,9 @@ export const clientRouter = createTRPCRouter({
         },
       },
       orderBy: (portalAccess, { desc }) => [desc(portalAccess.created_at)],
-    });
+    })
 
-    return portalAccesses;
+    return portalAccesses
   }),
 
   // Get portal access for a client
@@ -350,23 +350,23 @@ export const clientRouter = createTRPCRouter({
       const client = await ctx.db.query.clients.findFirst({
         where: and(
           eq(clients.id, input.clientId),
-          eq(clients.company_id, ctx.company.id),
+          eq(clients.company_id, ctx.company.id)
         ),
-      });
+      })
 
       if (!client) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Client not found",
-        });
+        })
       }
 
       const portalAccess = await ctx.db.query.customerPortalAccess.findMany({
         where: eq(customerPortalAccess.client_id, input.clientId),
         orderBy: (portalAccess, { desc }) => [desc(portalAccess.created_at)],
-      });
+      })
 
-      return portalAccess;
+      return portalAccess
     }),
 
   // Revoke portal access
@@ -377,24 +377,24 @@ export const clientRouter = createTRPCRouter({
       const access = await ctx.db.query.customerPortalAccess.findFirst({
         where: and(
           eq(customerPortalAccess.id, input.accessId),
-          eq(customerPortalAccess.company_id, (ctx as any).company.id),
+          eq(customerPortalAccess.company_id, (ctx as any).company.id)
         ),
-      });
+      })
 
       if (!access) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Portal access not found",
-        });
+        })
       }
 
       const [updatedAccess] = await ctx.db
         .update(customerPortalAccess)
         .set({ is_active: false, updated_at: new Date() })
         .where(eq(customerPortalAccess.id, input.accessId))
-        .returning();
+        .returning()
 
-      return updatedAccess;
+      return updatedAccess
     }),
 
   // Completely delete portal access
@@ -405,22 +405,22 @@ export const clientRouter = createTRPCRouter({
       const access = await ctx.db.query.customerPortalAccess.findFirst({
         where: and(
           eq(customerPortalAccess.id, input.accessId),
-          eq(customerPortalAccess.company_id, (ctx as any).company.id),
+          eq(customerPortalAccess.company_id, (ctx as any).company.id)
         ),
-      });
+      })
 
       if (!access) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Portal access not found",
-        });
+        })
       }
 
       // Completely delete the record from the database
       await ctx.db
         .delete(customerPortalAccess)
-        .where(eq(customerPortalAccess.id, input.accessId));
+        .where(eq(customerPortalAccess.id, input.accessId))
 
-      return { success: true };
+      return { success: true }
     }),
-});
+})

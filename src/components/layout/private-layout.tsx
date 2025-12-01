@@ -1,28 +1,25 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "~/utils/supabase/client";
-import { AppSidebar } from "~/components/app-sidebar";
-import {
-  SidebarProvider,
-  SidebarInset,
-} from "~/components/ui/sidebar";
-import { api } from "~/trpc/react";
-import { Loader } from "lucide-react";
-import { useCompany } from "~/contexts/company-context";
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { createClient } from "~/utils/supabase/client"
+import { AppSidebar } from "~/components/app-sidebar"
+import { SidebarProvider, SidebarInset } from "~/components/ui/sidebar"
+import { api } from "~/trpc/react"
+import { Loader } from "lucide-react"
+import { useCompany } from "~/contexts/company-context"
 
-const supabase = createClient();
+const supabase = createClient()
 
 interface PrivateLayoutProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 export default function PrivateLayout({ children }: PrivateLayoutProps) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [authUser, setAuthUser] = useState<any>(null);
-  const router = useRouter();
-  const { currentCompanyId, setCurrentCompanyId } = useCompany();
+  const [isLoading, setIsLoading] = useState(true)
+  const [authUser, setAuthUser] = useState<any>(null)
+  const router = useRouter()
+  const { currentCompanyId, setCurrentCompanyId } = useCompany()
 
   const { data: profile, isLoading: isProfileLoading } =
     api.auth.getProfile.useQuery(undefined, {
@@ -32,57 +29,57 @@ export default function PrivateLayout({ children }: PrivateLayoutProps) {
       cacheTime: 10 * 60 * 1000, // 10 minutes
       refetchOnWindowFocus: false,
       refetchOnMount: false,
-    });
+    })
 
   useEffect(() => {
     const checkAuth = async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await supabase.auth.getUser()
 
       if (!user) {
-        router.push("/login");
-        return;
+        router.push("/login")
+        return
       }
 
-      setAuthUser(user);
-    };
+      setAuthUser(user)
+    }
 
-    checkAuth();
+    checkAuth()
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT" || !session) {
-        router.push("/login");
+        router.push("/login")
       } else if (session?.user) {
-        setAuthUser(session.user);
+        setAuthUser(session.user)
       }
-    });
+    })
 
     return () => {
-      subscription.unsubscribe();
-    };
-  }, [router]);
+      subscription.unsubscribe()
+    }
+  }, [router])
 
   useEffect(() => {
     if (authUser && !isProfileLoading) {
       if (!profile) {
         // User exists in auth but not in our database - redirect to onboarding
-        router.push("/onboarding");
+        router.push("/onboarding")
       } else {
         // Initialize company context if not set or if current company is not valid
         if (profile.memberships?.length > 0) {
-          const validCompanyIds = profile.memberships.map((m) => m.company.id);
+          const validCompanyIds = profile.memberships.map((m) => m.company.id)
           if (
             !currentCompanyId ||
             !validCompanyIds.includes(currentCompanyId)
           ) {
-            setCurrentCompanyId(profile.memberships[0].company.id);
+            setCurrentCompanyId(profile.memberships[0].company.id)
           }
         }
-        setIsLoading(false);
+        setIsLoading(false)
       }
     }
   }, [
@@ -92,7 +89,7 @@ export default function PrivateLayout({ children }: PrivateLayoutProps) {
     router,
     currentCompanyId,
     setCurrentCompanyId,
-  ]);
+  ])
 
   if (isLoading || isProfileLoading) {
     return (
@@ -102,17 +99,17 @@ export default function PrivateLayout({ children }: PrivateLayoutProps) {
           <p className="mt-2 text-sm text-gray-600">Loading...</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (!profile) {
-    return null; // Will redirect to onboarding
+    return null // Will redirect to onboarding
   }
 
   // Get current membership based on selected company
   const currentMembership =
     profile?.memberships?.find((m) => m.company.id === currentCompanyId) ||
-    profile?.memberships?.[0];
+    profile?.memberships?.[0]
 
   return (
     <SidebarProvider>
@@ -141,5 +138,5 @@ export default function PrivateLayout({ children }: PrivateLayoutProps) {
         <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>
     </SidebarProvider>
-  );
+  )
 }

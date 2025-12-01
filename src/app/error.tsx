@@ -1,23 +1,23 @@
-"use client";
+"use client"
 
-import { useEffect } from "react";
-import Link from "next/link";
-import { Button } from "~/components/ui/button";
-import { Card, CardContent } from "~/components/ui/card";
-import { Home, RefreshCw, AlertTriangle, Bug, HelpCircle } from "lucide-react";
+import { useEffect } from "react"
+import Link from "next/link"
+import { Button } from "~/components/ui/button"
+import { Card, CardContent } from "~/components/ui/card"
+import { Home, RefreshCw, AlertTriangle, Bug, HelpCircle } from "lucide-react"
 
 interface ErrorProps {
-  error: Error & { digest?: string };
-  reset: () => void;
+  error: Error & { digest?: string }
+  reset: () => void
 }
 
 export default function Error({ error, reset }: ErrorProps) {
   useEffect(() => {
     // Log error to monitoring service
-    console.error("Application error:", error);
-  }, [error]);
+    console.error("Application error:", error)
+  }, [error])
 
-  const isDevelopment = process.env.NODE_ENV === "development";
+  const isDevelopment = process.env.NODE_ENV === "development"
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
@@ -80,7 +80,7 @@ export default function Error({ error, reset }: ErrorProps) {
                   console.log("Report bug clicked", {
                     error: error.message,
                     digest: error.digest,
-                  });
+                  })
                 }}
               >
                 <Bug className="mr-2 h-4 w-4" />
@@ -91,5 +91,5 @@ export default function Error({ error, reset }: ErrorProps) {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
