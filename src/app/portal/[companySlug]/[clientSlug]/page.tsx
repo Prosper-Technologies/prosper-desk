@@ -25,13 +25,9 @@ import {
 import {
   LifeBuoy,
   Plus,
-  Clock,
   MessageCircle,
   CheckCircle,
-  User,
   Activity,
-  ChevronDown,
-  ChevronRight,
   Edit2,
   X,
   Save,
@@ -66,7 +62,7 @@ const TextWithLinks = ({ text }: { text: string }) => {
   return (
     <>
       {parts.map((part, index) => {
-        if (part.type === 'link') {
+        if (part.type === "link") {
           return (
             <a
               key={index}
@@ -410,7 +406,9 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
 
       // Set assignment value based on type with proper prefixes
       if (selectedTicket.assigned_to_membership_id) {
-        setEditAssignee(`membership-${selectedTicket.assigned_to_membership_id}`);
+        setEditAssignee(
+          `membership-${selectedTicket.assigned_to_membership_id}`,
+        );
       } else if (selectedTicket.assigned_to_customer_portal_access_id) {
         setEditAssignee(
           `customer-${selectedTicket.assigned_to_customer_portal_access_id}`,
@@ -449,7 +447,10 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
         assignedToMembershipId = editAssignee.replace("membership-", "");
         assignedToCustomerPortalAccessId = null;
       } else if (editAssignee?.startsWith("customer-")) {
-        assignedToCustomerPortalAccessId = editAssignee.replace("customer-", "");
+        assignedToCustomerPortalAccessId = editAssignee.replace(
+          "customer-",
+          "",
+        );
         assignedToMembershipId = null;
       }
     }
@@ -562,7 +563,9 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push(`/portal/${params.companySlug}/${params.clientSlug}/request-access`);
+    router.push(
+      `/portal/${params.companySlug}/${params.clientSlug}/request-access`,
+    );
   };
 
   // Table columns definition
@@ -672,7 +675,9 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
               <Avatar className="h-6 w-6">
                 <AvatarImage src={assignee!.avatar_url || ""} />
                 <AvatarFallback className="text-xs">
-                  {getInitials(`${assignee!.first_name} ${assignee!.last_name}`)}
+                  {getInitials(
+                    `${assignee!.first_name} ${assignee!.last_name}`,
+                  )}
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm">
@@ -909,7 +914,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-8">
           {/* Stats Cards */}
-          {(slaMetrics && slaMetrics.totalTickets > 0) || (forms && forms.length > 0) ? (
+          {(slaMetrics && slaMetrics.totalTickets > 0) ||
+          (forms && forms.length > 0) ? (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               {slaMetrics && slaMetrics.totalTickets > 0 && (
                 <>
@@ -952,8 +958,10 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
               )}
 
               {forms && forms.length > 0 && (
-                <Link href={`/portal/${params.companySlug}/${params.clientSlug}/forms`}>
-                  <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                <Link
+                  href={`/portal/${params.companySlug}/${params.clientSlug}/forms`}
+                >
+                  <Card className="cursor-pointer transition-shadow hover:shadow-md">
                     <CardContent className="p-4">
                       <div className="flex items-center">
                         <div className="rounded-lg bg-purple-100 p-1.5">
@@ -1274,7 +1282,9 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                                       : "text-purple-600"
                                   }`}
                                 >
-                                  {assignee.type === "team" ? "Team" : "Customer"}
+                                  {assignee.type === "team"
+                                    ? "Team"
+                                    : "Customer"}
                                 </span>
                               </div>
                             </SelectItem>
@@ -1315,16 +1325,19 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                       </h4>
                     </div>
                     <div className="flex items-center gap-3">
-                      {(selectedTicket.formSubmission.external_id || selectedTicket.formSubmission.external_type) && (
-                        <div className="text-right text-xs text-muted-foreground space-y-0.5">
+                      {(selectedTicket.formSubmission.external_id ||
+                        selectedTicket.formSubmission.external_type) && (
+                        <div className="space-y-0.5 text-right text-xs text-muted-foreground">
                           {selectedTicket.formSubmission.external_id && (
                             <p>
-                              <span className="font-medium">Ref:</span> {selectedTicket.formSubmission.external_id}
+                              <span className="font-medium">Ref:</span>{" "}
+                              {selectedTicket.formSubmission.external_id}
                             </p>
                           )}
                           {selectedTicket.formSubmission.external_type && (
                             <p>
-                              <span className="font-medium">Type:</span> {selectedTicket.formSubmission.external_type}
+                              <span className="font-medium">Type:</span>{" "}
+                              {selectedTicket.formSubmission.external_type}
                             </p>
                           )}
                         </div>
@@ -1345,18 +1358,20 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                     </div>
                   </div>
                   {selectedTicket.formSubmission.description && (
-                    <div className="text-sm text-gray-700 whitespace-pre-wrap border-l-2 border-muted pl-3">
-                      <TextWithLinks text={selectedTicket.formSubmission.description} />
+                    <div className="whitespace-pre-wrap border-l-2 border-muted pl-3 text-sm text-gray-700">
+                      <TextWithLinks
+                        text={selectedTicket.formSubmission.description}
+                      />
                     </div>
                   )}
                   <div className="space-y-2">
-                    {selectedTicket.formSubmission.form?.fields &&
-                      (selectedTicket.formSubmission.form.fields as any[]).map(
-                        (field: any) => {
-                          const value =
-                            (selectedTicket.formSubmission.data as any)?.[
-                              field.id
-                            ];
+                    {selectedTicket.formSubmission?.form?.fields
+                      ? (
+                          selectedTicket.formSubmission.form.fields as any[]
+                        ).map((field: any) => {
+                          const value = (
+                            selectedTicket.formSubmission?.data as any
+                          )?.[field.id];
                           if (!value) return null;
                           return (
                             <div
@@ -1373,8 +1388,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                               </p>
                             </div>
                           );
-                        },
-                      )}
+                        })
+                      : null}
                   </div>
                 </div>
               )}
@@ -1397,8 +1412,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                         : selectedTicket.customer_name
                           ? getInitials(selectedTicket.customer_name)
                           : selectedTicket.customer_email
-                            ?.charAt(0)
-                            .toUpperCase()}
+                              ?.charAt(0)
+                              .toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex items-center gap-2">
@@ -1432,7 +1447,9 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                     <div className="flex items-center gap-2">
                       <Avatar className="h-6 w-6">
                         <AvatarImage
-                          src={selectedTicket.assigned_to.user?.avatar_url || ""}
+                          src={
+                            selectedTicket.assigned_to.user?.avatar_url || ""
+                          }
                         />
                         <AvatarFallback className="text-xs">
                           {getInitials(

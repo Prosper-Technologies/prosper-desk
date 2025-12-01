@@ -28,7 +28,7 @@ import {
   getInitials,
   parseTextForLinks,
 } from "~/lib/utils";
-import { Send, Edit, Save, X, Clock, User, FileText, ExternalLink } from "lucide-react";
+import { Send, Edit, Save, Clock, User, FileText } from "lucide-react";
 
 type AssigneeType = "team" | "customer";
 
@@ -214,7 +214,7 @@ export default function TicketDetailDialog({
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl">{ticket.subject}</DialogTitle>
-            <div className="flex items-center space-x-2 mr-2">
+            <div className="mr-2 flex items-center space-x-2">
               {isEditing ? (
                 <>
                   <Button
@@ -309,16 +309,19 @@ export default function TicketDetailDialog({
                           </h4>
                         </div>
                         <div className="flex items-center gap-3">
-                          {(ticket.formSubmission.external_id || ticket.formSubmission.external_type) && (
-                            <div className="text-right text-xs text-muted-foreground space-y-0.5">
+                          {(ticket.formSubmission.external_id ||
+                            ticket.formSubmission.external_type) && (
+                            <div className="space-y-0.5 text-right text-xs text-muted-foreground">
                               {ticket.formSubmission.external_id && (
                                 <p>
-                                  <span className="font-medium">Ref:</span> {ticket.formSubmission.external_id}
+                                  <span className="font-medium">Ref:</span>{" "}
+                                  {ticket.formSubmission.external_id}
                                 </p>
                               )}
                               {ticket.formSubmission.external_type && (
                                 <p>
-                                  <span className="font-medium">Type:</span> {ticket.formSubmission.external_type}
+                                  <span className="font-medium">Type:</span>{" "}
+                                  {ticket.formSubmission.external_type}
                                 </p>
                               )}
                             </div>
@@ -326,51 +329,52 @@ export default function TicketDetailDialog({
                         </div>
                       </div>
                       {ticket.formSubmission.description && (
-                        <div className="text-sm text-gray-700 whitespace-pre-wrap border-l-2 border-muted pl-3">
-                          {parseTextForLinks(ticket.formSubmission.description).map(
-                            (part, index) =>
-                              part.type === "link" ? (
-                                <a
-                                  key={index}
-                                  href={part.content}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:underline"
-                                >
-                                  {part.content}
-                                </a>
-                              ) : (
-                                <span key={index}>{part.content}</span>
-                              ),
+                        <div className="whitespace-pre-wrap border-l-2 border-muted pl-3 text-sm text-gray-700">
+                          {parseTextForLinks(
+                            ticket.formSubmission.description,
+                          ).map((part, index) =>
+                            part.type === "link" ? (
+                              <a
+                                key={index}
+                                href={part.content}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                              >
+                                {part.content}
+                              </a>
+                            ) : (
+                              <span key={index}>{part.content}</span>
+                            ),
                           )}
                         </div>
                       )}
                       <div className="space-y-2">
-                        {ticket.formSubmission.form?.fields &&
-                          (ticket.formSubmission.form.fields as any[]).map(
-                            (field: any) => {
-                              const value =
-                                (ticket.formSubmission?.data as any)?.[
-                                  field.id
-                                ];
-                              if (!value) return null;
-                              return (
-                                <div
-                                  key={field.id}
-                                  className="rounded-md bg-background p-2"
-                                >
-                                  <p className="text-xs font-medium text-muted-foreground">
-                                    {field.label}
-                                  </p>
-                                  <p className="mt-0.5 text-sm">
-                                    {Array.isArray(value)
-                                      ? value.join(", ")
-                                      : String(value)}
-                                  </p>
-                                </div>
-                              );
-                            },
-                          )}
+                        {ticket.formSubmission?.form?.fields
+                          ? (ticket.formSubmission.form.fields as any[]).map(
+                              (field: any) => {
+                                const value = (
+                                  ticket.formSubmission?.data as any
+                                )?.[field.id];
+                                if (!value) return null;
+                                return (
+                                  <div
+                                    key={field.id}
+                                    className="rounded-md bg-background p-2"
+                                  >
+                                    <p className="text-xs font-medium text-muted-foreground">
+                                      {field.label}
+                                    </p>
+                                    <p className="mt-0.5 text-sm">
+                                      {Array.isArray(value)
+                                        ? value.join(", ")
+                                        : String(value)}
+                                    </p>
+                                  </div>
+                                );
+                              },
+                            )
+                          : null}
                       </div>
                     </div>
                   </CardContent>

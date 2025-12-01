@@ -15,7 +15,6 @@ import {
   Calendar,
   User,
   FileText,
-  Loader,
 } from "lucide-react";
 import { api } from "~/trpc/react";
 
@@ -31,7 +30,7 @@ export default function KnowledgeBasePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  const { data: articlesData, isLoading } = api.knowledgeBase.getAll.useQuery({
+  const { data: articlesData } = api.knowledgeBase.getAll.useQuery({
     page: 1,
     limit: 50,
     search: searchTerm || undefined,
@@ -39,7 +38,7 @@ export default function KnowledgeBasePage() {
 
   const articles = articlesData?.articles || [];
 
-  const filteredArticles = articles.filter((article) => {
+  const filteredArticles = articles.filter(() => {
     const matchesCategory = selectedCategory === "All";
     return matchesCategory;
   });
@@ -158,7 +157,9 @@ export default function KnowledgeBasePage() {
                       </Link>
                     </Button>
                     <Button asChild variant="ghost" size="sm">
-                      <Link href={`/knowledge/${article.slug}/edit` as any}>Edit</Link>
+                      <Link href={`/knowledge/${article.slug}/edit` as any}>
+                        Edit
+                      </Link>
                     </Button>
                   </div>
                 </div>

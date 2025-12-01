@@ -73,26 +73,6 @@ export default function SignupPage() {
     }
   };
 
-  const handleGoogleSignup = async () => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-      }
-    } catch (err) {
-      setError("An unexpected error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">

@@ -1,10 +1,9 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -36,9 +35,13 @@ export default function ArticleViewPage() {
   const slug = params?.slug as string;
 
   // Use the internal getBySlugInternal endpoint for dashboard views
-  const { data: article, isLoading, error } = api.knowledgeBase.getBySlugInternal.useQuery(
+  const {
+    data: article,
+    isLoading,
+    error,
+  } = api.knowledgeBase.getBySlugInternal.useQuery(
     { slug },
-    { enabled: !!slug }
+    { enabled: !!slug },
   );
 
   if (isLoading) {
@@ -57,8 +60,9 @@ export default function ArticleViewPage() {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <h2 className="text-lg font-bold">Article not found</h2>
-          <p className="text-gray-600 mb-4">
-            The article you're looking for doesn't exist.
+          <p className="mb-4 text-gray-600">
+            The article you&apos;re looking for doesn&apos;t exist or is no
+            longer available.
           </p>
           <Button asChild>
             <Link href="/knowledge">
@@ -85,7 +89,9 @@ export default function ArticleViewPage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/knowledge">Knowledge Base</BreadcrumbLink>
+                <BreadcrumbLink href="/knowledge">
+                  Knowledge Base
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -96,7 +102,7 @@ export default function ArticleViewPage() {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto space-y-6 p-4">
+      <div className="mx-auto max-w-4xl space-y-6 p-4">
         {/* Article Header */}
         <div className="flex items-start justify-between">
           <div className="space-y-2">
@@ -114,13 +120,21 @@ export default function ArticleViewPage() {
               </Badge>
               <Badge variant="outline">
                 {article.is_public ? (
-                  <><Globe className="mr-1 h-3 w-3" />Public</>
+                  <>
+                    <Globe className="mr-1 h-3 w-3" />
+                    Public
+                  </>
                 ) : (
-                  <><Lock className="mr-1 h-3 w-3" />Private</>
+                  <>
+                    <Lock className="mr-1 h-3 w-3" />
+                    Private
+                  </>
                 )}
               </Badge>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">{article.title}</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {article.title}
+            </h1>
           </div>
 
           <Button variant="outline" asChild>
@@ -152,28 +166,37 @@ export default function ArticleViewPage() {
                   <Clock className="h-4 w-4" />
                   <span>
                     {Math.ceil(
-                      article.content.replace(/<[^>]*>/g, "").split(/\s+/).filter(Boolean).length / 200
-                    )} min read
+                      article.content
+                        .replace(/<[^>]*>/g, "")
+                        .split(/\s+/)
+                        .filter(Boolean).length / 200,
+                    )}{" "}
+                    min read
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Tags */}
-            {article.tags && Array.isArray(article.tags) && article.tags.length > 0 && (
-              <div className="mt-4 pt-4 border-t">
-                <div className="flex items-center gap-2">
-                  <Tag className="h-4 w-4 text-gray-500" />
-                  <div className="flex flex-wrap gap-1">
-                    {article.tags.map((tag, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
+            {(article.tags as string[] | undefined) &&
+              Array.isArray(article.tags) &&
+              article.tags.length > 0 && (
+                <div className="mt-4 border-t pt-4">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-gray-500" />
+                    <div className="flex flex-wrap gap-1">
+                      {(article.tags as string[]).map((tag, index) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="text-xs"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
           </CardContent>
         </Card>
 
@@ -196,7 +219,8 @@ export default function ArticleViewPage() {
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
                 <p>
-                  This article was created on {article.created_at.toLocaleDateString()} 
+                  This article was created on{" "}
+                  {article.created_at.toLocaleDateString()}
                   and last updated on {article.updated_at.toLocaleDateString()}.
                 </p>
               </div>

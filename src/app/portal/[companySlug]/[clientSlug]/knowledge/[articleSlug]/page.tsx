@@ -10,7 +10,6 @@ import {
   Eye,
   Clock,
   Loader,
-  User,
   Tag,
 } from "lucide-react";
 import Link from "next/link";
@@ -65,8 +64,8 @@ export default function ArticlePortalPage({ params }: ArticlePortalPageProps) {
         <div className="text-center">
           <h2 className="mb-2 text-lg font-bold">Article not found</h2>
           <p className="mb-4 text-gray-600">
-            The article you're looking for doesn't exist or is no longer
-            available.
+            The article you&apos;re looking for doesn&apos;t exist or is no
+            longer available.
           </p>
           <Button asChild>
             <Link

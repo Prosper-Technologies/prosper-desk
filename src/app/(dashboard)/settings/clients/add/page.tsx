@@ -27,8 +27,7 @@ import {
 import { api } from "~/trpc/react";
 
 export default function AddClientPage() {
-  const { data: company, isLoading: companyLoading } =
-    api.company.getSettings.useQuery();
+  const { data: company } = api.company.getSettings.useQuery();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [emailDomain, setEmailDomain] = useState("");
@@ -228,7 +227,8 @@ export default function AddClientPage() {
                     />
                   </div>
                   <p className="text-xs text-gray-500">
-                    Use comma to separate multiple email domains. Restrict portal access to users with this email domain
+                    Use comma to separate multiple email domains. Restrict
+                    portal access to users with this email domain
                   </p>
                 </div>
 

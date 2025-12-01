@@ -94,7 +94,7 @@ export const authRouter = createTRPCRouter({
     }),
 
   getProfile: protectedProcedure.query(async ({ ctx }) => {
-    let user = await ctx.db.query.users.findFirst({
+    const user = await ctx.db.query.users.findFirst({
       where: eq(users.auth_user_id, ctx.session.user.id),
       with: {
         memberships: {

@@ -16,7 +16,7 @@ async function handleAuth(request: NextRequest) {
   if (!authContext) {
     return NextResponse.json(
       { error: "Invalid or missing API key" },
-      { status: 401 }
+      { status: 401 },
     );
   }
   return authContext;
@@ -25,7 +25,7 @@ async function handleAuth(request: NextRequest) {
 // GET /api/v1/tickets/[id]/comments - Get ticket comments
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const authContext = await handleAuth(request);
   if (authContext instanceof NextResponse) return authContext;
@@ -33,7 +33,7 @@ export async function GET(
   if (!hasPermission(authContext, "comments:read")) {
     return NextResponse.json(
       { error: "Insufficient permissions" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -42,15 +42,12 @@ export async function GET(
     const ticket = await db.query.tickets.findFirst({
       where: and(
         eq(tickets.id, params.id),
-        eq(tickets.company_id, authContext.company.id)
+        eq(tickets.company_id, authContext.company.id),
       ),
     });
 
     if (!ticket) {
-      return NextResponse.json(
-        { error: "Ticket not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
     }
 
     // Get comments (only non-internal comments for API)
@@ -58,7 +55,7 @@ export async function GET(
       where: and(
         eq(ticketComments.ticket_id, params.id),
         eq(ticketComments.company_id, authContext.company.id),
-        eq(ticketComments.is_internal, false)
+        eq(ticketComments.is_internal, false),
       ),
       with: {
         membership: {
@@ -89,7 +86,7 @@ export async function GET(
     console.error("Error fetching comments:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -97,7 +94,7 @@ export async function GET(
 // POST /api/v1/tickets/[id]/comments - Add comment to ticket
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const authContext = await handleAuth(request);
   if (authContext instanceof NextResponse) return authContext;
@@ -105,7 +102,7 @@ export async function POST(
   if (!hasPermission(authContext, "comments:create")) {
     return NextResponse.json(
       { error: "Insufficient permissions" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -117,15 +114,12 @@ export async function POST(
     const ticket = await db.query.tickets.findFirst({
       where: and(
         eq(tickets.id, params.id),
-        eq(tickets.company_id, authContext.company.id)
+        eq(tickets.company_id, authContext.company.id),
       ),
     });
 
     if (!ticket) {
-      return NextResponse.json(
-        { error: "Ticket not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
     }
 
     // Create customer portal access if customer info provided and doesn't exist
@@ -133,19 +127,17 @@ export async function POST(
     if (data.customer_email && data.customer_name) {
       // For API-created comments, we'll create a simplified customer portal access
       // or find existing one by email for this company
-      let customerPortalAccessRecord = await db.query.customerPortalAccess.findFirst({
-        where: and(
-          eq(customerPortalAccess.email, data.customer_email),
-          eq(customerPortalAccess.company_id, authContext.company.id)
-        ),
-      });
+      const customerPortalAccessRecord =
+        await db.query.customerPortalAccess.findFirst({
+          where: and(
+            eq(customerPortalAccess.email, data.customer_email),
+            eq(customerPortalAccess.company_id, authContext.company.id),
+          ),
+        });
 
       if (!customerPortalAccessRecord) {
         // We need a client_id, so if ticket doesn't have one, we'll create a default or skip customer portal creation
         if (ticket.client_id) {
-          // Generate access token for this customer
-          const accessToken = `api_${Math.random().toString(36).substring(2)}${Math.random().toString(36).substring(2)}`;
-          
           const [newAccess] = await db
             .insert(customerPortalAccess)
             .values({
@@ -153,7 +145,6 @@ export async function POST(
               client_id: ticket.client_id,
               email: data.customer_email,
               name: data.customer_name,
-              access_token: accessToken,
             })
             .returning();
 
@@ -214,21 +205,18 @@ export async function POST(
       },
     });
 
-    return NextResponse.json(
-      { data: createdComment },
-      { status: 201 }
-    );
+    return NextResponse.json({ data: createdComment }, { status: 201 });
   } catch (error) {
     console.error("Error creating comment:", error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid request body", details: error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

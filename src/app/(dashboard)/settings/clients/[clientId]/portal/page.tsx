@@ -24,13 +24,6 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -104,18 +97,6 @@ export default function ClientPortalAccessPage() {
   // Delete access mutation
   const deleteAccess = api.clients.deletePortalAccess.useMutation({
     onSuccess: () => {
-      refetch();
-    },
-    onError: (err) => {
-      setError(err.message);
-    },
-  });
-
-  // Regenerate token mutation (reuses generatePortalAccess with existing user data)
-  const regenerateToken = api.clients.generatePortalAccess.useMutation({
-    onSuccess: (data) => {
-      setGeneratedAccess(data);
-      setError("");
       refetch();
     },
     onError: (err) => {

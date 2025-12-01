@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -16,13 +16,7 @@ import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Eye, EyeOff, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { api } from "~/trpc/react";
 
-interface InvitePageProps {
-  params: {
-    companySlug: string;
-  };
-}
-
-export default function InvitePage({ params }: InvitePageProps) {
+export default function InvitePage() {
   const router = useRouter();
   const [step, setStep] = useState<"code" | "password">("code");
   const [invitationCode, setInvitationCode] = useState("");
@@ -47,7 +41,7 @@ export default function InvitePage({ params }: InvitePageProps) {
 
   // Accept invitation
   const acceptInvitationMutation = api.user.acceptInvitation.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Redirect to login or dashboard
       router.push("/dashboard");
     },

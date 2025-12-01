@@ -38,7 +38,6 @@ import {
   Edit,
   Plus,
   AlertTriangle,
-  Loader2,
   Loader,
   Trash2,
 } from "lucide-react";
@@ -52,7 +51,10 @@ export default function ClientDetailsPage() {
   const clientId = params?.clientId as string;
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteFormDialogOpen, setDeleteFormDialogOpen] = useState(false);
-  const [formToDelete, setFormToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [formToDelete, setFormToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const { data: client, isLoading: clientLoading } =
     api.clients.getById.useQuery({
@@ -116,7 +118,6 @@ export default function ClientDetailsPage() {
     page: 1,
     limit: 10,
   });
-
 
   if (clientLoading) {
     return (
@@ -579,7 +580,7 @@ export default function ClientDetailsPage() {
             <Card>
               <CardContent className="p-6">
                 {!formsData?.forms || formsData.forms.length === 0 ? (
-                  <div className="text-center py-8">
+                  <div className="py-8 text-center">
                     <Activity className="mx-auto mb-4 h-12 w-12 text-gray-400" />
                     <h3 className="mb-2 text-lg font-medium">No forms yet</h3>
                     <p className="mb-4 text-gray-600">
@@ -609,12 +610,13 @@ export default function ClientDetailsPage() {
                             )}
                           </div>
                           {form.description && (
-                            <p className="text-sm text-gray-600 mt-1">
+                            <p className="mt-1 text-sm text-gray-600">
                               {form.description}
                             </p>
                           )}
-                          <p className="text-xs text-gray-500 mt-1">
-                            Created {formatRelativeTime(new Date(form.created_at))}
+                          <p className="mt-1 text-xs text-gray-500">
+                            Created{" "}
+                            {formatRelativeTime(new Date(form.created_at))}
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -666,8 +668,9 @@ export default function ClientDetailsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the client &quot;{client.name}&quot; and all associated data including tickets, forms, and portal access.
-              This action cannot be undone.
+              This will permanently delete the client &quot;{client.name}&quot;
+              and all associated data including tickets, forms, and portal
+              access. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -683,13 +686,16 @@ export default function ClientDetailsPage() {
       </AlertDialog>
 
       {/* Delete Form Confirmation Dialog */}
-      <AlertDialog open={deleteFormDialogOpen} onOpenChange={setDeleteFormDialogOpen}>
+      <AlertDialog
+        open={deleteFormDialogOpen}
+        onOpenChange={setDeleteFormDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Form?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the form &quot;{formToDelete?.name}&quot; and all its submissions.
-              This action cannot be undone.
+              This will permanently delete the form &quot;{formToDelete?.name}
+              &quot; and all its submissions. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -285,7 +285,7 @@ export const clientRouter = createTRPCRouter({
       }
 
       // Check if access already exists for this email and client
-      let existingAccess = await ctx.db.query.customerPortalAccess.findFirst({
+      const existingAccess = await ctx.db.query.customerPortalAccess.findFirst({
         where: and(
           eq(customerPortalAccess.client_id, input.clientId),
           eq(customerPortalAccess.email, input.email),

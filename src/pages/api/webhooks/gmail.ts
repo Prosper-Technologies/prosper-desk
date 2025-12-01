@@ -20,9 +20,9 @@ const createOAuthClientWithRefresh = () => {
   );
 
   // Enable automatic token refresh
-  client.on('tokens', (tokens) => {
+  client.on("tokens", (tokens) => {
     if (tokens.refresh_token) {
-      console.log('New refresh token received in webhook');
+      console.log("New refresh token received in webhook");
     }
   });
 
@@ -50,7 +50,10 @@ export default async function handler(
     let data: any = {};
     try {
       if (message.message.data) {
-        const decodedData = Buffer.from(message.message.data, "base64").toString();
+        const decodedData = Buffer.from(
+          message.message.data,
+          "base64",
+        ).toString();
         data = JSON.parse(decodedData);
       }
     } catch (parseError) {
@@ -61,7 +64,12 @@ export default async function handler(
     const emailAddress = data.emailAddress;
     const historyId = data.historyId;
 
-    console.log("Gmail webhook parsed - email:", emailAddress, "historyId:", historyId);
+    console.log(
+      "Gmail webhook parsed - email:",
+      emailAddress,
+      "historyId:",
+      historyId,
+    );
 
     if (!emailAddress) {
       console.log("No email address found, checking all active integrations");
@@ -77,14 +85,17 @@ export default async function handler(
         },
       });
 
-      let totalResults = { messagesProcessed: 0, ticketsCreated: 0 };
+      const totalResults = { messagesProcessed: 0, ticketsCreated: 0 };
       for (const integration of integrations) {
         try {
           const result = await processGmailIntegration(integration);
           totalResults.messagesProcessed += result.messagesProcessed;
           totalResults.ticketsCreated += result.ticketsCreated;
         } catch (error) {
-          console.error(`Error processing integration ${integration.id}:`, error);
+          console.error(
+            `Error processing integration ${integration.id}:`,
+            error,
+          );
         }
       }
 
@@ -219,19 +230,28 @@ async function processGmailIntegration(integration: any) {
 
         if (existingThread) {
           // This is a reply to an existing thread - add as comment
-          console.log(`📧 Found reply to existing ticket ${existingThread.ticket_id}`);
-          
+          console.log(
+            `📧 Found reply to existing ticket ${existingThread.ticket_id}`,
+          );
+
           // Extract email body
           let emailBody = "";
           const extractTextFromParts = (parts: any[]): string => {
             let text = "";
             for (const part of parts) {
               if (part.mimeType === "text/plain" && part.body?.data) {
-                text += Buffer.from(part.body.data, "base64").toString("utf-8") + "\n";
-              } else if (part.mimeType === "text/html" && part.body?.data && !text) {
-                text += Buffer.from(part.body.data, "base64")
-                  .toString("utf-8")
-                  .replace(/<[^>]*>/g, "") + "\n";
+                text +=
+                  Buffer.from(part.body.data, "base64").toString("utf-8") +
+                  "\n";
+              } else if (
+                part.mimeType === "text/html" &&
+                part.body?.data &&
+                !text
+              ) {
+                text +=
+                  Buffer.from(part.body.data, "base64")
+                    .toString("utf-8")
+                    .replace(/<[^>]*>/g, "") + "\n";
               } else if (part.parts) {
                 text += extractTextFromParts(part.parts);
               }
@@ -242,27 +262,35 @@ async function processGmailIntegration(integration: any) {
           if (fullMessage.data.payload?.parts) {
             emailBody = extractTextFromParts(fullMessage.data.payload.parts);
           } else if (fullMessage.data.payload?.body?.data) {
-            emailBody = Buffer.from(fullMessage.data.payload.body.data, "base64").toString("utf-8");
+            emailBody = Buffer.from(
+              fullMessage.data.payload.body.data,
+              "base64",
+            ).toString("utf-8");
           }
 
           if (emailBody.trim()) {
             const date = headers.find((h) => h.name === "Date")?.value || "";
-            
+
             // Check if we already processed this specific Gmail message
             const existingComment = await db.query.ticketComments.findFirst({
               where: and(
                 eq(ticketComments.ticket_id, existingThread.ticket_id!),
                 eq(ticketComments.is_system, true),
                 // Use message content as a simple deduplication check
-                eq(ticketComments.content, `Reply from: ${from}\nDate: ${date}\n\n${emailBody.trim()}`)
+                eq(
+                  ticketComments.content,
+                  `Reply from: ${from}\nDate: ${date}\n\n${emailBody.trim()}`,
+                ),
               ),
             });
 
             if (existingComment) {
-              console.log(`⚠️ Duplicate message ${message.id} already processed, skipping`);
+              console.log(
+                `⚠️ Duplicate message ${message.id} already processed, skipping`,
+              );
               continue;
             }
-            
+
             // Create ticket comment for this reply
             await db.insert(ticketComments).values({
               company_id: integration.company_id,
@@ -275,23 +303,27 @@ async function processGmailIntegration(integration: any) {
             });
 
             // Update thread's last message ID
-            await db.update(emailThreads)
-              .set({ 
+            await db
+              .update(emailThreads)
+              .set({
                 last_message_id: message.id!,
                 updated_at: new Date(),
               })
               .where(eq(emailThreads.id, existingThread.id));
 
-            console.log(`✅ Added reply as comment to ticket ${existingThread.ticket_id}`);
+            console.log(
+              `✅ Added reply as comment to ticket ${existingThread.ticket_id}`,
+            );
           }
-          
+
           continue; // Skip creating a new ticket
         }
 
         // This is a new thread - create a new ticket
         console.log(`🆕 Creating new ticket for thread ${threadId}`);
-        
-        if (true) { // Changed condition to always enter this block for new threads
+
+        if (true) {
+          // Changed condition to always enter this block for new threads
           // Extract email body
           let emailBody = "";
           const extractTextFromParts = (parts: any[]): string => {

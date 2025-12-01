@@ -4,18 +4,10 @@ import {
   companyProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
-import {
-  forms,
-  formSubmissions,
-  tickets,
-  clients,
-  customerPortalAccess,
-  memberships,
-} from "~/db/schema";
-import { eq, desc, and, count, or } from "drizzle-orm";
+import { forms, formSubmissions, tickets } from "~/db/schema";
+import { eq, and, count } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
-// Zod schemas for form field types
 const fieldTypeSchema = z.enum([
   "text",
   "email",
@@ -94,7 +86,9 @@ function evaluateRule(
     case "gte":
       return Number(fieldValue) >= Number(value);
     case "contains":
-      return String(fieldValue).toLowerCase().includes(String(value).toLowerCase());
+      return String(fieldValue)
+        .toLowerCase()
+        .includes(String(value).toLowerCase());
     default:
       return false;
   }
@@ -128,12 +122,16 @@ async function createTicketFromRule(
 
   // Replace {{customer_name}} placeholder if not already replaced by a field
   // This uses the contact info name as fallback
-  if (subject.includes('{{customer_name}}')) {
-    subject = subject.replace(/\{\{customer_name\}\}/g, submission.submitted_by_name);
+  if (subject.includes("{{customer_name}}")) {
+    subject = subject.replace(
+      /\{\{customer_name\}\}/g,
+      submission.submitted_by_name,
+    );
   }
 
   // Use submission description as ticket description, or default message
-  const ticketDescription = submission.description ||
+  const ticketDescription =
+    submission.description ||
     `Form submission from ${submission.submitted_by_name}. View the form submission details for more information.`;
 
   const [ticket] = await ctx.db
@@ -323,7 +321,10 @@ export const formsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       // Verify form exists and belongs to company
       const existingForm = await ctx.db.query.forms.findFirst({
-        where: and(eq(forms.id, input.id), eq(forms.company_id, ctx.company.id)),
+        where: and(
+          eq(forms.id, input.id),
+          eq(forms.company_id, ctx.company.id),
+        ),
       });
 
       if (!existingForm) {
@@ -595,7 +596,8 @@ export const formsRouter = createTRPCRouter({
       }
 
       // Use submission description as ticket description, or default message
-      const ticketDescription = submission.description ||
+      const ticketDescription =
+        submission.description ||
         `Form submission from ${submission.submitted_by_name}. View the form submission details for more information.`;
 
       const [ticket] = await ctx.db
@@ -965,8 +967,7 @@ export const formsRouter = createTRPCRouter({
         ticket_created: !!createdTicket,
         ticket_id: createdTicket?.id,
         message:
-          settings.confirmation_message ||
-          "Thank you for your submission!",
+          settings.confirmation_message || "Thank you for your submission!",
       };
     }),
 });

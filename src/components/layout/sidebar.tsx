@@ -9,7 +9,6 @@ import {
   Users,
   BookOpen,
   Settings,
-  HelpCircle,
   Menu,
   X,
   Building2,
@@ -177,7 +176,9 @@ export default function Sidebar({ user, company }: SidebarProps) {
             <div className="flex items-center justify-between border-b border-gray-200 p-4">
               <div className="flex items-center space-x-3">
                 <Building2 className="h-6 w-6 text-primary" />
-                <span className="font-semibold text-gray-900">Prosper Desk</span>
+                <span className="font-semibold text-gray-900">
+                  Prosper Desk
+                </span>
               </div>
               <Button
                 variant="ghost"

@@ -4,7 +4,7 @@ import {
   adminCompanyProcedure,
   companyProcedure,
 } from "~/server/api/trpc";
-import { slaPolicies, clients } from "~/db/schema";
+import { slaPolicies } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 

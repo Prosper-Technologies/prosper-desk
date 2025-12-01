@@ -6,7 +6,6 @@ import {
   emailThreads,
   clients,
   memberships,
-  companies,
 } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 import { db } from "~/db";

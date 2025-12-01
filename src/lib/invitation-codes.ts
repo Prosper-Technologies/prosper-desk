@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { invitationCodes } from "~/db/schema";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, lt } from "drizzle-orm";
 
 export function generateInvitationCode(): string {
   // Generate a 6-digit numeric code
@@ -26,7 +26,7 @@ export async function createInvitationCode({
   do {
     code = generateInvitationCode();
     attempts++;
-    
+
     if (attempts >= maxAttempts) {
       throw new Error("Unable to generate unique invitation code");
     }
@@ -83,7 +83,7 @@ export async function validateInvitationCode(code: string): Promise<{
     where: and(
       eq(invitationCodes.code, code),
       eq(invitationCodes.is_used, false),
-      gt(invitationCodes.expires_at, new Date())
+      gt(invitationCodes.expires_at, new Date()),
     ),
     with: {
       company: {
@@ -105,7 +105,8 @@ export async function validateInvitationCode(code: string): Promise<{
   if (!invitation) {
     return {
       isValid: false,
-      error: "Invalid or expired invitation code. Please check the code or request a new invitation.",
+      error:
+        "Invalid or expired invitation code. Please check the code or request a new invitation.",
     };
   }
 
@@ -115,7 +116,7 @@ export async function validateInvitationCode(code: string): Promise<{
       id: invitation.id,
       companyId: invitation.company_id,
       userId: invitation.user_id,
-      role: invitation.role,
+      role: invitation.role as "admin" | "agent",
       companySlug: invitation.company.slug,
       companyName: invitation.company.name,
       userEmail: invitation.user.email,
@@ -139,8 +140,8 @@ export async function cleanupExpiredCodes(): Promise<number> {
     .where(
       and(
         eq(invitationCodes.is_used, false),
-        gt(new Date(), invitationCodes.expires_at)
-      )
+        lt(invitationCodes.expires_at, new Date()),
+      ),
     )
     .returning({ id: invitationCodes.id });
 

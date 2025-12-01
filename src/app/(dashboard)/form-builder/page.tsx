@@ -31,7 +31,7 @@ export default function FormsPage() {
   const [clientFilter, setClientFilter] = useState<string>("");
   const [publishedFilter, setPublishedFilter] = useState<string>("");
 
-  const { data, isLoading, refetch } = api.forms.getAll.useQuery({
+  const { data, isLoading } = api.forms.getAll.useQuery({
     page,
     limit: 25,
     client_id: clientFilter || undefined,

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "~/db";
-import { apiKeys, companies } from "~/db/schema";
+import { apiKeys } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
@@ -17,13 +17,13 @@ export async function validateApiKey(
   request: NextRequest,
 ): Promise<ApiKeyContext | null> {
   const authHeader = request.headers.get("authorization");
-  
+
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return null;
   }
 
   const apiKey = authHeader.substring(7); // Remove "Bearer " prefix
-  
+
   if (!apiKey) {
     return null;
   }
@@ -31,13 +31,10 @@ export async function validateApiKey(
   try {
     // Extract prefix from the key
     const prefix = apiKey.substring(0, 8);
-    
+
     // Find API key by prefix
     const keyRecord = await db.query.apiKeys.findFirst({
-      where: and(
-        eq(apiKeys.prefix, prefix),
-        eq(apiKeys.is_active, true),
-      ),
+      where: and(eq(apiKeys.prefix, prefix), eq(apiKeys.is_active, true)),
       with: {
         company: {
           columns: {
@@ -60,7 +57,7 @@ export async function validateApiKey(
 
     // Verify the key hash
     const isValidKey = await bcrypt.compare(apiKey, keyRecord.key_hash);
-    
+
     if (!isValidKey) {
       return null;
     }
@@ -81,8 +78,14 @@ export async function validateApiKey(
   }
 }
 
-export function hasPermission(context: ApiKeyContext, permission: string): boolean {
-  return context.permissions.includes(permission) || context.permissions.includes("*");
+export function hasPermission(
+  context: ApiKeyContext,
+  permission: string,
+): boolean {
+  return (
+    context.permissions.includes(permission) ||
+    context.permissions.includes("*")
+  );
 }
 
 export async function generateApiKey(

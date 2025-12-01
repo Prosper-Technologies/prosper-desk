@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-import { Plus, Trash2, Save, Eye, ArrowLeft, Settings2, EyeOff } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, EyeOff, Save } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -447,7 +447,7 @@ export default function FormBuilderPage() {
             <CardContent className="space-y-4">
               {fields.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground">
-                  No fields yet. Click "Add Field" to get started.
+                  No fields yet. Click &quot;Add Field&quot; to get started.
                 </div>
               ) : (
                 fields.map((field, index) => (
@@ -804,8 +804,8 @@ export default function FormBuilderPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the form &quot;{name}&quot; and all its submissions.
-              This action cannot be undone.
+              This will permanently delete the form &quot;{name}&quot; and all
+              its submissions. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

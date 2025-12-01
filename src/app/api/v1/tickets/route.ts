@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "~/db";
-import { tickets, ticketComments, memberships } from "~/db/schema";
+import { tickets } from "~/db/schema";
 import { eq, desc, and, or, ilike, count } from "drizzle-orm";
 import { validateApiKey, hasPermission } from "~/lib/auth-api";
 
@@ -13,14 +13,6 @@ const createTicketSchema = z.object({
   customer_email: z.string().email("Invalid email").optional(),
   customer_name: z.string().optional(),
   tags: z.array(z.string()).default([]),
-});
-
-const updateTicketSchema = z.object({
-  subject: z.string().min(1).optional(),
-  description: z.string().optional(),
-  status: z.enum(["open", "in_progress", "resolved", "closed"]).optional(),
-  priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
-  tags: z.array(z.string()).optional(),
 });
 
 const querySchema = z.object({
@@ -36,7 +28,7 @@ async function handleAuth(request: NextRequest) {
   if (!authContext) {
     return NextResponse.json(
       { error: "Invalid or missing API key" },
-      { status: 401 }
+      { status: 401 },
     );
   }
   return authContext;
@@ -50,7 +42,7 @@ export async function GET(request: NextRequest) {
   if (!hasPermission(authContext, "tickets:read")) {
     return NextResponse.json(
       { error: "Insufficient permissions" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -81,8 +73,8 @@ export async function GET(request: NextRequest) {
       whereConditions.push(
         or(
           ilike(tickets.subject, `%${query.search}%`),
-          ilike(tickets.description, `%${query.search}%`)
-        )!
+          ilike(tickets.description, `%${query.search}%`),
+        )!,
       );
     }
 
@@ -143,12 +135,12 @@ export async function GET(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid query parameters", details: error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -161,7 +153,7 @@ export async function POST(request: NextRequest) {
   if (!hasPermission(authContext, "tickets:create")) {
     return NextResponse.json(
       { error: "Insufficient permissions" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -174,7 +166,7 @@ export async function POST(request: NextRequest) {
       where: (slaPolicies, { and, eq }) =>
         and(
           eq(slaPolicies.company_id, authContext.company.id),
-          eq(slaPolicies.is_default, true)
+          eq(slaPolicies.is_default, true),
         ),
     });
 
@@ -227,21 +219,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(
-      { data: createdTicket },
-      { status: 201 }
-    );
+    return NextResponse.json({ data: createdTicket }, { status: 201 });
   } catch (error) {
     console.error("Error creating ticket:", error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid request body", details: error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

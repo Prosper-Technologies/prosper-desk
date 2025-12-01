@@ -1124,7 +1124,6 @@ export const customerPortalRouter = createTRPCRouter({
       });
 
       // Get forms for this specific client only
-      const { forms } = await import("~/db/schema");
       const clientForms = await ctx.db.query.forms.findMany({
         where: (forms, { and, eq }) =>
           and(
@@ -1156,8 +1155,8 @@ export const customerPortalRouter = createTRPCRouter({
         clientSlug: input.clientSlug,
       });
 
-      const { formSubmissions, forms } = await import("~/db/schema");
-      const { count, desc } = await import("drizzle-orm");
+      const { formSubmissions } = await import("~/db/schema");
+      const { count } = await import("drizzle-orm");
 
       const offset = (input.page - 1) * input.limit;
 
@@ -1352,8 +1351,6 @@ export const customerPortalRouter = createTRPCRouter({
         companySlug: input.companySlug,
         clientSlug: input.clientSlug,
       });
-
-      const { formSubmissions } = await import("~/db/schema");
 
       // Get the form
       const form = await ctx.db.query.forms.findFirst({

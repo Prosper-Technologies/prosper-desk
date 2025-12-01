@@ -129,8 +129,9 @@ export default function ApiKeysPage() {
                     </h3>
                   </div>
                   <p className="text-sm text-green-700">
-                    Your new API key "{newlyCreatedKey.name}" has been created.
-                    Copy it now - you won't be able to see it again!
+                    Your new API key &quot;{newlyCreatedKey.name}&quot; has been
+                    created. Copy it now - you won&apos;t be able to see it
+                    again!
                   </p>
                   <div className="flex items-center gap-2 rounded-md bg-green-100 p-3">
                     <code className="flex-1 font-mono text-sm text-green-900">
@@ -352,8 +353,9 @@ export default function ApiKeysPage() {
                               </AlertDialogTitle>
                               <AlertDialogDescription>
                                 This action cannot be undone. This will
-                                permanently delete the API key "{apiKey.name}"
-                                and any applications using it will stop working.
+                                permanently delete the API key &quot;
+                                {apiKey.name}&quot; and any applications using
+                                it will stop working.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

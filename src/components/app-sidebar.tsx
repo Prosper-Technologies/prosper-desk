@@ -130,11 +130,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   };
 }
 
-export function AppSidebar({
-  user,
-  company: _company,
-  ...props
-}: AppSidebarProps) {
+export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const router = useRouter();
 
   const handleLogout = async () => {

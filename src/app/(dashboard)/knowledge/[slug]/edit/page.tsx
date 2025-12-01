@@ -37,17 +37,17 @@ export default function EditArticlePage() {
   const router = useRouter();
   const slug = params?.slug as string;
 
-  const { data: article, isLoading } = api.knowledgeBase.getBySlugInternal.useQuery(
-    { slug },
-    { enabled: !!slug }
-  );
+  const { data: article, isLoading } =
+    api.knowledgeBase.getBySlugInternal.useQuery({ slug }, { enabled: !!slug });
 
   const [title, setTitle] = useState(article?.title || "");
   const [articleSlug, setArticleSlug] = useState(article?.slug || "");
   const [content, setContent] = useState(article?.content || "");
-  const [isPublished, setIsPublished] = useState(article?.is_published || false);
-  const [isPublic, setIsPublic] = useState(article?.is_public || true);
-  const [tags, setTags] = useState<string[]>(article?.tags || []);
+  const [isPublished, setIsPublished] = useState(
+    article?.is_published || false,
+  );
+  const [isPublic, setIsPublic] = useState<boolean>(article?.is_public ?? true);
+  const [tags, setTags] = useState<string[]>((article?.tags as string[]) || []);
   const [newTag, setNewTag] = useState("");
 
   const updateMutation = api.knowledgeBase.update.useMutation({
@@ -68,7 +68,7 @@ export default function EditArticlePage() {
       setContent(article.content);
       setIsPublished(article.is_published);
       setIsPublic(article.is_public);
-      setTags(article.tags || []);
+      setTags((article.tags as string[]) || []);
     }
   });
 
@@ -94,7 +94,7 @@ export default function EditArticlePage() {
   };
 
   const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
   const generateSlugFromTitle = () => {
@@ -123,8 +123,8 @@ export default function EditArticlePage() {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <h2 className="text-lg font-bold">Article not found</h2>
-          <p className="text-gray-600 mb-4">
-            The article you're looking for doesn't exist.
+          <p className="mb-4 text-gray-600">
+            The article you&apos;re looking for doesn&apos;t exist.
           </p>
           <Button asChild>
             <Link href="/knowledge">
@@ -151,11 +151,15 @@ export default function EditArticlePage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/knowledge">Knowledge Base</BreadcrumbLink>
+                <BreadcrumbLink href="/knowledge">
+                  Knowledge Base
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href={`/knowledge/${slug}`}>{article.title}</BreadcrumbLink>
+                <BreadcrumbLink href={`/knowledge/${slug}`}>
+                  {article.title}
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -166,7 +170,7 @@ export default function EditArticlePage() {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto space-y-6 p-4">
+      <div className="mx-auto max-w-4xl space-y-6 p-4">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="space-y-2">
@@ -188,9 +192,14 @@ export default function EditArticlePage() {
                 Preview
               </Link>
             </Button>
-            <Button 
+            <Button
               onClick={handleSave}
-              disabled={updateMutation.isPending || !title.trim() || !articleSlug.trim() || !content.trim()}
+              disabled={
+                updateMutation.isPending ||
+                !title.trim() ||
+                !articleSlug.trim() ||
+                !content.trim()
+              }
             >
               {updateMutation.isPending ? (
                 <Loader className="mr-2 h-4 w-4 animate-spin" />

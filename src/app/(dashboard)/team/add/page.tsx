@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Badge } from "~/components/ui/badge";
 import { Switch } from "~/components/ui/switch";
 import {
   Select,
@@ -28,7 +27,6 @@ import {
   Mail,
   Shield,
   User,
-  Users,
   Check,
   AlertCircle,
 } from "lucide-react";
@@ -47,10 +45,8 @@ export default function AddTeamMemberPage() {
   const router = useRouter();
 
   const inviteMember = api.user.invite.useMutation({
-    onSuccess: (data) => {
-      setSuccess(
-        `${firstName} ${lastName} has been invited to the team!`
-      );
+    onSuccess: () => {
+      setSuccess(`${firstName} ${lastName} has been invited to the team!`);
       // Redirect after success
       setTimeout(() => {
         router.push("/team");

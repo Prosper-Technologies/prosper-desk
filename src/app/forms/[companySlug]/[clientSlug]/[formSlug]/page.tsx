@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -196,7 +196,10 @@ export default function PublicFormPage() {
                   id={`${field.id}-${option.value}`}
                   className="mt-0.5 flex-shrink-0"
                 />
-                <Label htmlFor={`${field.id}-${option.value}`} className="break-words">
+                <Label
+                  htmlFor={`${field.id}-${option.value}`}
+                  className="break-words"
+                >
                   {option.label}
                 </Label>
               </div>
@@ -221,7 +224,10 @@ export default function PublicFormPage() {
                   id={`${field.id}-${option.value}`}
                   className="mt-0.5 flex-shrink-0"
                 />
-                <Label htmlFor={`${field.id}-${option.value}`} className="break-words">
+                <Label
+                  htmlFor={`${field.id}-${option.value}`}
+                  className="break-words"
+                >
                   {option.label}
                 </Label>
               </div>
@@ -310,7 +316,7 @@ export default function PublicFormPage() {
                 {form.description}
               </CardDescription>
             )}
-            <div className="pt-2 text-xs sm:text-sm text-muted-foreground">
+            <div className="pt-2 text-xs text-muted-foreground sm:text-sm">
               Powered by {form.company_name}
             </div>
           </CardHeader>
@@ -319,8 +325,10 @@ export default function PublicFormPage() {
               {/* Contact Information (for anonymous users) */}
               {settings?.collect_contact_info && (
                 <div className="space-y-4 rounded-lg bg-muted/50 p-3 sm:p-4">
-                  <h3 className="font-semibold text-sm sm:text-base">Contact Information</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <h3 className="text-sm font-semibold sm:text-base">
+                    Contact Information
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="contact-name">Name *</Label>
                       <Input
@@ -351,14 +359,14 @@ export default function PublicFormPage() {
                 .sort((a, b) => a.order - b.order)
                 .map((field) => (
                   <div key={field.id} className="space-y-2">
-                    <Label className="text-sm sm:text-base break-words">
+                    <Label className="break-words text-sm sm:text-base">
                       {field.label}
                       {field.required && (
                         <span className="ml-1 text-destructive">*</span>
                       )}
                     </Label>
                     {field.description && (
-                      <p className="text-xs sm:text-sm text-muted-foreground break-words">
+                      <p className="break-words text-xs text-muted-foreground sm:text-sm">
                         {field.description}
                       </p>
                     )}

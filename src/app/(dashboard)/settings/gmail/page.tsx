@@ -246,7 +246,8 @@ export default function GmailSetupPage() {
                             </AlertDialogTitle>
                             <AlertDialogDescription>
                               This will stop automatic email-to-ticket
-                              conversion. Existing tickets won't be affected.
+                              conversion. Existing tickets won&apos;t be
+                              affected.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -398,7 +399,8 @@ export default function GmailSetupPage() {
                   {setupPushNotifications.error && (
                     <div className="rounded-lg bg-red-50 p-3">
                       <p className="text-sm text-red-600">
-                        Push notifications setup failed: {setupPushNotifications.error.message}
+                        Push notifications setup failed:{" "}
+                        {setupPushNotifications.error.message}
                       </p>
                     </div>
                   )}
@@ -422,7 +424,8 @@ export default function GmailSetupPage() {
                     <div>
                       <p className="font-medium">Test Webhook Subscription</p>
                       <p className="text-sm text-gray-600">
-                        Subscribe to Gmail push notifications for real-time email processing
+                        Subscribe to Gmail push notifications for real-time
+                        email processing
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -467,10 +470,15 @@ export default function GmailSetupPage() {
                   {subscribeToWebhook.isSuccess && (
                     <div className="rounded-lg bg-green-50 p-3">
                       <p className="text-sm text-green-600">
-                        ✓ Webhook subscription successful! 
-                        History ID: {subscribeToWebhook.data.historyId}
+                        ✓ Webhook subscription successful! History ID:{" "}
+                        {subscribeToWebhook.data.historyId}
                         {subscribeToWebhook.data.expiration && (
-                          <>, Expires: {new Date(parseInt(subscribeToWebhook.data.expiration)).toLocaleString()}</>
+                          <>
+                            , Expires:{" "}
+                            {new Date(
+                              parseInt(subscribeToWebhook.data.expiration),
+                            ).toLocaleString()}
+                          </>
                         )}
                       </p>
                     </div>
@@ -479,7 +487,8 @@ export default function GmailSetupPage() {
                   {subscribeToWebhook.error && (
                     <div className="rounded-lg bg-red-50 p-3">
                       <p className="text-sm text-red-600">
-                        ✗ Webhook subscription failed: {subscribeToWebhook.error.message}
+                        ✗ Webhook subscription failed:{" "}
+                        {subscribeToWebhook.error.message}
                       </p>
                     </div>
                   )}
@@ -495,7 +504,8 @@ export default function GmailSetupPage() {
                   {unsubscribeFromWebhook.error && (
                     <div className="rounded-lg bg-red-50 p-3">
                       <p className="text-sm text-red-600">
-                        ✗ Webhook unsubscribe failed: {unsubscribeFromWebhook.error.message}
+                        ✗ Webhook unsubscribe failed:{" "}
+                        {unsubscribeFromWebhook.error.message}
                       </p>
                     </div>
                   )}

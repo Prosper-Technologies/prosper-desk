@@ -18,7 +18,7 @@ async function handleAuth(request: NextRequest) {
   if (!authContext) {
     return NextResponse.json(
       { error: "Invalid or missing API key" },
-      { status: 401 }
+      { status: 401 },
     );
   }
   return authContext;
@@ -27,7 +27,7 @@ async function handleAuth(request: NextRequest) {
 // GET /api/v1/tickets/[id] - Get single ticket
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const authContext = await handleAuth(request);
   if (authContext instanceof NextResponse) return authContext;
@@ -35,7 +35,7 @@ export async function GET(
   if (!hasPermission(authContext, "tickets:read")) {
     return NextResponse.json(
       { error: "Insufficient permissions" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -43,7 +43,7 @@ export async function GET(
     const ticket = await db.query.tickets.findFirst({
       where: and(
         eq(tickets.id, params.id),
-        eq(tickets.company_id, authContext.company.id)
+        eq(tickets.company_id, authContext.company.id),
       ),
       with: {
         createdByMembership: {
@@ -75,7 +75,8 @@ export async function GET(
         },
         slaPolicy: true,
         comments: {
-          where: (ticketComments, { eq }) => eq(ticketComments.is_internal, false), // Only public comments via API
+          where: (ticketComments, { eq }) =>
+            eq(ticketComments.is_internal, false), // Only public comments via API
           with: {
             membership: {
               with: {
@@ -97,16 +98,15 @@ export async function GET(
               },
             },
           },
-          orderBy: (ticketComments, { asc }) => [asc(ticketComments.created_at)],
+          orderBy: (ticketComments, { asc }) => [
+            asc(ticketComments.created_at),
+          ],
         },
       },
     });
 
     if (!ticket) {
-      return NextResponse.json(
-        { error: "Ticket not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
     }
 
     return NextResponse.json({ data: ticket });
@@ -114,7 +114,7 @@ export async function GET(
     console.error("Error fetching ticket:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -122,7 +122,7 @@ export async function GET(
 // PUT /api/v1/tickets/[id] - Update ticket
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const authContext = await handleAuth(request);
   if (authContext instanceof NextResponse) return authContext;
@@ -130,7 +130,7 @@ export async function PUT(
   if (!hasPermission(authContext, "tickets:update")) {
     return NextResponse.json(
       { error: "Insufficient permissions" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -142,15 +142,12 @@ export async function PUT(
     const existingTicket = await db.query.tickets.findFirst({
       where: and(
         eq(tickets.id, params.id),
-        eq(tickets.company_id, authContext.company.id)
+        eq(tickets.company_id, authContext.company.id),
       ),
     });
 
     if (!existingTicket) {
-      return NextResponse.json(
-        { error: "Ticket not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
     }
 
     const updateData: Record<string, any> = {};
@@ -171,7 +168,7 @@ export async function PUT(
     if (Object.keys(updateData).length > 0) {
       updateData.updated_at = new Date();
 
-      const [updatedTicket] = await db
+      await db
         .update(tickets)
         .set(updateData)
         .where(eq(tickets.id, params.id))
@@ -220,12 +217,12 @@ export async function PUT(
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid request body", details: error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

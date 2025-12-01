@@ -28,7 +28,6 @@ import {
   User,
   Mail,
   Calendar,
-  Shield,
   UserCheck,
   UserX,
   Edit,

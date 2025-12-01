@@ -19,8 +19,11 @@
     "prod": "dotenv -e .env.production -- next dev",
     "dev": "next dev -p 4000",
     "lint": "next lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "start": "next start",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "prepare": "husky"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
@@ -101,6 +104,8 @@
     "drizzle-kit": "^0.31.4",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "postcss": "^8.4.34",
     "prettier": "^3.2.5",
     "prettier-plugin-tailwindcss": "^0.5.11",
@@ -121,5 +126,14 @@
   },
   "ct3aMetadata": {
     "initVersion": "7.29.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
   }
 }

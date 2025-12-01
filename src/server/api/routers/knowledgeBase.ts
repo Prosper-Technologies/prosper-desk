@@ -5,19 +5,21 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { knowledgeBase } from "~/db/schema";
-import { and, count, desc, eq, ilike, ne, or } from "drizzle-orm";
+import { and, count, eq, ilike, or } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 export const knowledgeBaseRouter = createTRPCRouter({
   // Get all articles (internal - shows unpublished for admins/agents)
   getAll: companyProcedure
-    .input(z.object({
-      page: z.number().min(1).default(1),
-      limit: z.number().min(1).max(100).default(25),
-      search: z.string().optional(),
-      isPublished: z.boolean().optional(),
-      authorId: z.string().uuid().optional(),
-    }))
+    .input(
+      z.object({
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(100).default(25),
+        search: z.string().optional(),
+        isPublished: z.boolean().optional(),
+        authorId: z.string().uuid().optional(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const offset = (input.page - 1) * input.limit;
 
@@ -81,12 +83,14 @@ export const knowledgeBaseRouter = createTRPCRouter({
 
   // Get published articles (public - for customer portal)
   getPublished: publicProcedure
-    .input(z.object({
-      companySlug: z.string(),
-      page: z.number().min(1).default(1),
-      limit: z.number().min(1).max(100).default(25),
-      search: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        companySlug: z.string(),
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(100).default(25),
+        search: z.string().optional(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       // First find company by slug
       const company = await ctx.db.query.companies.findFirst({
@@ -139,9 +143,11 @@ export const knowledgeBaseRouter = createTRPCRouter({
 
   // Get single article by slug (internal)
   getBySlugInternal: companyProcedure
-    .input(z.object({
-      slug: z.string(),
-    }))
+    .input(
+      z.object({
+        slug: z.string(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const article = await ctx.db.query.knowledgeBase.findFirst({
         where: (knowledgeBase, { and, eq }) =>
@@ -175,9 +181,11 @@ export const knowledgeBaseRouter = createTRPCRouter({
 
   // Get single article by ID
   getById: companyProcedure
-    .input(z.object({
-      id: z.string().uuid(),
-    }))
+    .input(
+      z.object({
+        id: z.string().uuid(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const article = await ctx.db.query.knowledgeBase.findFirst({
         where: (knowledgeBase, { and, eq }) =>
@@ -211,10 +219,12 @@ export const knowledgeBaseRouter = createTRPCRouter({
 
   // Get single article by slug (public)
   getBySlug: publicProcedure
-    .input(z.object({
-      companySlug: z.string(),
-      articleSlug: z.string(),
-    }))
+    .input(
+      z.object({
+        companySlug: z.string(),
+        articleSlug: z.string(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       // Find company first
       const company = await ctx.db.query.companies.findFirst({
@@ -272,14 +282,19 @@ export const knowledgeBaseRouter = createTRPCRouter({
 
   // Create article
   create: companyProcedure
-    .input(z.object({
-      title: z.string().min(1),
-      slug: z.string().min(1).regex(/^[a-z0-9-]+$/),
-      content: z.string().min(1),
-      isPublished: z.boolean().default(false),
-      isPublic: z.boolean().default(true),
-      tags: z.array(z.string()).default([]),
-    }))
+    .input(
+      z.object({
+        title: z.string().min(1),
+        slug: z
+          .string()
+          .min(1)
+          .regex(/^[a-z0-9-]+$/),
+        content: z.string().min(1),
+        isPublished: z.boolean().default(false),
+        isPublic: z.boolean().default(true),
+        tags: z.array(z.string()).default([]),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       // Check if slug is unique within company
       const existingArticle = await ctx.db.query.knowledgeBase.findFirst({
@@ -297,31 +312,40 @@ export const knowledgeBaseRouter = createTRPCRouter({
         });
       }
 
-      const [article] = await ctx.db.insert(knowledgeBase).values({
-        company_id: ctx.company.id,
-        title: input.title,
-        slug: input.slug,
-        content: input.content,
-        author_membership_id: ctx.membership.id,
-        is_published: input.isPublished,
-        is_public: input.isPublic,
-        tags: input.tags,
-      }).returning();
+      const [article] = await ctx.db
+        .insert(knowledgeBase)
+        .values({
+          company_id: ctx.company.id,
+          title: input.title,
+          slug: input.slug,
+          content: input.content,
+          author_membership_id: ctx.membership.id,
+          is_published: input.isPublished,
+          is_public: input.isPublic,
+          tags: input.tags,
+        })
+        .returning();
 
       return article;
     }),
 
   // Update article
   update: companyProcedure
-    .input(z.object({
-      id: z.string().uuid(),
-      title: z.string().min(1).optional(),
-      slug: z.string().min(1).regex(/^[a-z0-9-]+$/).optional(),
-      content: z.string().min(1).optional(),
-      isPublished: z.boolean().optional(),
-      isPublic: z.boolean().optional(),
-      tags: z.array(z.string()).optional(),
-    }))
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        title: z.string().min(1).optional(),
+        slug: z
+          .string()
+          .min(1)
+          .regex(/^[a-z0-9-]+$/)
+          .optional(),
+        content: z.string().min(1).optional(),
+        isPublished: z.boolean().optional(),
+        isPublic: z.boolean().optional(),
+        tags: z.array(z.string()).optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       // Check if article exists and user can edit it
       const existingArticle = await ctx.db.query.knowledgeBase.findFirst({
@@ -400,9 +424,11 @@ export const knowledgeBaseRouter = createTRPCRouter({
 
   // Delete article
   delete: companyProcedure
-    .input(z.object({
-      id: z.string().uuid(),
-    }))
+    .input(
+      z.object({
+        id: z.string().uuid(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       // Check if article exists and user can delete it
       const article = await ctx.db.query.knowledgeBase.findFirst({
@@ -421,7 +447,8 @@ export const knowledgeBaseRouter = createTRPCRouter({
       }
 
       // Check permissions
-      const canDelete = article.author_membership_id === ctx.membership.id ||
+      const canDelete =
+        article.author_membership_id === ctx.membership.id ||
         ctx.user.memberships.some((membership) => membership.role === "admin");
 
       if (!canDelete) {
@@ -431,9 +458,7 @@ export const knowledgeBaseRouter = createTRPCRouter({
         });
       }
 
-      await ctx.db
-        .delete(knowledgeBase)
-        .where(eq(knowledgeBase.id, input.id));
+      await ctx.db.delete(knowledgeBase).where(eq(knowledgeBase.id, input.id));
 
       return { success: true };
     }),

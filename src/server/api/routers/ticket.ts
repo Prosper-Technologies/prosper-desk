@@ -1,11 +1,7 @@
 import { z } from "zod";
-import {
-  createTRPCRouter,
-  companyProcedure,
-  protectedProcedure,
-} from "~/server/api/trpc";
-import { tickets, ticketComments, users, memberships } from "~/db/schema";
-import { eq, desc, and, or, ilike, count, gte, lte } from "drizzle-orm";
+import { createTRPCRouter, companyProcedure } from "~/server/api/trpc";
+import { tickets, ticketComments } from "~/db/schema";
+import { eq, and, or, ilike, count, gte, lte } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 export const ticketRouter = createTRPCRouter({

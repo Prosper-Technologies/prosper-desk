@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
-import { Button } from "~/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -31,7 +30,7 @@ import {
 import { DashboardHeader } from "~/components/layout/dashboard-header";
 
 export default function DashboardPage() {
-  const [dateRange, setDateRange] = useState({
+  const [dateRange] = useState({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
     endDate: new Date(),
   });
@@ -49,10 +48,9 @@ export default function DashboardPage() {
     limit: 50,
   });
 
-  const { data: trends, isLoading: trendsLoading } =
-    api.dashboard.getTicketTrends.useQuery({
-      days: 30,
-    });
+  const { isLoading: trendsLoading } = api.dashboard.getTicketTrends.useQuery({
+    days: 30,
+  });
 
   const { data: workload, isLoading: workloadLoading } =
     api.dashboard.getAgentWorkload.useQuery();

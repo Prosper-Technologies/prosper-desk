@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { AlertCircle, LifeBuoy, Mail, Check, KeyRound } from "lucide-react";
+import { AlertCircle, LifeBuoy, Mail, KeyRound } from "lucide-react";
 import { api } from "~/trpc/react";
 import { createClient } from "~/utils/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
