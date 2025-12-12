@@ -174,6 +174,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
   >("medium")
   const [editAssignee, setEditAssignee] = useState<string | null>(null)
   const [newCommentContent, setNewCommentContent] = useState("")
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editCommentContent, setEditCommentContent] = useState("")
 
   // Verify session on mount
   const verifySession = api.customerPortal.verifyToken.useMutation({
@@ -380,6 +382,18 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
     },
   })
 
+  const unresolveTicketMutation =
+    api.customerPortal.unresolveTicket.useMutation({
+      onSuccess: () => {
+        void refetchTicket()
+        resetAndRefetchTickets()
+        toast.success("Ticket unresolved successfully")
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to unresolve ticket")
+      },
+    })
+
   const addComment = api.customerPortal.addComment.useMutation({
     onSuccess: () => {
       void refetchTicket()
@@ -389,6 +403,19 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
     },
     onError: (error) => {
       toast.error(error.message || "Failed to add comment")
+    },
+  })
+
+  const editComment = api.customerPortal.editComment.useMutation({
+    onSuccess: () => {
+      void refetchTicket()
+      resetAndRefetchTickets()
+      setEditingCommentId(null)
+      setEditCommentContent("")
+      toast.success("Comment updated successfully")
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update comment")
     },
   })
 
@@ -487,6 +514,37 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
       clientSlug: params.clientSlug,
       ticketId: selectedTicket.id,
       content: newCommentContent,
+    })
+  }
+
+  const handleUnresolve = () => {
+    if (!selectedTicket) return
+
+    unresolveTicketMutation.mutate({
+      companySlug: params.companySlug,
+      clientSlug: params.clientSlug,
+      ticketId: selectedTicket.id,
+    })
+  }
+
+  const handleStartEditComment = (commentId: string, content: string) => {
+    setEditingCommentId(commentId)
+    setEditCommentContent(content)
+  }
+
+  const handleCancelEditComment = () => {
+    setEditingCommentId(null)
+    setEditCommentContent("")
+  }
+
+  const handleSaveEditComment = (commentId: string) => {
+    if (!editCommentContent.trim()) return
+
+    editComment.mutate({
+      companySlug: params.companySlug,
+      clientSlug: params.clientSlug,
+      commentId,
+      content: editCommentContent,
     })
   }
 
@@ -1193,6 +1251,19 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                           <span className="text-xs">Resolve</span>
                         </Button>
                       )}
+                    {(selectedTicket.status === "resolved" ||
+                      selectedTicket.status === "closed") &&
+                      selectedTicket.canUnresolve && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleUnresolve}
+                          disabled={unresolveTicketMutation.isPending}
+                        >
+                          <Activity className="mr-1.5 h-3.5 w-3.5" />
+                          <span className="text-xs">Unresolve</span>
+                        </Button>
+                      )}
                   </div>
                 </div>
               </div>
@@ -1505,6 +1576,8 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                       const isCustomer = !!comment.customerPortalAccess
                       const customerName = comment.customerPortalAccess?.name
                       const customerEmail = comment.customerPortalAccess?.email
+                      const isEditingThisComment =
+                        editingCommentId === comment.id
 
                       return (
                         <div
@@ -1530,26 +1603,82 @@ export default function CustomerPortalPage({ params }: PortalPageProps) {
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">
-                                {isCustomer
-                                  ? customerName || "Customer"
-                                  : comment.membership?.user
-                                    ? `${comment.membership.user.first_name} ${comment.membership.user.last_name}`
-                                    : "Unknown"}
-                              </span>
-                              {isCustomer && customerEmail && (
-                                <span className="text-xs text-muted-foreground">
-                                  ({customerEmail})
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">
+                                  {isCustomer
+                                    ? customerName || "Customer"
+                                    : comment.membership?.user
+                                      ? `${comment.membership.user.first_name} ${comment.membership.user.last_name}`
+                                      : "Unknown"}
                                 </span>
+                                {isCustomer && customerEmail && (
+                                  <span className="text-xs text-muted-foreground">
+                                    ({customerEmail})
+                                  </span>
+                                )}
+                                <span className="text-xs text-muted-foreground">
+                                  • {formatRelativeTime(comment.created_at)}
+                                </span>
+                                {comment.edited_at && (
+                                  <span className="text-xs italic text-muted-foreground">
+                                    • edited{" "}
+                                    {formatRelativeTime(comment.edited_at)}
+                                  </span>
+                                )}
+                              </div>
+                              {comment.canEdit && !isEditingThisComment && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleStartEditComment(
+                                      comment.id,
+                                      comment.content
+                                    )
+                                  }
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </Button>
                               )}
-                              <span className="text-xs text-muted-foreground">
-                                • {formatRelativeTime(comment.created_at)}
-                              </span>
                             </div>
-                            <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                              <TextWithLinks text={comment.content} />
-                            </p>
+                            {isEditingThisComment ? (
+                              <div className="space-y-2">
+                                <Textarea
+                                  value={editCommentContent}
+                                  onChange={(e) =>
+                                    setEditCommentContent(e.target.value)
+                                  }
+                                  rows={3}
+                                  className="resize-none"
+                                />
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() =>
+                                      handleSaveEditComment(comment.id)
+                                    }
+                                    disabled={editComment.isPending}
+                                  >
+                                    <Save className="mr-2 h-4 w-4" />
+                                    Save
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleCancelEditComment}
+                                    disabled={editComment.isPending}
+                                  >
+                                    <X className="mr-2 h-4 w-4" />
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                                <TextWithLinks text={comment.content} />
+                              </p>
+                            )}
                           </div>
                         </div>
                       )

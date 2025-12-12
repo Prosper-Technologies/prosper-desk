@@ -1,0 +1,5 @@
+ALTER TABLE "ticket_comments" ADD COLUMN "edited_at" timestamp;--> statement-breakpoint
+ALTER TABLE "ticket_comments" ADD COLUMN "edited_by_membership_id" uuid;--> statement-breakpoint
+ALTER TABLE "ticket_comments" ADD COLUMN "edited_by_customer_portal_access_id" uuid;--> statement-breakpoint
+ALTER TABLE "ticket_comments" ADD CONSTRAINT "ticket_comments_edited_by_membership_id_memberships_id_fk" FOREIGN KEY ("edited_by_membership_id") REFERENCES "public"."memberships"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ticket_comments" ADD CONSTRAINT "ticket_comments_edited_by_customer_portal_access_id_customer_portal_access_id_fk" FOREIGN KEY ("edited_by_customer_portal_access_id") REFERENCES "public"."customer_portal_access"("id") ON DELETE no action ON UPDATE no action;

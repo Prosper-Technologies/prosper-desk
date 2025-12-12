@@ -214,6 +214,13 @@ export const ticketComments = pgTable("ticket_comments", {
   attachments: jsonb("attachments").default("[]"), // Array of file URLs
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
+  edited_at: timestamp("edited_at"), // When the comment was last edited
+  edited_by_membership_id: uuid("edited_by_membership_id").references(
+    () => memberships.id
+  ), // Team member who edited
+  edited_by_customer_portal_access_id: uuid(
+    "edited_by_customer_portal_access_id"
+  ).references(() => customerPortalAccess.id), // Portal user who edited
 }).enableRLS()
 
 export const knowledgeBase = pgTable("knowledge_base", {

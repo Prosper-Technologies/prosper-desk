@@ -564,6 +564,119 @@ export const customerPortalRouter = createTRPCRouter({
       return comment
     }),
 
+  // Edit comment (only comment owner can edit)
+  editComment: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        commentId: z.string().uuid(),
+        content: z.string().min(1),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      })
+
+      // Get the comment
+      const comment = await ctx.db.query.ticketComments.findFirst({
+        where: (ticketComments, { eq }) =>
+          eq(ticketComments.id, input.commentId),
+        with: {
+          ticket: true,
+        },
+      })
+
+      if (!comment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Comment not found",
+        })
+      }
+
+      // Verify comment belongs to a ticket in this client
+      if (comment.ticket.client_id !== access.clientId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Access denied",
+        })
+      }
+
+      // Check ownership: user must be the comment owner
+      let isOwner = false
+
+      if (access.isTeamMember) {
+        // If team member, check if they created this comment via membership
+        const user = await ctx.db.query.users.findFirst({
+          where: (users, { eq }) => eq(users.email, access.customerEmail),
+        })
+        if (user) {
+          const membership = await ctx.db.query.memberships.findFirst({
+            where: (memberships, { and, eq }) =>
+              and(
+                eq(memberships.user_id, user.id),
+                eq(memberships.company_id, access.companyId),
+                eq(memberships.is_active, true)
+              ),
+          })
+          isOwner = membership?.id === comment.membership_id
+        }
+      } else {
+        // If portal user, check if they created this comment via portal access
+        isOwner =
+          access.portalAccessId === comment.customer_portal_access_id &&
+          access.portalAccessId !== null
+      }
+
+      if (!isOwner) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the comment owner can edit this comment",
+        })
+      }
+
+      // Get the editor's ID (membership or portal access)
+      let editorMembershipId = null
+      let editorPortalAccessId = null
+
+      if (access.isTeamMember) {
+        const user = await ctx.db.query.users.findFirst({
+          where: (users, { eq }) => eq(users.email, access.customerEmail),
+        })
+        if (user) {
+          const membership = await ctx.db.query.memberships.findFirst({
+            where: (memberships, { and, eq }) =>
+              and(
+                eq(memberships.user_id, user.id),
+                eq(memberships.company_id, access.companyId),
+                eq(memberships.is_active, true)
+              ),
+          })
+          editorMembershipId = membership?.id || null
+        }
+      } else {
+        editorPortalAccessId = access.portalAccessId
+      }
+
+      // Update the comment with edit tracking
+      const [updatedComment] = await ctx.db
+        .update(ticketComments)
+        .set({
+          content: input.content,
+          updated_at: new Date(),
+          edited_at: new Date(),
+          edited_by_membership_id: editorMembershipId,
+          edited_by_customer_portal_access_id: editorPortalAccessId,
+        })
+        .where(eq(ticketComments.id, input.commentId))
+        .returning()
+
+      return updatedComment
+    }),
+
   // Get customer portal knowledge base
   getKnowledgeBase: publicProcedure
     .input(
@@ -852,17 +965,52 @@ export const customerPortalRouter = createTRPCRouter({
         })
       }
 
-      // Combine comment data
-      const comments = baseComments.map((comment) => ({
-        ...comment,
-        membership:
-          commentMemberships.find((m) => m.id === comment.membership_id) ||
-          null,
-        customerPortalAccess:
-          commentPortalAccess.find(
-            (p) => p.id === comment.customer_portal_access_id
-          ) || null,
-      }))
+      // Get current user's membership if they are a team member
+      let currentUserMembershipId = null
+      if (access.isTeamMember) {
+        const currentUser = await ctx.db.query.users.findFirst({
+          where: (users, { eq }) => eq(users.email, access.customerEmail),
+        })
+        if (currentUser) {
+          const currentUserMembership =
+            await ctx.db.query.memberships.findFirst({
+              where: (memberships, { and, eq }) =>
+                and(
+                  eq(memberships.user_id, currentUser.id),
+                  eq(memberships.company_id, access.companyId),
+                  eq(memberships.is_active, true)
+                ),
+            })
+          currentUserMembershipId = currentUserMembership?.id || null
+        }
+      }
+
+      // Combine comment data with canEdit permission
+      const comments = baseComments.map((comment) => {
+        // Check if current user can edit this comment (they must be the owner)
+        let canEditComment = false
+        if (access.isTeamMember) {
+          // Team member can edit if they created the comment
+          canEditComment = currentUserMembershipId === comment.membership_id
+        } else {
+          // Portal user can edit if they created the comment
+          canEditComment =
+            access.portalAccessId === comment.customer_portal_access_id &&
+            access.portalAccessId !== null
+        }
+
+        return {
+          ...comment,
+          membership:
+            commentMemberships.find((m) => m.id === comment.membership_id) ||
+            null,
+          customerPortalAccess:
+            commentPortalAccess.find(
+              (p) => p.id === comment.customer_portal_access_id
+            ) || null,
+          canEdit: canEditComment,
+        }
+      })
 
       // Get form submission if ticket was created from a form
       let formSubmission = null
@@ -896,6 +1044,16 @@ export const customerPortalRouter = createTRPCRouter({
       // Everyone in the customer portal can edit tickets
       const canEdit = true
 
+      // Check if user can unresolve the ticket
+      // All company users (team members) can unresolve, or ticket owner can unresolve
+      let canUnresolve = false
+      if (access.isTeamMember) {
+        canUnresolve = true // All company users can unresolve
+      } else {
+        // Portal users can unresolve only if they are the ticket owner
+        canUnresolve = ticket.customer_email === access.customerEmail
+      }
+
       return {
         ...ticket,
         assigned_to: assignedTo,
@@ -904,6 +1062,8 @@ export const customerPortalRouter = createTRPCRouter({
         comments,
         formSubmission,
         canEdit, // Add permission flag
+        canUnresolve, // Add unresolve permission flag
+        isTeamMember: access.isTeamMember, // Add team member flag
       }
     }),
 
@@ -1021,6 +1181,80 @@ export const customerPortalRouter = createTRPCRouter({
         .set({
           status: "resolved",
           resolved_at: new Date(),
+          updated_at: new Date(),
+        })
+        .where(eq(tickets.id, input.ticketId))
+
+      return { success: true }
+    }),
+
+  // Unresolve ticket (ticket owner or any company user can unresolve)
+  unresolveTicket: publicProcedure
+    .input(
+      z.object({
+        companySlug: z.string(),
+        clientSlug: z.string(),
+        ticketId: z.string().uuid(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify access first
+      const access = await verifyPortalAccess(ctx, {
+        companySlug: input.companySlug,
+        clientSlug: input.clientSlug,
+      })
+
+      // Get the ticket
+      const ticket = await ctx.db.query.tickets.findFirst({
+        where: (tickets, { and, eq }) =>
+          and(
+            eq(tickets.id, input.ticketId),
+            eq(tickets.client_id, access.clientId)
+          ),
+      })
+
+      if (!ticket) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        })
+      }
+
+      // Check permissions: all company users can unresolve, or ticket owner
+      let canUnresolve = false
+
+      // All company users (team members) can unresolve
+      if (access.isTeamMember) {
+        canUnresolve = true
+      } else {
+        // Portal users can only unresolve if they are the ticket owner
+        // Check if ticket was created by this portal user
+        const ticketCreatorAccess =
+          await ctx.db.query.customerPortalAccess.findFirst({
+            where: (customerPortalAccess, { and, eq }) =>
+              and(
+                eq(customerPortalAccess.id, access.portalAccessId!),
+                eq(customerPortalAccess.email, ticket.customer_email!)
+              ),
+          })
+
+        canUnresolve = !!ticketCreatorAccess
+      }
+
+      if (!canUnresolve) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "Only the ticket owner or company users can unresolve this ticket",
+        })
+      }
+
+      // Unresolve the ticket (set status back to in_progress)
+      await ctx.db
+        .update(tickets)
+        .set({
+          status: "in_progress",
+          resolved_at: null,
           updated_at: new Date(),
         })
         .where(eq(tickets.id, input.ticketId))
