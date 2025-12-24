@@ -1413,20 +1413,29 @@ export const customerPortalRouter = createTRPCRouter({
         }
       }
 
-      // Get submissions for these forms from this user
+      // Get submissions for these forms
       const submissions = await ctx.db.query.formSubmissions.findMany({
         where: (formSubmissions, { and, eq, or }) => {
-          const conditions = [
-            inArray(formSubmissions.form_id, formIds),
-            // Only show submissions from this user (either portal access or email)
-            or(
-              eq(
-                formSubmissions.submitted_by_customer_portal_access_id,
-                access.portalAccessId!
-              ),
+          const conditions: any[] = [inArray(formSubmissions.form_id, formIds)]
+
+          // Only apply "my submissions" filter for client portal users, not team members
+          if (!access.isTeamMember) {
+            // Client portal users only see their own submissions
+            const userFilters = []
+            if (access.portalAccessId) {
+              userFilters.push(
+                eq(
+                  formSubmissions.submitted_by_customer_portal_access_id,
+                  access.portalAccessId
+                )
+              )
+            }
+            userFilters.push(
               eq(formSubmissions.submitted_by_email, access.customerEmail)
-            ),
-          ]
+            )
+            conditions.push(or(...userFilters))
+          }
+          // Team members can see all submissions for this client (no additional filter needed)
 
           // Add form filter if specified
           if (input.formId) {
@@ -1461,16 +1470,26 @@ export const customerPortalRouter = createTRPCRouter({
       })
 
       // Get total count
-      const countConditions = [
-        inArray(formSubmissions.form_id, formIds),
-        or(
-          eq(
-            formSubmissions.submitted_by_customer_portal_access_id,
-            access.portalAccessId!
-          ),
+      const countConditions: any[] = [inArray(formSubmissions.form_id, formIds)]
+
+      // Only apply "my submissions" filter for client portal users, not team members
+      if (!access.isTeamMember) {
+        // Client portal users only see their own submissions
+        const userFilters = []
+        if (access.portalAccessId) {
+          userFilters.push(
+            eq(
+              formSubmissions.submitted_by_customer_portal_access_id,
+              access.portalAccessId
+            )
+          )
+        }
+        userFilters.push(
           eq(formSubmissions.submitted_by_email, access.customerEmail)
-        ),
-      ]
+        )
+        countConditions.push(or(...userFilters))
+      }
+      // Team members can see all submissions for this client (no additional filter needed)
 
       // Add form filter if specified
       if (input.formId) {
